@@ -21,11 +21,6 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- * ------------------------------------------------------------------------------------------------------------------------------
- *
- *  If modifying this project, please keep the above header intact and add your comments/credits below - Thank you! -  @BPTWorld
- *
- *  App and Driver updates can be found at https://github.com/bptworld/Hubitat/
  *
  * ------------------------------------------------------------------------------------------------------------------------------
  *
@@ -39,7 +34,7 @@ def version(){"v1.0.0"}
 
 definition(
     name:"NOAA Weather Alerts",
-    namespace: "AaronWard",
+    namespace: "prayerfuldrop",
     author: "Aaron Ward",
     description: "NOAA Weather Alerts Application ",
     category: "Weather",
