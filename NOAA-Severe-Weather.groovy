@@ -1,4 +1,7 @@
 /**
+ *
+ * Hubitat Import URL: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA-Severe-Weather.groovy
+ *
  *  ****************  NOAA Weather Alerts App  ****************
  *
  *  Design Usage:
@@ -48,12 +51,12 @@ preferences {
 } 
 
 def installed() {
-    log.debug "Installed with settings: ${settings}"
+    log.info "Installed with settings: ${settings}"
     initialize()
 }
 
 def updated() {
-    log.debug "Updated with settings: ${settings}"
+    log.info "Updated with settings: ${settings}"
     unsubscribe()
     initialize()
 	log.info "Checking for Severe Weather"
@@ -80,8 +83,9 @@ def mainPage() {
 			section(getFormat("header-green", "${getImage("Blank")}"+" Configuration")) {}
 			section("Location:", hideable: false, hidden: false) {
 				paragraph "Enter your location information that is provided within Settings->Location and Modes"
-				input "longitude", "text", title: "Longitude", required: true, multiple: false, defaultValue: "-/+XX.XXXXXX"
 				input "latitude", "text", title: "Latitude", required: true, multiple: false, defaultValue: "XX.XXXXXX"
+				input "longitude", "text", title: "Longitude", required: true, multiple: false, defaultValue: "-/+XX.XXXXXX"
+				
 				
 			}
 			section("TTS Configuration:") {
@@ -132,7 +136,7 @@ def display(){
 
 def refresh() {
 		def alertseverity, alertsent, alertarea, alertmsg
-		def wxURI = "https://api.weather.gov/alerts?point=${longitude}%2C${latitude}"
+		def wxURI = "https://api.weather.gov/alerts?point=${latitude}%2C${longitude}"
 		log.info "URI: ${wxURI}"
 	def requestParams =
 	[
@@ -197,4 +201,3 @@ def talkNow(alertmsg) {
 		}
 
 }
-
