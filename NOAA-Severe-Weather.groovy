@@ -185,7 +185,7 @@ def refresh() {
 def talkNow(alertmsg) {								
 		state.fullMsg1 = alertmsg
 		state.volume = volume1
-		if(!echoSpeaks) speaker1.setLevel(state.volume)
+		//if(!echoSpeaks) speaker1.setLevel(state.volume)
 		
   		if (speechMode == "Music Player"){ 
 			if(echoSpeaks) {
