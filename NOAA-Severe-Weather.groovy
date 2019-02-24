@@ -33,7 +33,7 @@
 
 import groovy.json.*
 	
-def version(){"v1.0.0"}
+def version(){"v1.0.1"}
 
 definition(
     name:"NOAA Weather Alerts",
