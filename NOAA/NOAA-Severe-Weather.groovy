@@ -28,7 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *	 1.0.2 - added standard logEnable logic for 30 min disable, latitude and logitude from Hub Location
+ *	 1.0.2 - added standard logEnable logic for 30 min disable, latitude and logitude from Hub Location, announcement intro customization, random bug fixes
  *     1.0 - Initial poor mans code.  Additional updates coming soon.
 **/
 
@@ -75,13 +75,13 @@ def mainPage() {
     dynamicPage(name: "mainPage") {
     	installCheck()
 		if(state.appInstalled == 'COMPLETE'){
-			section(getFormat("title", "${app.label}")) {
+			section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
 				paragraph "<div style='color:#1A77C9'>This application supplies Severe Weather alert TTS notifications.</div>"
 			}
-			section(getFormat("header-green", "${getImage("Blank")}"+" General")) {
+			section(getFormat("header-green", " General")) {
        			label title: "Enter a name for parent app (optional)", required: false
 			}
-			section(getFormat("header-green", "${getImage("Blank")}"+" Configuration")) {
+			section(getFormat("header-green", " Configuration")) {
 				paragraph "Configure your TTS devices"
 			      input "speechMode", "enum", required: true, title: "Select Speaker Type", submitOnChange: true,  options: ["Music Player", "Speech Synth"] 
 				if (speechMode == "Music Player"){
@@ -92,7 +92,11 @@ def mainPage() {
         	            if (speechMode == "Speech Synth"){
          	            	input "speaker1", "capability.speechSynthesis", title: "Choose speaker(s)", required: true, multiple: true
           	            }
+
 			}
+			section(getFormat("header-green", " Customization")) {
+				input (name: "introduction", type: "text", title: "Announcement Introduction Phrase:", require: false, defaultValue: "Attention, Attention,") 
+			}					
 		}
 		display()
 	}
@@ -109,8 +113,7 @@ def installCheck(){
 }
 
 def getImage(type) {
-    def loc = "<img src=https://raw.githubusercontent.com/bptworld/Hubitat/master/resources/images/"
-    if(type == "Blank") return "${loc}blank.png height=40 width=5}>"
+    def loc = "<img src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/Support/NOAA.png'>"
 }
 
 def getFormat(type, myText=""){
@@ -123,7 +126,7 @@ def display(){
 	section() {
  		input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
 		paragraph getFormat("line")
-		paragraph "<div style='color:#1A77C9;text-align:center'>${version()}</div>"
+		paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${version()}</div>"
 	}       
 }
 
@@ -155,7 +158,7 @@ def refresh() {
 				StringBuffer buffer = new StringBuffer(alertarea)
 				alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
 				alertarea = new StringBuffer(alertarea).reverse().toString()
-				alertmsg = "Attention, Attention, ${alertseverity} Weather Alert for the following counties: ${alertarea}.  ${response.data.features[0].properties.description}. . . This is the end of this Severe Weather Announcement."
+				alertmsg = "${introduction} ${alertseverity} Weather Alert for the following counties: ${alertarea}.  ${response.data.features[0].properties.description}. . . This is the end of this Severe Weather Announcement."
 				alertmsg = alertmsg.replaceAll("\n"," ")
 			} 			
 			if(alertarea) {
