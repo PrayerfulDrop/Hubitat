@@ -138,7 +138,7 @@ def logsOff(){
 
 def refresh() {
 		def alertseverity, alertsent, alertarea, alertmsg
-		def wxURI = "https://api.weather.gov/alerts?point=${location.latitude}%2C${location.longitude}"
+		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=severe,extreme"
 		log.info "URI: ${wxURI}"
 	def requestParams =
 	[
