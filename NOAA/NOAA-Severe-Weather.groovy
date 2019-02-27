@@ -103,7 +103,7 @@ def mainPage() {
 			section(getFormat("header-green", " Restrictions")) {
 				input "modesYes", "bool", title: "Enable restriction by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
 				if(modesYes){	
-				    input(name:"modes", type: "mode", title: "Allow actions when current mode is:", multiple: true, required: false)
+				    input(name:"modes", type: "mode", title: "Restrict actions when current mode is:", multiple: true, required: false)
 				}
 				if(!modesYes){
 			          input "restrictbySwitch", "capability.switch", title: "Or use a switch to restrict:", required: false, multiple: false, defaultValue: null
