@@ -151,7 +151,7 @@ def logsOff(){
 
 def refresh() {
 	def result = (restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
-	result2 = (modes !=null && modes.contains(location.mode)) ? true : false
+	result2 = (modesYes && (modes !=null && modes.contains(location.mode))) ? true : false
 	if (logEnable) log.debug "Restrictions on: $result, $result2"
 	
 	if(!result || !result2) {
