@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.5 - fixed error with checking both mode and switch restrictions.
  *   1.0.4 - fixed mode restriction wording, fixed auto log off issue, added disable by switch option
  *   1.0.3 - added restrictions based on modes, pushover notification support and logEnable for only 15 min
  *   1.0.2 - added standard logEnable logic for 30 min disable, latitude and longitude from Hub Location, announcement intro customization, random bug fixes
@@ -37,7 +38,7 @@
 
 import groovy.json.*
 	
-def version(){"v1.0.4"}
+def version(){"v1.0.5"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -153,7 +154,7 @@ def refresh() {
 	result2 = (modes !=null && modes.contains(location.mode)) ? true : false
 	if (logEnable) log.debug "Restrictions on: $result, $result2"
 	
-	if(!result && !result2) {
+	if(!result || !result2) {
 		def alertseverity, alertsent, alertarea, alertmsg
 		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=severe,extreme"
 		if (logEnable) log.debug "URI: ${wxURI}"
