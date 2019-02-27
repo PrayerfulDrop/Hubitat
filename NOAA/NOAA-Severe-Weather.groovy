@@ -10,9 +10,9 @@
  *
  *  Copyright 2018 Aaron Ward
  *
- *  Special thanks to bptorld and Cobra for use of their code and various other bits and pieces to get this put together.
+ *  Special thanks to bptorld, Cobra and csteele for use of their code or assistance in refining code.
  *  
- *  This App is free and to be honest designed for my needs.
+ *  This App is free and was designed for my needs originally but has grown for most needs too.
  *
  *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
