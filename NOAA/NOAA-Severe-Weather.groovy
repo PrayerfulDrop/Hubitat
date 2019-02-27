@@ -29,8 +29,9 @@
  *
  *  Changes:
  *   1.0.3 - added restrictions based on modes, pushover notification support and logEnable for only 15 min
- *   1.0.2 - added standard logEnable logic for 30 min disable, latitude and logitude from Hub Location, announcement intro customization, random bug fixes
- *   1.0.0 - Initial poor mans code.  Additional updates coming soon.
+ *   1.0.2 - added standard logEnable logic for 30 min disable, latitude and longitude from Hub Location, announcement intro customization, random bug fixes
+ *   1.0.1 - misc bug fixes
+ *   1.0.0 - Initial code concept
 **/
 
 import groovy.json.*
