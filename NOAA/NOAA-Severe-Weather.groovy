@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.4 - fixed mode restriction wording, fixed auto log off issue, added disable by switch option
  *   1.0.3 - added restrictions based on modes, pushover notification support and logEnable for only 15 min
  *   1.0.2 - added standard logEnable logic for 30 min disable, latitude and longitude from Hub Location, announcement intro customization, random bug fixes
  *   1.0.1 - misc bug fixes
@@ -68,9 +69,7 @@ def updated() {
 	runIn(5, refresh)
 }
 
-def initialize() {
-
-}
+def initialize() {}
 
 
 def mainPage() {
@@ -102,9 +101,12 @@ def mainPage() {
 				input (name: "introduction", type: "text", title: "Announcement Introduction Phrase:", require: false, defaultValue: "Attention, Attention,") 
 			}	
 			section(getFormat("header-green", " Restrictions")) {
-					input "modesYes", "bool", title: "Enable restriction by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
+				input "modesYes", "bool", title: "Enable restriction by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
 				if(modesYes){	
-				input(name:"modes", type: "mode", title: "Restrict actions when current mode is:", multiple: true, required: false)
+				    input(name:"modes", type: "mode", title: "Allow actions when current mode is:", multiple: true, required: false)
+				}
+				if(!modesYes){
+			          input "restrictbySwitch", "capability.switch", title: "Or use a switch to restrict:", required: false, multiple: false, defaultValue: null
 				}
 			}
 		}
@@ -141,16 +143,17 @@ def display(){
 }
 
 def logsOff(){
-    log.warn "debug logging disabled..."
-    device.updateSetting("logEnable",[value:"false",type:"bool"])
+    log.warn "Debug logging disabled."
+    app?.updateSetting("logEnable",[value:"false",type:"bool"])
 }
 
 
 def refresh() {
-		def result = !modes || modes.contains(location.mode)
-		if (logEnable) log.debug "Mode Restricted: ${result}"
+	def result = (restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
+	result2 = (modes !=null && modes.contains(location.mode)) ? true : false
+	if (logEnable) log.debug "Mode Restricted: $result, $result2"
 	
-	if(!result) {
+	if(!result && result2) {
 		def alertseverity, alertsent, alertarea, alertmsg
 		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=severe,extreme"
 		if (logEnable) log.debug "URI: ${wxURI}"
