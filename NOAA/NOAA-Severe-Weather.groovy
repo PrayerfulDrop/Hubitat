@@ -37,7 +37,7 @@
 
 import groovy.json.*
 	
-def version(){"v1.0.3"}
+def version(){"v1.0.4"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -151,9 +151,9 @@ def logsOff(){
 def refresh() {
 	def result = (restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
 	result2 = (modes !=null && modes.contains(location.mode)) ? true : false
-	if (logEnable) log.debug "Mode Restricted: $result, $result2"
+	if (logEnable) log.debug "Restrictions on: $result, $result2"
 	
-	if(!result && result2) {
+	if(!result && !result2) {
 		def alertseverity, alertsent, alertarea, alertmsg
 		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=severe,extreme"
 		if (logEnable) log.debug "URI: ${wxURI}"
@@ -194,7 +194,7 @@ def refresh() {
 		}
 		log.info "Waiting 5 minutes before next poll..."
 	}
-	} else log.info "Mode is restricted!  Waiting 5 minutes before next poll..."
+	} else log.info "Restrictions are enabled!  Waiting 5 minutes before next poll..."
 }
 
 def talkNow(alertmsg) {								
