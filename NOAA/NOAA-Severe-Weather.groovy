@@ -28,17 +28,18 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.3 - added restrictions based on modes, pushover notification support and logEnable for only 15 min
  *	 1.0.2 - added standard logEnable logic for 30 min disable, latitude and logitude from Hub Location, announcement intro customization, random bug fixes
- *     1.0 - Initial poor mans code.  Additional updates coming soon.
+ *   1.0.0 - Initial poor mans code.  Additional updates coming soon.
 **/
 
 import groovy.json.*
 	
-def version(){"v1.0.2"}
+def version(){"v1.0.3"}
 
 definition(
     name:"NOAA Weather Alerts",
-    namespace: "prayerfuldrop",
+    namespace: "Aaron Ward",
     author: "Aaron Ward",
     description: "NOAA Weather Alerts Application ",
     category: "Weather",
@@ -59,7 +60,7 @@ def installed() {
 def updated() {
     if (logEnable) log.debug "Updated with settings: ${settings}"
     unsubscribe()
-    if (logEnable) runIn(1800,logsOff)
+    if (logEnable) runIn(900,logsOff)
     initialize()
 	log.info "Checking for Severe Weather"
 	runEvery5Minutes(refresh)
@@ -82,6 +83,8 @@ def mainPage() {
        			label title: "Enter a name for parent app (optional)", required: false
 			}
 			section(getFormat("header-green", " Configuration")) {
+			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts", required: true, defaultValue: false, submitOnChange: true 
+			    if(pushovertts == true){ input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true}
 				paragraph "Configure your TTS devices"
 			      input "speechMode", "enum", required: true, title: "Select Speaker Type", submitOnChange: true,  options: ["Music Player", "Speech Synth"] 
 				if (speechMode == "Music Player"){
@@ -96,7 +99,13 @@ def mainPage() {
 			}
 			section(getFormat("header-green", " Customization")) {
 				input (name: "introduction", type: "text", title: "Announcement Introduction Phrase:", require: false, defaultValue: "Attention, Attention,") 
-			}					
+			}	
+			section(getFormat("header-green", " Restrictions")) {
+					input "modesYes", "bool", title: "Enable restriction by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
+				if(modesYes){	
+				input(name:"modes", type: "mode", title: "Allow actions when current mode is:", multiple: true, required: false)
+				}
+			}
 		}
 		display()
 	}
@@ -108,7 +117,7 @@ def installCheck(){
     	section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
     }
     else{
-    if (logEnable) log.debug "Application Installed Correctly"
+    if (logEnable) log.debug "NOAA Weather Alerts is Installed Correctly"
     }
 }
 
@@ -137,9 +146,13 @@ def logsOff(){
 
 
 def refresh() {
+		def result = !modes || modes.contains(location.mode)
+		if (logEnable) log.debug "Mode Restricted: ${result}"
+	
+	if(!result) {
 		def alertseverity, alertsent, alertarea, alertmsg
 		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=severe,extreme"
-		log.info "URI: ${wxURI}"
+		if (logEnable) log.debug "URI: ${wxURI}"
 	def requestParams =
 	[
 		uri:  wxURI,
@@ -158,7 +171,7 @@ def refresh() {
 				StringBuffer buffer = new StringBuffer(alertarea)
 				alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
 				alertarea = new StringBuffer(alertarea).reverse().toString()
-				alertmsg = "${introduction} ${alertseverity} Weather Alert for the following counties: ${alertarea}.  ${response.data.features[0].properties.description}. . . This is the end of this Severe Weather Announcement."
+				alertmsg = "${alertseverity} Weather Alert for the following counties: ${alertarea}.  ${response.data.features[0].properties.description}. . . This is the end of this Severe Weather Announcement."
 				alertmsg = alertmsg.replaceAll("\n"," ")
 			} 			
 			if(alertarea) {
@@ -168,22 +181,20 @@ def refresh() {
 					state.pastalert = alertsent
 					log.info "Speaking: ${alertmsg}"
 					if (logEnable) log.debug "AlertSent: '${alertsent}  Pastalert: '${state.pastalert}'"
-					} else {
-						log.info "No new alerts."
-				}
-			}
-			log.info "Waiting 5 minutes before next poll..."
+				} else 	log.info "No new alerts."				
+			} else log.info "No new alerts."
 		}
 		else
 		{
 			log.warn "${response?.status}"
 		}
+		log.info "Waiting 5 minutes before next poll..."
 	}
-
+	} else log.info "Mode is restricted!  Waiting 5 minutes before next poll..."
 }
 
 def talkNow(alertmsg) {								
-		state.fullMsg1 = alertmsg
+	state.fullMsg1 = "${introduction} ${alertmsg}"
 		state.volume = volume1
 		
   		if (speechMode == "Music Player"){ 
@@ -197,6 +208,9 @@ def talkNow(alertmsg) {
   		}   
 		if (speechMode == "Speech Synth"){ 
 			speaker1.speak(state.fullMsg1)
+		}
+		if (pushovertts==true) {
+			pushoverdevice.deviceNotification(alertmsg)
 		}
 
 }
