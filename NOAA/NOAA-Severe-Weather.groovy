@@ -154,7 +154,7 @@ def refresh() {
 	result2 = (modesYes && (modes !=null && modes.contains(location.mode))) ? true : false
 	if (logEnable) log.debug "Restrictions on: $result, $result2"
 	
-	if(!result || !result2) {
+	if(!result || result2) {
 		def alertseverity, alertsent, alertarea, alertmsg
 		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=severe,extreme"
 		if (logEnable) log.debug "URI: ${wxURI}"
