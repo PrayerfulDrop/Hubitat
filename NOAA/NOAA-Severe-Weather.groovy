@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.6 - added testing option, repeat alert after # of minutes
  *   1.0.5 - fixed error with checking both mode and switch restrictions.
  *   1.0.4 - fixed mode restriction wording, fixed auto log off issue, added disable by switch option
  *   1.0.3 - added restrictions based on modes, pushover notification support and logEnable for only 15 min
@@ -37,8 +38,9 @@
 **/
 
 import groovy.json.*
+import groovy.time.TimeCategory
 	
-def version(){"v1.0.5"}
+def version(){"v1.0.6"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -70,7 +72,9 @@ def updated() {
 	runIn(5, refresh)
 }
 
-def initialize() {}
+def initialize() {
+	if(!state.repeatAlert) { state.repeatAlert = false }
+}
 
 
 def mainPage() {
@@ -84,6 +88,8 @@ def mainPage() {
        			label title: "Enter a name for parent app (optional)", required: false
 			}
 			section(getFormat("header-green", " Configuration")) {
+				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
+				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
 			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts", required: true, defaultValue: false, submitOnChange: true 
 			    if(pushovertts == true){ input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true}
 				paragraph "Configure your TTS devices"
@@ -137,6 +143,12 @@ def getFormat(type, myText=""){
 
 def display(){
 	section() {
+		input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
+		if(runTest) {
+			testalert = "Testing Severe Weather Alert for the following counties: Springfield County.  The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console. . . This is the end of this Severe Weather Announcement."
+			talkNow(testalert)
+			runTest = false
+		}
  		input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
 		paragraph getFormat("line")
 		paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${version()}</div>"
@@ -153,6 +165,8 @@ def refresh() {
 	def result = (restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
 	result2 = (modesYes && (modes !=null && modes.contains(location.mode))) ? true : false
 	if (logEnable) log.debug "Restrictions on: $result, $result2"
+	
+	if(repeatYes) { checkRepeat() }
 	
 	if(!result || result2) {
 		def alertseverity, alertsent, alertarea, alertmsg
@@ -177,12 +191,19 @@ def refresh() {
 				alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
 				alertarea = new StringBuffer(alertarea).reverse().toString()
 				alertmsg = "${alertseverity} Weather Alert for the following counties: ${alertarea}.  ${response.data.features[0].properties.description}. . . This is the end of this Severe Weather Announcement."
-				alertmsg = alertmsg.replaceAll("\n"," ")
+				state.alertmsg = alertmsg.replaceAll("\n"," ")
 			} 			
 			if(alertarea) {
 				if (logEnable) log.debug "AlertSent: '${alertsent}  Pastalert: '${state.pastalert}'"
 				if(alertsent != state.pastalert){
-					talkNow(alertmsg)
+					talkNow(state.alertmsg)
+					if(repeatYes) {
+						currentDate =  new Date()
+						use( TimeCategory ) {
+							state.repeatAlertMinutes = currentDate + repeatMinutes.minutes
+						}
+						state.repeatAlert = true
+					}
 					state.pastalert = alertsent
 					log.info "Speaking: ${alertmsg}"
 					if (logEnable) log.debug "AlertSent: '${alertsent}  Pastalert: '${state.pastalert}'"
@@ -217,5 +238,16 @@ def talkNow(alertmsg) {
 		if (pushovertts==true) {
 			pushoverdevice.deviceNotification(alertmsg)
 		}
+
+}
+
+def checkRepeat() {
+	if(state.repeatAlert) {
+		currentDate =  new Date()
+		if(currentDate >= repeatAlertMinutes) {
+			talkNow(state.alertmsg)
+			state.repeatAlert = false
+		}
+	}
 
 }
