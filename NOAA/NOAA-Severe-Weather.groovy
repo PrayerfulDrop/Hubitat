@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.7 - added ability to decide weather alert severity to check for
  *   1.0.6 - added testing option, repeat alert after # of minutes
  *   1.0.5 - fixed error with checking both mode and switch restrictions.
  *   1.0.4 - fixed mode restriction wording, fixed auto log off issue, added disable by switch option
@@ -40,7 +41,7 @@
 import groovy.json.*
 import groovy.time.TimeCategory
 	
-def version(){"v1.0.6"}
+def version(){"v1.0.7"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -88,6 +89,7 @@ def mainPage() {
        			label title: "Enter a name for parent app (optional)", required: false
 			}
 			section(getFormat("header-green", " Configuration")) {
+				input name: "whatAlert", type: "enum", title: "Choose Alerts Severity to check for: ", options: ["moderate": "Moderate", "severe,extreme": "Severe & Extreme", "moderate,severe,extreme": "Moderate, Severe & Extreme"], required: true, multiple: false, defaultValue: "Severe & Extreme"
 				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
 				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
 			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts", required: true, defaultValue: false, submitOnChange: true 
@@ -165,12 +167,12 @@ def refresh() {
 	def result = (restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
 	result2 = (modesYes && (modes !=null && modes.contains(location.mode))) ? true : false
 	if (logEnable) log.debug "Restrictions on: $result, $result2"
-	
+
 	if(repeatYes) { checkRepeat() }
 	
 	if(!result || result2) {
 		def alertseverity, alertsent, alertarea, alertmsg
-		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=severe,extreme"
+		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=${whatAlert}"
 		if (logEnable) log.debug "URI: ${wxURI}"
 	def requestParams =
 	[
