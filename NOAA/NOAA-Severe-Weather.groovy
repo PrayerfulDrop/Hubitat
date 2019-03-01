@@ -88,7 +88,6 @@ def mainPage() {
        			label title: "Enter a name for parent app (optional)", required: false
 			}
 			section(getFormat("header-green", " Configuration")) {
-				input name: "whatAlert", type: "enum", title: "Choose alerts for Moderate, Severe, Extreme", options: ["moderate", "severe", "extreme"], required: false, multiple: true, defaultValue: "severe"
 				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
 				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
 			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts", required: true, defaultValue: false, submitOnChange: true 
