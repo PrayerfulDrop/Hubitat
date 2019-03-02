@@ -44,7 +44,7 @@ import groovy.json.*
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 	
-def version(){"v1.0.8"}
+def version(){"v1.0.9"}
 
 definition(
     name:"NOAA Weather Alerts",
