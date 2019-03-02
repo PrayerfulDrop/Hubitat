@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.8 - fixed repeat in # minutes errors and execution
  *   1.0.7 - added ability to decide weather alert severity to check for
  *   1.0.6 - added testing option, repeat alert after # of minutes
  *   1.0.5 - fixed error with checking both mode and switch restrictions.
@@ -41,7 +42,7 @@
 import groovy.json.*
 import groovy.time.TimeCategory
 	
-def version(){"v1.0.7"}
+def version(){"v1.0.8"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -71,6 +72,10 @@ def updated() {
 	log.info "Checking for Severe Weather"
 	runEvery5Minutes(refresh)
 	runIn(5, refresh)
+	if(state.repeatAlert){
+		state.repeatAlert = false
+		runIn((60*repeatMinutes.toInteger()),talkNow(state.alertmsg))
+	}
 }
 
 def initialize() {
@@ -168,8 +173,6 @@ def refresh() {
 	result2 = (modesYes && (modes !=null && modes.contains(location.mode))) ? true : false
 	if (logEnable) log.debug "Restrictions on: $result, $result2"
 
-	if(repeatYes) { checkRepeat() }
-	
 	if(!result || result2) {
 		def alertseverity, alertsent, alertarea, alertmsg
 		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=${whatAlert}"
@@ -200,10 +203,6 @@ def refresh() {
 				if(alertsent != state.pastalert){
 					talkNow(state.alertmsg)
 					if(repeatYes) {
-						currentDate =  new Date()
-						use( TimeCategory ) {
-							state.repeatAlertMinutes = currentDate + repeatMinutes.minutes
-						}
 						state.repeatAlert = true
 					}
 					state.pastalert = alertsent
@@ -240,18 +239,5 @@ def talkNow(alertmsg) {
 		if (pushovertts==true) {
 			pushoverdevice.deviceNotification(alertmsg)
 		}
-
-}
-
-def checkRepeat() {
-	if(state.repeatAlert) {
-		if (logEnable) log.debug "Repeat Alert - Current Time: ${currentDate} - Repeat Alert Time: ${repeatAlertMinutes}"
-		currentDate =  new Date()
-		if(currentDate >= repeatAlertMinutes) {
-			if (logEnable) log.debug "Repeating NOAA Weather Alert Message"
-			talkNow(state.alertmsg)
-			state.repeatAlert = false
-		}
-	}
 
 }
