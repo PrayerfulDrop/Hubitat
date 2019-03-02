@@ -242,7 +242,7 @@ def talkNow(alertmsg) {
 def pushNow() {
 	if (pushovertts==true) {
         Pattern p = Pattern.compile("\\b.{1,1023}\\b\\W?")
-        Matcher m = p.matcher(alert.fullMsg1)
+        Matcher m = p.matcher(state.fullMsg1)
         while(m.find()) {
                 pushoverdevice.deviceNotification(m.group().trim())
         }
