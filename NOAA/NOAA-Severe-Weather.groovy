@@ -72,10 +72,7 @@ def updated() {
 	log.info "Checking for Severe Weather"
 	runEvery5Minutes(refresh)
 	runIn(5, refresh)
-	if(state.repeatAlert){
-		state.repeatAlert = false
-		runIn((60*repeatMinutes.toInteger()),talkNow(state.alertmsg))
-	}
+
 }
 
 def initialize() {
@@ -169,6 +166,7 @@ def logsOff(){
 
 
 def refresh() {
+
 	def result = (restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
 	result2 = (modesYes && (modes !=null && modes.contains(location.mode))) ? true : false
 	if (logEnable) log.debug "Restrictions on: $result, $result2"
@@ -203,7 +201,7 @@ def refresh() {
 				if(alertsent != state.pastalert){
 					talkNow(state.alertmsg)
 					if(repeatYes) {
-						state.repeatAlert = true
+						runIn((60*repeatMinutes.toInteger()),talkNow(state.alertmsg))
 					}
 					state.pastalert = alertsent
 					log.info "Speaking: ${alertmsg}"
