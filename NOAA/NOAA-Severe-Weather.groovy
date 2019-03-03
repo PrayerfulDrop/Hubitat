@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.9 - added more logic on restriction options, fixed PushOver character limitation
  *   1.0.8 - fixed repeat in # minutes errors and execution
  *   1.0.7 - added ability to decide weather alert severity to check for
  *   1.0.6 - added testing option, repeat alert after # of minutes
@@ -40,9 +41,10 @@
 **/
 
 import groovy.json.*
-import groovy.time.TimeCategory
+import java.util.regex.*
+
 	
-def version(){"v1.0.8"}
+def version(){"v1.0.9"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -75,9 +77,7 @@ def updated() {
 
 }
 
-def initialize() {
-	if(!state.repeatAlert) { state.repeatAlert = false }
-}
+def initialize() {}
 
 
 def mainPage() {
@@ -149,9 +149,10 @@ def display(){
 	section() {
 		input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
 		if(runTest) {
+			runTest = false
 			testalert = "Testing Severe Weather Alert for the following counties: Springfield County.  The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console. . . This is the end of this Severe Weather Announcement."
 			talkNow(testalert)
-			runTest = false
+			pushNow(testalert)
 		}
  		input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
 		paragraph getFormat("line")
@@ -167,11 +168,11 @@ def logsOff(){
 
 def refresh() {
 
-	def result = (restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
-	result2 = (modesYes && (modes !=null && modes.contains(location.mode))) ? true : false
+    def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
+    result2 =    ( modesYes && modes            !=null && modes.contains(location.mode))                         ? true : false
 	if (logEnable) log.debug "Restrictions on: $result, $result2"
 
-	if(!result || result2) {
+	if( ! (result || result2) ) {
 		def alertseverity, alertsent, alertarea, alertmsg
 		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=${whatAlert}"
 		if (logEnable) log.debug "URI: ${wxURI}"
@@ -200,6 +201,7 @@ def refresh() {
 				if (logEnable) log.debug "AlertSent: '${alertsent}  Pastalert: '${state.pastalert}'"
 				if(alertsent != state.pastalert){
 					talkNow(state.alertmsg)
+					pushNow(state.alertmsg)
 					if(repeatYes) {
 						runIn((60*repeatMinutes.toInteger()),talkNow(state.alertmsg))
 					}
@@ -234,8 +236,21 @@ def talkNow(alertmsg) {
 		if (speechMode == "Speech Synth"){ 
 			speaker1.speak(state.fullMsg1)
 		}
-		if (pushovertts==true) {
-			pushoverdevice.deviceNotification(alertmsg)
+}
+
+def pushNow(alertmsg) {
+	def m = alertmsg =~ /(.|[\r\n]){1,1023}\W/
+	def n = alertmsg =~ /(.|[\r\n]){1,1023}\W/
+	def index = 0
+	def index2 = 1
+		while (m.find()) {
+		   index = index +1
 		}
 
+		while(n.find()) {
+			fullMsg1 = n.group()
+			pushoverdevice.deviceNotification("(${index2}/${index}) ${fullMsg1}")
+			index2 = index2 +1
+			pauseExecution(1000)
+        } 
 }
