@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.9 - fixed 1024 character limit with PushOver, added additional error handling for restrictions
  *   1.0.8 - fixed repeat in # minutes errors and execution
  *   1.0.7 - added ability to decide weather alert severity to check for
  *   1.0.6 - added testing option, repeat alert after # of minutes
