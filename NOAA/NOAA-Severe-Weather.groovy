@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.0 - fixed PushOver testing to work correctly if pushover not being used, fixed UI elements for test, auto turn-off test mode after initiated, fixed check for TTS
  *   1.0.9 - added more logic on restriction options, fixed PushOver character limitation
  *   1.0.8 - fixed repeat in # minutes errors and execution
  *   1.0.7 - added ability to decide weather alert severity to check for
@@ -44,7 +45,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v1.0.9"}
+def version(){"v1.1.0"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -149,7 +150,7 @@ def display(){
 	section() {
 		input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
 		if(runTest) {
-			runTest = false
+			app?.updateSetting("runTest",[value:"false",type:"bool"])
 			testalert = "Testing Severe Weather Alert for the following counties: Springfield County.  The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console. . . This is the end of this Severe Weather Announcement."
 			talkNow(testalert)
 			pushNow(testalert)
@@ -239,6 +240,7 @@ def talkNow(alertmsg) {
 }
 
 def pushNow(alertmsg) {
+	if (pushovertts) {
 	def m = alertmsg =~ /(.|[\r\n]){1,1023}\W/
 	def n = alertmsg =~ /(.|[\r\n]){1,1023}\W/
 	def index = 0
@@ -253,4 +255,5 @@ def pushNow(alertmsg) {
 			index2 = index2 +1
 			pauseExecution(1000)
         } 
+	}
 }
