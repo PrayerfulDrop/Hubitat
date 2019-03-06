@@ -196,7 +196,7 @@ def refresh() {
 				StringBuffer buffer = new StringBuffer(alertarea)
 				alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
 				alertarea = new StringBuffer(alertarea).reverse().toString()
-				alertmsg = "${alertseverity} Weather Alert for the following counties: ${alertarea}.  ${response.data.features[0].properties.description}. . . This is the end of this Severe Weather Announcement."
+				alertmsg = "${alertseverity} Weather Alert for the following counties: ${alertarea}.  ${response.data.features[0].properties.description}. . . This is the end of this Weather Announcement."
 				state.alertmsg = alertmsg.replaceAll("\n"," ")
 			} 			
 			if(alertarea) {
