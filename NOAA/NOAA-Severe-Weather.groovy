@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.1 - changed API feed for more detailed weather alerts
  *   1.1.0 - fixed PushOver testing to work correctly if pushover not being used, fixed UI elements for test, auto turn-off test mode after initiated, fixed check for TTS
  *   1.0.9 - added more logic on restriction options, fixed PushOver character limitation
  *   1.0.8 - fixed repeat in # minutes errors and execution
@@ -45,7 +46,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v1.1.0"}
+def version(){"v1.1.1"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -175,7 +176,7 @@ def refresh() {
 
 	if( ! (result || result2) ) {
 		def alertseverity, alertsent, alertarea, alertmsg
-		def wxURI = "https://api.weather.gov/alerts/active?point=${location.latitude}%2C${location.longitude}&severity=${whatAlert}"
+		def wxURI = "https://api.weather.gov/alerts?point=${location.latitude}%2C${location.longitude}&severity=${whatAlert}"
 		if (logEnable) log.debug "URI: ${wxURI}"
 	def requestParams =
 	[
