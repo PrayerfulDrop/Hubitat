@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.2 - fixed repeat errors 
  *   1.1.1 - changed API feed for more detailed weather alerts
  *   1.1.0 - fixed PushOver testing to work correctly if pushover not being used, fixed UI elements for test, auto turn-off test mode after initiated, fixed check for TTS
  *   1.0.9 - added more logic on restriction options, fixed PushOver character limitation
@@ -46,7 +47,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v1.1.1"}
+def version(){"v1.1.2"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -62,25 +63,6 @@ definition(
 preferences {
      page name: "mainPage", title: "", install: true, uninstall: true
 } 
-
-def installed() {
-    if (logEnable) log.debug "Installed with settings: ${settings}"
-    initialize()
-}
-
-def updated() {
-    if (logEnable) log.debug "Updated with settings: ${settings}"
-    unsubscribe()
-    if (logEnable) runIn(900,logsOff)
-    initialize()
-	log.info "Checking for Severe Weather"
-	runEvery5Minutes(refresh)
-	runIn(5, refresh)
-
-}
-
-def initialize() {}
-
 
 def mainPage() {
     dynamicPage(name: "mainPage") {
@@ -125,6 +107,26 @@ def mainPage() {
 		}
 		display()
 	}
+}
+
+def installed() {
+    if (logEnable) log.debug "Installed with settings: ${settings}"
+    initialize()
+}
+
+def updated() {
+    if (logEnable) log.debug "Updated with settings: ${settings}"
+    unsubscribe()
+    if (logEnable) runIn(900,logsOff)
+    initialize()
+	log.info "Checking for Severe Weather"
+	runEvery5Minutes(refresh)
+	runIn(5, refresh)
+
+}
+
+def initialize() {
+	state.repeatalert = true
 }
 
 def installCheck(){         
@@ -204,8 +206,9 @@ def refresh() {
 				if(alertsent != state.pastalert){
 					talkNow(state.alertmsg)
 					pushNow(state.alertmsg)
-					if(repeatYes) {
-						runIn((60*repeatMinutes.toInteger()),talkNow(state.alertmsg))
+					if(repeatYes && state.alertrepeat) {
+						runIn((60*repeatMinutes.toInteger()),repeatAlert())
+						state.alertrepeat = false
 					}
 					state.pastalert = alertsent
 					log.info "Speaking: ${alertmsg}"
@@ -257,4 +260,10 @@ def pushNow(alertmsg) {
 			pauseExecution(1000)
         } 
 	}
+}
+
+def repeatAlert() {
+	talkNow(state.alertmsg)
+	pushNow(state.alertmsg)
+	state.alertrepeat = true
 }
