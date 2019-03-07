@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.3 - added poll frequency configuration
  *   1.1.2 - fixed repeat errors 
  *   1.1.1 - changed API feed for more detailed weather alerts
  *   1.1.0 - fixed PushOver testing to work correctly if pushover not being used, fixed UI elements for test, auto turn-off test mode after initiated, fixed check for TTS
@@ -47,7 +48,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v1.1.2"}
+def version(){"v1.1.3"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -76,6 +77,7 @@ def mainPage() {
 			}
 			section(getFormat("header-green", " Configuration")) {
 				input name: "whatAlert", type: "enum", title: "Choose Alerts Severity to check for: ", options: ["moderate": "Moderate", "severe,extreme": "Severe & Extreme", "moderate,severe,extreme": "Moderate, Severe & Extreme"], required: true, multiple: false, defaultValue: "Severe & Extreme"
+				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes", "30": "30 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
 				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
 				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
 			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts", required: true, defaultValue: false, submitOnChange: true 
@@ -120,7 +122,14 @@ def updated() {
     if (logEnable) runIn(900,logsOff)
     initialize()
 	log.info "Checking for Severe Weather"
-	runEvery5Minutes(refresh)
+	switch (whatPoll.toInteger()) {
+		case 1: runEvery1Minute(refresh)
+		case 5: runEvery5Minutes(refresh)
+		case 10: runEvery10Minutes(refresh)
+		case 15: runEvery15Minutes(refresh)
+		case 30: runEvery30Minutes(refresh)
+		default: runEvery5Minutes(refresh)
+	}
 	runIn(5, refresh)
 
 }
@@ -220,9 +229,9 @@ def refresh() {
 		{
 			log.warn "${response?.status}"
 		}
-		log.info "Waiting 5 minutes before next poll..."
+		log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
 	}
-	} else log.info "Restrictions are enabled!  Waiting 5 minutes before next poll..."
+	} else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 }
 
 def talkNow(alertmsg) {								
