@@ -28,7 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   1.1.4 - fixed poll ffrequency case statement
+ *   1.1.4 - fixed poll frequency case statement
  *   1.1.3 - added poll frequency configuration
  *   1.1.2 - fixed repeat errors 
  *   1.1.1 - changed API feed for more detailed weather alerts
