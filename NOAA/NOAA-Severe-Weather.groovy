@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.4 - fixed poll ffrequency case statement
  *   1.1.3 - added poll frequency configuration
  *   1.1.2 - fixed repeat errors 
  *   1.1.1 - changed API feed for more detailed weather alerts
@@ -48,7 +49,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v1.1.3"}
+def version(){"v1.1.4"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -123,18 +124,29 @@ def updated() {
     initialize()
 	log.info "Checking for Severe Weather"
 	switch (whatPoll.toInteger()) {
-		case 1: runEvery1Minute(refresh)
-		case 5: runEvery5Minutes(refresh)
-		case 10: runEvery10Minutes(refresh)
-		case 15: runEvery15Minutes(refresh)
-		case 30: runEvery30Minutes(refresh)
-		default: runEvery5Minutes(refresh)
+		case 1: 
+			runEvery1Minute(refresh)
+			break
+		case 5: 
+			runEvery5Minutes(refresh)
+			break
+		case 10: 
+			runEvery10Minutes(refresh)
+			break
+		case 15: 
+			runEvery15Minutes(refresh)
+			break
+		case 30: 
+			runEvery30Minutes(refresh)
+			break
+		default: 
+			runEvery5Minutes(refresh)
+			break
 	}
-	runIn(5, refresh)
-
 }
 
 def initialize() {
+	runIn(5, refresh)
 	state.repeatalert = true
 }
 
