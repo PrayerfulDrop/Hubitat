@@ -28,7 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   2.0.0 - write of alertmsg building components, added customization of weather announcement along with variable inputs, option for immediate or expected notifications, cleaned up UI 
+ *   2.0.0 - alertmsg building components, added customization of weather announcement along with variable inputs, option for immediate or expected notifications, cleaned up UI 
  *   1.1.4 - fixed poll ffrequency case statement
  *   1.1.3 - added poll frequency configuration
  *   1.1.2 - fixed repeat errors 
