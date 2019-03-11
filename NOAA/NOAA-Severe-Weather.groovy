@@ -331,7 +331,7 @@ def buildAlertMsg() {
 					try {alertmsg = alertmsg.replaceAll("\n"," ") }
 						catch (any) {}
 					state.alertmsg = alertmsg
-					if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
+					//if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
 				} 	
 			}
 			else log.warn "${response?.status}"
