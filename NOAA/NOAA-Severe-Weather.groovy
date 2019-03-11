@@ -75,13 +75,13 @@ def mainPage() {
 				paragraph "<div style='color:#1A77C9'>This application supplies Severe Weather alert TTS notifications.</div>"
 			}
 			section(getFormat("header-green", " General")) {
-       			label title: "Enter a name for parent app (optional)", required: false
+       			label title: "Enter a name for application:", required: false
 			}
 			section(getFormat("header-green", " Configuration")) {
-			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts", required: true, defaultValue: false, submitOnChange: true 
+			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts?", required: true, defaultValue: false, submitOnChange: true 
 			    if(pushovertts == true){ input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true}
-				paragraph "Configure your TTS devices"
-			      input "speechMode", "enum", required: true, title: "Select Speaker Type", submitOnChange: true,  options: ["Music Player", "Speech Synth"] 
+				paragraph "Configure your TTS devices:"
+			      input "speechMode", "enum", required: true, title: "Select Speaker Type:", submitOnChange: true,  options: ["Music Player", "Speech Synth"] 
 				if (speechMode == "Music Player"){
            	   		      input "speaker1", "capability.musicPlayer", title: "Choose speaker(s)", required: true, multiple: true, submitOnChange: true
 					input (name: "echoSpeaks", type: "bool", defaultValue: "false", title: "Is this an 'echo speaks' device?", description: "Echo speaks device?")
@@ -109,7 +109,7 @@ def mainPage() {
 				paragraph "<b>Example:</b> Attention, Attention. {alertseverity} weather alert. Certainty is {alertcertainty}. Urgency is {alerturgency}. {alertheadline}. {alertinstruction}. This is the end of the weather announcement."
 			}
 			section(getFormat("header-green", " Restrictions")) {
-				input "modesYes", "bool", title: "Enable restriction by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
+				input "modesYes", "bool", title: "Enable restriction by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
 				if(modesYes){	
 				    input(name:"modes", type: "mode", title: "Restrict actions when current mode is:", multiple: true, required: false)
 				}
