@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.0.1 - fixed testing alertmsg
  *   2.0.0 - alertmsg building components, added customization of weather announcement along with variable inputs, option for immediate or expected notifications, cleaned up UI 
  *   1.1.4 - fixed poll ffrequency case statement
  *   1.1.3 - added poll frequency configuration
@@ -50,7 +51,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.0.0"}
+def version(){"v2.0.1"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -151,7 +152,6 @@ def updated() {
     unsubscribe()
     if (logEnable) runIn(900,logsOff)
     initialize()
-	log.info "Checking for Severe Weather"
 	switch (whatPoll.toInteger()) {
 		case 1: 
 			runEvery1Minute(refresh)
@@ -220,8 +220,8 @@ def refresh() {
 				if (logEnable) log.debug "AlertSent: '${state.alertsent}  Pastalert: '${state.pastalert}'"
 				if(state.alertsent != state.pastalert){
 					// play TTS and send PushOver
-					talkNow()
-					pushNow()
+					talkNow(state.alertmsg)
+					pushNow(state.alertmsg)
 					// determine if alert needs to be repeated after # of minutes
 					if(repeatYes && state.alertrepeat) {
 						runIn((60*repeatMinutes.toInteger()),repeatAlert())
@@ -338,27 +338,27 @@ def buildAlertMsg() {
 		}
 }
 
-def talkNow() {								
+def talkNow(alertmsg) {								
 		state.volume = volume1
 		
   		if (speechMode == "Music Player"){ 
 			if(echoSpeaks) {
-				speaker1.setVolumeSpeakAndRestore(state.volume, state.alertmsg)
+				speaker1.setVolumeSpeakAndRestore(state.volume, alertmsg)
 			}
 			if(!echoSpeaks) {
-    			speaker1.playTextAndRestore(state.alertmsg)
+    			speaker1.playTextAndRestore(alertmsg)
 
 			}
   		}   
 		if (speechMode == "Speech Synth"){ 
-			speaker1.speak(state.alertmsg)
+			speaker1.speak(alertmsg)
 		}
 }
 
-def pushNow() {
+def pushNow(alertmsg) {
 	if (pushovertts) {
-	def m = state.alertmsg =~ /(.|[\r\n]){1,1023}\W/
-	def n = state.alertmsg =~ /(.|[\r\n]){1,1023}\W/
+	def m = alertmsg =~ /(.|[\r\n]){1,1023}\W/
+	def n = alertmsg =~ /(.|[\r\n]){1,1023}\W/
 	def index = 0
 	def index2 = 1
 		while (m.find()) {
