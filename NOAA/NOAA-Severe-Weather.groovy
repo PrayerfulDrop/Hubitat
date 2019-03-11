@@ -28,7 +28,8 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   1.1.4 - fixed poll frequency case statement
+ *   2.0.0 - write of alertmsg building components, added customization of weather announcement along with variable inputs, option for immediate or expected notifications, cleaned up UI 
+ *   1.1.4 - fixed poll ffrequency case statement
  *   1.1.3 - added poll frequency configuration
  *   1.1.2 - fixed repeat errors 
  *   1.1.1 - changed API feed for more detailed weather alerts
@@ -49,7 +50,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v1.1.4"}
+def version(){"v2.0.0"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -77,10 +78,6 @@ def mainPage() {
        			label title: "Enter a name for parent app (optional)", required: false
 			}
 			section(getFormat("header-green", " Configuration")) {
-				input name: "whatAlert", type: "enum", title: "Choose Alerts Severity to check for: ", options: ["moderate": "Moderate", "severe,extreme": "Severe & Extreme", "moderate,severe,extreme": "Moderate, Severe & Extreme"], required: true, multiple: false, defaultValue: "Severe & Extreme"
-				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes", "30": "30 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
-				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
-				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
 			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts", required: true, defaultValue: false, submitOnChange: true 
 			    if(pushovertts == true){ input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true}
 				paragraph "Configure your TTS devices"
@@ -96,8 +93,21 @@ def mainPage() {
 
 			}
 			section(getFormat("header-green", " Customization")) {
-				input (name: "introduction", type: "text", title: "Announcement Introduction Phrase:", require: false, defaultValue: "Attention, Attention,") 
+				input (name: "alertCustomMsg", type: "text", title: "Alert Message:", require: false, defaultValue: "Attention, Attention. {alertseverity} Weather Alert for the following counties: {alertarea}. {alertheadline}. {alertinstruction}. This is the end of this Weather Announcement.")
 			}	
+			section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
+        		paragraph "<b>Alert message variables:</b>"
+				paragraph "{alertseverity} = alertseverity"
+				paragraph "{alertcertainty} = alert certainty of occuring"
+				paragraph "{alerturgency} = alert urgency"
+				paragraph "{alertevent} = alert event type"
+				paragraph "{alertheadline} = alert headline"
+				paragraph "{alertdescription} = alert description"
+				paragraph "{alertinstruction} = alert instructions"
+				paragraph "{alertarea} = counties or area being affected"		
+				paragraph " "
+				paragraph "<b>Example:</b> Attention, Attention. {alertseverity} weather alert. Certainty is {alertcertainty}. Urgency is {alerturgency}. {alertheadline}. {alertinstruction}. This is the end of the weather announcement."
+			}
 			section(getFormat("header-green", " Restrictions")) {
 				input "modesYes", "bool", title: "Enable restriction by current mode(s)", required: true, defaultValue: false, submitOnChange: true	
 				if(modesYes){	
@@ -107,8 +117,27 @@ def mainPage() {
 			          input "restrictbySwitch", "capability.switch", title: "Or use a switch to restrict:", required: false, multiple: false, defaultValue: null
 				}
 			}
+			section(getFormat("header-green", " Advanced Configuration")) {
+				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", options: ["moderate": "Moderate", "severe,extreme": "Severe & Extreme", "moderate,severe,extreme": "Moderate, Severe & Extreme"], required: true, multiple: false, defaultValue: "Severe & Extreme"
+				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", options: ["immediate": "Immediate", "immediate,expected": "Immediate & Expected"], required: true, multiple: false, defaultValue: "Immediate"
+				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes", "30": "30 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
+				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
+				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
+
+			}
 		}
-		display()
+			section(getFormat("header-green", " Logging and Testing")) {
+				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
+				if(runTest) {
+					app?.updateSetting("runTest",[value:"false",type:"bool"])
+					testalert = "Testing Severe Weather Alert for the following counties: Springfield County.  The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console. . . This is the end of this Severe Weather Announcement."
+					talkNow(testalert)
+					pushNow(testalert)
+				}
+ 				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
+				paragraph getFormat("line")
+				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${version()}</div>"
+	}       
 	}
 }
 
@@ -148,6 +177,8 @@ def updated() {
 def initialize() {
 	runIn(5, refresh)
 	state.repeatalert = true
+	state.alertarea = ""
+	state.alerturgency = ""
 }
 
 def installCheck(){         
@@ -170,20 +201,6 @@ def getFormat(type, myText=""){
     if(type == "title") return "<h2 style='color:#1A77C9;font-weight: bold'>${myText}</h2>"
 }
 
-def display(){
-	section() {
-		input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
-		if(runTest) {
-			app?.updateSetting("runTest",[value:"false",type:"bool"])
-			testalert = "Testing Severe Weather Alert for the following counties: Springfield County.  The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console. . . This is the end of this Severe Weather Announcement."
-			talkNow(testalert)
-			pushNow(testalert)
-		}
- 		input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
-		paragraph getFormat("line")
-		paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${version()}</div>"
-	}       
-}
 
 def logsOff(){
     log.warn "Debug logging disabled."
@@ -192,82 +209,156 @@ def logsOff(){
 
 
 def refresh() {
-
+	// check restrictions based on Modes and Switches
     def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
-    result2 =    ( modesYes && modes            !=null && modes.contains(location.mode))                         ? true : false
-	if (logEnable) log.debug "Restrictions on: $result, $result2"
+    def result2 =    ( modesYes && modes            !=null && modes.contains(location.mode))                         ? true : false
+	if (logEnable) log.debug "Restrictions on?  Modes: $result, Switch: $result2"
 
 	if( ! (result || result2) ) {
-		def alertseverity, alertsent, alertarea, alertmsg
-		def wxURI = "https://api.weather.gov/alerts?point=${location.latitude}%2C${location.longitude}&severity=${whatAlert}"
-		if (logEnable) log.debug "URI: ${wxURI}"
-	def requestParams =
-	[
-		uri:  wxURI,
-		requestContentType: "application/json",
-		contentType: "application/json"
-	]
-	httpGet(requestParams)	{	  response ->
-		if (response?.status == 200)
-		{
-			if(response.data.features){
-				alertseverity = response.data.features[0].properties.severity
-				alertsent = response.data.features[0].properties.sent
-				alertarea = response.data.features[0].properties.areaDesc
-				alertarea = alertarea.replaceAll(";",",")
-				alertarea = alertarea.replaceAll("\n"," ")
-				StringBuffer buffer = new StringBuffer(alertarea)
-				alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
-				alertarea = new StringBuffer(alertarea).reverse().toString()
-				alertmsg = "${alertseverity} Weather Alert for the following counties: ${alertarea}.  ${response.data.features[0].properties.description}. . . This is the end of this Weather Announcement."
-				state.alertmsg = alertmsg.replaceAll("\n"," ")
-			} 			
-			if(alertarea) {
-				if (logEnable) log.debug "AlertSent: '${alertsent}  Pastalert: '${state.pastalert}'"
-				if(alertsent != state.pastalert){
-					talkNow(state.alertmsg)
-					pushNow(state.alertmsg)
+			buildAlertMsg()	
+			if(state.alertarea) {
+				if (logEnable) log.debug "AlertSent: '${state.alertsent}  Pastalert: '${state.pastalert}'"
+				if(state.alertsent != state.pastalert){
+					// play TTS and send PushOver
+					talkNow()
+					pushNow()
+					// determine if alert needs to be repeated after # of minutes
 					if(repeatYes && state.alertrepeat) {
 						runIn((60*repeatMinutes.toInteger()),repeatAlert())
 						state.alertrepeat = false
 					}
-					state.pastalert = alertsent
-					log.info "Speaking: ${alertmsg}"
-					if (logEnable) log.debug "AlertSent: '${alertsent}  Pastalert: '${state.pastalert}'"
-				} else 	log.info "No new alerts."				
-			} else log.info "No new alerts."
-		}
-		else
-		{
-			log.warn "${response?.status}"
-		}
-		log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
+					// set the pastalert to the current alertsent timestamp
+					state.pastalert = state.alertsent
+					log.info "Speaking: ${state.alertmsg}"
+					if (logEnable) log.debug "AlertSent: '${state.alertsent}  Pastalert: '${state.pastalert}'"
+				} 
+				else log.info "No new alerts."
+			} 
+			else log.info "No new alerts."	
+			log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
 	}
-	} else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+    else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 }
 
-def talkNow(alertmsg) {								
-	state.fullMsg1 = "${introduction} ${alertmsg}"
+def buildAlertMsg() {
+		def wxURI = "https://api.weather.gov/alerts?point=${location.latitude}%2C${location.longitude}&urgency=${whatAlertUrgency}&severity=${whatAlertSeverity}"
+		if (logEnable) log.debug "URI: ${wxURI}"
+		def requestParams =
+			[
+				uri:  wxURI,
+				requestContentType: "application/json",
+				contentType: "application/json"
+			]
+		httpGet(requestParams)	{	  response ->
+			if (response?.status == 200){
+				if(response.data.features){
+				
+				// build out variables from JSON feed
+					alertseverity = response.data.features[0].properties.severity
+					alertarea = response.data.features[0].properties.areaDesc
+						alertarea = alertarea.replaceAll(";",",")
+						alertarea = alertarea.replaceAll("\n"," ")
+						StringBuffer buffer = new StringBuffer(alertarea)
+						alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
+					state.alertarea = new StringBuffer(alertarea).reverse().toString()
+					state.alertsent = response.data.features[0].properties.sent
+					alerteffective = response.data.features[0].properties.effective
+					alertexpires = response.data.features[0].properties.expires
+					alertstatus = response.data.features[0].properties.status
+					alertmessagetype = response.data.features[0].properties.messageType
+					alertcategory = response.data.features[0].properties.category
+					alertseverity = response.data.features[0].properties.severity
+					alertcertainty = response.data.features[0].properties.certainty
+					state.alerturgency = response.data.features[0].properties.urgency
+					alertsendername = response.data.features[0].properties.senderName
+					alertheadline = response.data.features[0].properties.headline
+					alertdescription = response.data.features[0].properties.description
+					alertinstruction = response.data.features[0].properties.instruction
+					
+					/*
+					if (logEnable) log.debug "alertseverity: ${alertseverity}"					
+					if (logEnable) log.debug "alertarea: ${state.alertarea}"
+					if (logEnable) log.debug "alertsent: ${state.alertsent}"					
+					if (logEnable) log.debug "alerteffect: ${alerteffective}"					
+					if (logEnable) log.debug "alertexpires: ${alertexpires}"					
+					if (logEnable) log.debug "alertstatus: ${alertstatus}"					
+					if (logEnable) log.debug "alertmessagetype: ${alertmessagetype}"					
+					if (logEnable) log.debug "alertcategory: ${alertcategory}"	
+					if (logEnable) log.debug "alertseverity: ${alertseverity}"				
+					if (logEnable) log.debug "alertcertainty: ${alertcertainty}"					
+					if (logEnable) log.debug "alerturgency: ${state.alerturgency}"					
+					if (logEnable) log.debug "alertsendername: ${alertsendername}"					
+					if (logEnable) log.debug "alertheadline: ${alertheadline}"					
+					if (logEnable) log.debug "alertdescription: ${alertdescription}"					
+					if (logEnable) log.debug "alertinstruction: ${alertinstruction}"	
+					**/
+					
+				
+				// build the alertmsg
+					alertmsg = alertCustomMsg
+					try {alertmsg = alertmsg.replace("{alertarea}","${state.alertarea}") }
+						 catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertseverity}","${alertseverity}") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertcertainty}","${alertcertainty}") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alerturgency}","${state.alerturgency}") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertheadline}","${alertheadline}") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertdescription}","${alertdescription}") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertinstruction}","${alertinstruction}") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace(" CST","") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace(" CDT","") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace(" MDT","") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace(" MST","") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace(" PST","") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace(" PDT","") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace(" EST","") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace(" EDT","") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace(" NWS "," the National Weather Service ") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replaceAll("\n"," ") }
+						catch (any) {}
+					state.alertmsg = alertmsg
+					if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
+				} 	
+			}
+			else log.warn "${response?.status}"
+		}
+}
+
+def talkNow() {								
 		state.volume = volume1
 		
   		if (speechMode == "Music Player"){ 
 			if(echoSpeaks) {
-				speaker1.setVolumeSpeakAndRestore(state.volume, state.fullMsg1)
+				speaker1.setVolumeSpeakAndRestore(state.volume, state.alertmsg)
 			}
 			if(!echoSpeaks) {
-    			speaker1.playTextAndRestore(state.fullMsg1)
+    			speaker1.playTextAndRestore(state.alertmsg)
 
 			}
   		}   
 		if (speechMode == "Speech Synth"){ 
-			speaker1.speak(state.fullMsg1)
+			speaker1.speak(state.alertmsg)
 		}
 }
 
-def pushNow(alertmsg) {
+def pushNow() {
 	if (pushovertts) {
-	def m = alertmsg =~ /(.|[\r\n]){1,1023}\W/
-	def n = alertmsg =~ /(.|[\r\n]){1,1023}\W/
+	def m = state.alertmsg =~ /(.|[\r\n]){1,1023}\W/
+	def n = state.alertmsg =~ /(.|[\r\n]){1,1023}\W/
 	def index = 0
 	def index2 = 1
 		while (m.find()) {
