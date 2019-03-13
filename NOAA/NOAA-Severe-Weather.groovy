@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.0.2 - fixed {alertevent} replacement, modified URI string to only look for actual alerts (NOAA was notifying test events due to lack of URI refinement) 
  *   2.0.1 - fixed testing alertmsg
  *   2.0.0 - alertmsg building components, added customization of weather announcement along with variable inputs, option for immediate or expected notifications, cleaned up UI 
  *   1.1.4 - fixed poll ffrequency case statement
@@ -51,7 +52,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.0.1"}
+def version(){"v2.0.2"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -105,7 +106,7 @@ def mainPage() {
 				paragraph "{alertheadline} = alert headline"
 				paragraph "{alertdescription} = alert description"
 				paragraph "{alertinstruction} = alert instructions"
-				paragraph "{alertarea} = counties or area being affected"		
+				paragraph "{alertarea} = counties or area being affected"	
 				paragraph " "
 				paragraph "<b>Example:</b> Attention, Attention. {alertseverity} weather alert. Certainty is {alertcertainty}. Urgency is {alerturgency}. {alertheadline}. {alertinstruction}. This is the end of the weather announcement."
 			}
@@ -241,7 +242,7 @@ def refresh() {
 }
 
 def buildAlertMsg() {
-		def wxURI = "https://api.weather.gov/alerts?point=${location.latitude}%2C${location.longitude}&urgency=${whatAlertUrgency}&severity=${whatAlertSeverity}"
+		def wxURI = "https://api.weather.gov/alerts?point=${location.latitude}%2C${location.longitude}&status=actual&message_type=alert&urgency=${whatAlertUrgency}&severity=${whatAlertSeverity}"
 		if (logEnable) log.debug "URI: ${wxURI}"
 		def requestParams =
 			[
@@ -274,6 +275,7 @@ def buildAlertMsg() {
 					alertheadline = response.data.features[0].properties.headline
 					alertdescription = response.data.features[0].properties.description
 					alertinstruction = response.data.features[0].properties.instruction
+					alertevent = response.data.features[0].properties.event
 					
 					/*
 					if (logEnable) log.debug "alertseverity: ${alertseverity}"					
@@ -310,6 +312,8 @@ def buildAlertMsg() {
 						catch (any) {}
 					try {alertmsg = alertmsg.replace("{alertinstruction}","${alertinstruction}") }
 						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertevent}","${alertevent}") }
+						catch (any) {}					
 					try {alertmsg = alertmsg.replace(" CST","") }
 						catch (any) {}
 					try {alertmsg = alertmsg.replace(" CDT","") }
