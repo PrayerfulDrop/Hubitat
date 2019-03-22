@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.0.4 - removed requirements of forcing selections in TTS, enabled the option to just use PushOver and not use TTS 
  *   2.0.3 - added ability to have both Music/Speech TTS and Echo Speaks devices for notification services
  *   2.0.2 - fixed {alertevent} replacement, modified URI string to only look for actual alerts (NOAA was notifying test events due to lack of URI refinement) 
  *   2.0.1 - fixed testing alertmsg
@@ -53,7 +54,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.0.3"}
+def version(){"v2.0.4"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -84,19 +85,19 @@ def mainPage() {
 			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts?", required: true, defaultValue: false, submitOnChange: true 
 			    if(pushovertts == true){ input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true}
 				paragraph "Configure your TTS devices:"
-			      input "speechMode", "enum", required: true, title: "Select Speaker Type:", submitOnChange: true,  options: ["Music Player", "Speech Synth"] 
+			      input "speechMode", "enum", required: false, title: "Select Speaker Type:", submitOnChange: true,  options: ["Music Player", "Speech Synth"] 
 				if (speechMode == "Music Player"){
            	   		      input "speaker1", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true, submitOnChange: true
 						  input (name: "echoSpeaks", type: "bool", defaultValue: "false", title: "Is this an 'echo speaks' device?", description: "Echo speaks device?")
-					input "volume1", "number", title: "Speaker volume", description: "0-100%", required: true, defaultValue: "75"
+					input "volume1", "number", title: "Speaker volume", description: "0-100%", required: false, defaultValue: "75"
           	            }   
         	            if (speechMode == "Speech Synth"){
-         	            	input "speaker1", "capability.speechSynthesis", title: "Choose speaker(s)", required: true, multiple: true
+         	            	input "speaker1", "capability.speechSynthesis", title: "Choose speaker(s)", required: false, multiple: true
           	            }
 				input (name: "echoSpeaks2", type: "bool", defaultValue: "false", title: "Use Echo Speaks device(s) with TTS?", description: "Echo speaks device?", submitOnChange: true)
 					 if(echoSpeaks2 == true){ 
 						 input "echospeaker", "capability.musicPlayer", title: "Choose Echo Speaks device(s)", required: false, multiple: true
-					 	 input "echospeaksvolume", "number", title: "Echo Speaks volume", description: "0-100%", required: true, defaultValue: "75"}
+					 	 input "echospeaksvolume", "number", title: "Echo Speaks volume", description: "0-100%", required: false, defaultValue: "75"}
 
 			}
 			section(getFormat("header-green", " Customization")) {
@@ -351,20 +352,24 @@ def talkNow(alertmsg) {
 		
   		if (speechMode == "Music Player"){ 
 			if(echoSpeaks) {
-				speaker1.setVolumeSpeakAndRestore(volume1, alertmsg)
+				try {speaker1.setVolumeSpeakAndRestore(volume1, alertmsg) }
+				catch (any) {log.warn "Music Player device has not been selected."}
 			}
 			if(!echoSpeaks) {
-    			speaker1.playTextAndRestore(alertmsg)
+				try {speaker1.playTextAndRestore(alertmsg)}
+				catch (any) {log.warn "Music Player device has not been selected."}
 
 			}
   		}   
 	
 		if(echoSpeaks2) {
-				echospeaker.setVolumeSpeakAndRestore(echospeaksvolume, alertmsg)
+			try {echospeaker.setVolumeSpeakAndRestore(echospeaksvolume, alertmsg)}
+			catch (any) {log.warn "Echo Speaks device has not been selected."}
 		}
 	
 		if (speechMode == "Speech Synth"){ 
-			speaker1.speak(alertmsg)
+			try {speaker1.speak(alertmsg)}
+			catch (any) {log.warn "Speech device has not been selected."}
 		}
 }
 
