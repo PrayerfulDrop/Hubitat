@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.0.5 - added ability to use custom coordinates
  *   2.0.4 - removed requirements of forcing selections in TTS, enabled the option to just use PushOver and not use TTS 
  *   2.0.3 - added ability to have both Music/Speech TTS and Echo Speaks devices for notification services
  *   2.0.2 - fixed {alertevent} replacement, modified URI string to only look for actual alerts (NOAA was notifying test events due to lack of URI refinement) 
@@ -54,7 +55,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.0.4"}
+def version(){"v2.0.5"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -131,6 +132,12 @@ def mainPage() {
 				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes", "30": "30 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
 				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
 				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
+				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
+				if(useCustomCords) {
+					paragraph "Below coordinates are acquired from your Hubitat:"
+					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}"
+					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}"
+				}
 
 			}
 		}
@@ -248,7 +255,15 @@ def refresh() {
 }
 
 def buildAlertMsg() {
-		def wxURI = "https://api.weather.gov/alerts?point=${location.latitude}%2C${location.longitude}&status=actual&message_type=alert&urgency=${whatAlertUrgency}&severity=${whatAlertSeverity}"
+	if(useCustomCords) {
+		state.latitude = "${customlatitude}"
+		state.longitude = "${customlongitude}"
+	} else {
+		state.latitude = "${location.latitude}"
+		state.longitude = "${location.longitude}"
+	}
+		def wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert&urgency=${whatAlertUrgency}&severity=${whatAlertSeverity}"
+
 		if (logEnable) log.debug "URI: ${wxURI}"
 		def requestParams =
 			[
