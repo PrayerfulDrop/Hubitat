@@ -226,7 +226,7 @@ def refresh() {
 	// check restrictions based on Modes and Switches
     def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
     def result2 =    ( modesYes && modes            !=null && modes.contains(location.mode))                         ? true : false
-	if (logEnable) log.debug "Restrictions on?  Modes: $result, Switch: $result2"
+	if (logEnable) log.debug "Restrictions on?  Modes: $result2, Switch: $result"
 
 	if( ! (result || result2) ) {
 			buildAlertMsg()	
