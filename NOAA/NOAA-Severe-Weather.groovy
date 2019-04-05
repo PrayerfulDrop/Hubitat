@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.0.7 - removed 30 minute option for polling
  *   2.0.6 - added ability to alert only on specific weather alert code events
  *   2.0.5 - added ability to use custom coordinates
  *   2.0.4 - removed requirements of forcing selections in TTS, enabled the option to just use PushOver and not use TTS 
@@ -56,7 +57,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.0.6"}
+def version(){"v2.0.7"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -130,7 +131,7 @@ def mainPage() {
 			section(getFormat("header-green", " Advanced Configuration")) {
 				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", options: ["moderate": "Moderate", "severe,extreme": "Severe & Extreme", "moderate,severe,extreme": "Moderate, Severe & Extreme"], required: true, multiple: false, defaultValue: "Severe & Extreme"
 				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", options: ["immediate": "Immediate", "immediate,expected": "Immediate & Expected"], required: true, multiple: false, defaultValue: "Immediate"
-				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes", "30": "30 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
+				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
 				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
 				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
 				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
@@ -194,9 +195,6 @@ def updated() {
 			break
 		case 15: 
 			runEvery15Minutes(refresh)
-			break
-		case 30: 
-			runEvery30Minutes(refresh)
 			break
 		default: 
 			runEvery5Minutes(refresh)
