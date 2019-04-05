@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.0.6 - added ability to alert only on specific weather alert code events
  *   2.0.5 - added ability to use custom coordinates
  *   2.0.4 - removed requirements of forcing selections in TTS, enabled the option to just use PushOver and not use TTS 
  *   2.0.3 - added ability to have both Music/Speech TTS and Echo Speaks devices for notification services
@@ -55,7 +56,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.0.5"}
+def version(){"v2.0.6"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -138,6 +139,21 @@ def mainPage() {
 					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}"
 					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}"
 				}
+			     input "myWeatherAlert", "enum", title: "Watch a specific Weather Alert?", required: false, multiple: true,
+                            options: [
+							"TOR":	"Tornado Warning",
+                            "TOW":	"Tornado Watch",
+                            "WRN":	"Severe Thunderstorm Warning",
+                            "SEW":	"Severe Thunderstorm Watch",
+                            "WIN":	"Winter Weather Advisory",
+                            "FLO":	"Flood Warning",
+                            "WND":	"High Wind Advisory",
+                            "HEA":	"Heat Advisory",
+                            "FOG":	"Dense Fog Advisory",
+                            "FIR":	"Fire Weather Advisory",
+                            "VOL":	"Volcanic Activity Statement",
+                            "HWW":	"Hurricane Wind Warning"
+                            ]
 
 			}
 		}
@@ -255,6 +271,7 @@ def refresh() {
 }
 
 def buildAlertMsg() {
+	// Determine if custom coordinates have been selected
 	if(useCustomCords) {
 		state.latitude = "${customlatitude}"
 		state.longitude = "${customlongitude}"
@@ -262,7 +279,15 @@ def buildAlertMsg() {
 		state.latitude = "${location.latitude}"
 		state.longitude = "${location.longitude}"
 	}
-		def wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert&urgency=${whatAlertUrgency}&severity=${whatAlertSeverity}"
+	
+	// Determine if specific weather alerts have been selected
+	
+	if(myWeatherAlert != null) {
+		myCodes = myWeatherAlert.join(",")
+		wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert&urgency=${whatAlertUrgency}&severity=${whatAlertSeverity}&code=${myCodes}"
+	} else {
+		wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert&urgency=${whatAlertUrgency}&severity=${whatAlertSeverity}"
+	}
 
 		if (logEnable) log.debug "URI: ${wxURI}"
 		def requestParams =
