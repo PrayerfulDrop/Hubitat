@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.1.0 - fixed test alert to reset dashboard tile
  *   2.0.9 - added new Dashboard Tile ability (thanks to BPTWorld!)
  *   2.0.8 - added ability to turn on switch if a weather alert occurs
  *   2.0.7 - removed 30 minute option for polling
