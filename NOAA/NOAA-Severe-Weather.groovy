@@ -180,6 +180,8 @@ def mainPage() {
 					pushNow(testalert)
 					if(alertSwitch) { alertSwitch.on() }
 					tileNow(testalert)
+					pauseExecution(15000)
+					tileNow("No weather alerts to report.")
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
 				paragraph getFormat("line")
@@ -337,26 +339,7 @@ def buildAlertMsg() {
 					alertdescription = response.data.features[0].properties.description
 					alertinstruction = response.data.features[0].properties.instruction
 					alertevent = response.data.features[0].properties.event
-					
-					/*
-					if (logEnable) log.debug "alertseverity: ${alertseverity}"					
-					if (logEnable) log.debug "alertarea: ${state.alertarea}"
-					if (logEnable) log.debug "alertsent: ${state.alertsent}"					
-					if (logEnable) log.debug "alerteffect: ${alerteffective}"					
-					if (logEnable) log.debug "alertexpires: ${alertexpires}"					
-					if (logEnable) log.debug "alertstatus: ${alertstatus}"					
-					if (logEnable) log.debug "alertmessagetype: ${alertmessagetype}"					
-					if (logEnable) log.debug "alertcategory: ${alertcategory}"	
-					if (logEnable) log.debug "alertseverity: ${alertseverity}"				
-					if (logEnable) log.debug "alertcertainty: ${alertcertainty}"					
-					if (logEnable) log.debug "alerturgency: ${state.alerturgency}"					
-					if (logEnable) log.debug "alertsendername: ${alertsendername}"					
-					if (logEnable) log.debug "alertheadline: ${alertheadline}"					
-					if (logEnable) log.debug "alertdescription: ${alertdescription}"					
-					if (logEnable) log.debug "alertinstruction: ${alertinstruction}"	
-					**/
-					
-				
+			
 				// build the alertmsg
 					alertmsg = alertCustomMsg
 					try {alertmsg = alertmsg.replace("{alertarea}","${state.alertarea}") }
