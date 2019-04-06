@@ -163,10 +163,10 @@ def mainPage() {
 			
 			section(getFormat("header-green", " Dashboard Tile")) {}
 			section("Instructions for Dashboard Tile:", hideable: true, hidden: true) {
-				paragraph "<b>Want to be able to view NOAA Weather Alerts on a Dashboard? Now you can, simply follow these instructions!</b>"
-				paragraph " - Create a new 'Virtual Device'<br> - Name it something catchy like: 'NOAA Tile'<br> - Use our 'NOAA Tile' as the Driver<br> - Then select this new device below"
-				paragraph "Now all you have to do is add this device to one of your dashboards to see your counts on a tile!<br>Add a new tile with the following selections"
-				paragraph "- Pick a device = NOAA Tile<br>- Pick a template = attribute<br>- 3rd box = noaa1"
+				paragraph "<b>Instructions for adding NOAA Weather Alerts to Hubitat Dashboards:</b><br>"
+				paragraph " -Install NOAA Tile Device driver<br>- Create a new Virtual Device and use the NOAA Tile Driver  'NOAA Tile'<br>- Select the new Virtual Device Below<br><br>"
+				paragraph "<b>Add the NOAA Tile device to your dashboard with the following options:</b><br>"
+				paragraph "- Pick a Device: NOAA Tile <br>- Pick a template: attribute<br>- Options - Select Attribute: noaa1"
 			}
 			section() {
 			input(name: "noaaTileDevice", type: "capability.actuator", title: "Vitual Device created to send the alerts to:", submitOnChange: true, required: false, multiple: false)
