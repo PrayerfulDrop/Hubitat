@@ -1,6 +1,6 @@
 {
   "GitHubAuthor": "Aaron Ward",
-  "GitHubMainURL": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat",
+  "GitHubMainURL": "https://github.com/PrayerfulDrop/Hubitat",
   "App01": "NOAA Weather Alerts",
   "App02": "",
   "App03": "",
@@ -56,9 +56,9 @@
   
   "NOAAWeatherAlertsType": "App",
   "NOAAWeatherAlertsParentVersion": "2.0.7",
-  "NOAAWeatherAlertshildVersion": "NA",
+  "NOAAWeatherAlertsChildVersion": "NA",
   "NOAAWeatherAlertsDriverVersion": "NA",
-  "NOAAWeatherAlertsParentRawCode": " https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
+  "NOAAWeatherAlertsParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
   "NOAAWeatherAlertsChildRawCode": "NA",
   "NOAAWeatherAlertsDriverRawCode": "NA",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
