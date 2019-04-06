@@ -54,7 +54,7 @@ def sendNoaaMap1(noaaMap1) {
 	state.noaaMap1a = "${noaaMap1}"
 	state.noaaMap1b = state.noaaMap1a.take(850)
 	state.noaaMap1 = "<table width='100%'><tr>"
-	state.noaaMap1 += "<td style='text-align: left;'>"
+	state.noaaMap1 += "<td style='text-align: center;'>"
 	state.noaaMap1 += "<div style='font-size: ${fontSize}px'> ${state.noaaMap1b}</div>"
 	state.noaaMap1 += "</td></tr></table>"
 	state.noaaMap1Count = state.noaaMap1.length()
