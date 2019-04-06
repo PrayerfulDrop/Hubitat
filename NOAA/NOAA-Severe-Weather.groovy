@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.0.8 - added ability to turn on switch if a weather alert occurs
  *   2.0.7 - removed 30 minute option for polling
  *   2.0.6 - added ability to alert only on specific weather alert code events
  *   2.0.5 - added ability to use custom coordinates
@@ -57,7 +58,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.0.7"}
+def version(){"v2.0.8"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -101,6 +102,7 @@ def mainPage() {
 					 if(echoSpeaks2 == true){ 
 						 input "echospeaker", "capability.musicPlayer", title: "Choose Echo Speaks device(s)", required: false, multiple: true
 					 	 input "echospeaksvolume", "number", title: "Echo Speaks volume", description: "0-100%", required: false, defaultValue: "75"}
+				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false)
 
 			}
 			section(getFormat("header-green", " Customization")) {
@@ -165,6 +167,7 @@ def mainPage() {
 					testalert = "Testing Severe Weather Alert for the following counties: Springfield County.  The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console. . . This is the end of this Severe Weather Announcement."
 					talkNow(testalert)
 					pushNow(testalert)
+					if(alertSwitch) { alertSwitch.on() }
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
 				paragraph getFormat("line")
@@ -250,6 +253,7 @@ def refresh() {
 					// play TTS and send PushOver
 					talkNow(state.alertmsg)
 					pushNow(state.alertmsg)
+					if(alertSwitch) { alertSwitch.on() }
 					// determine if alert needs to be repeated after # of minutes
 					if(repeatYes && state.alertrepeat) {
 						runIn((60*repeatMinutes.toInteger()),repeatAlert())
