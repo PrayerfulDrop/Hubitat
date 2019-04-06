@@ -132,7 +132,7 @@ def mainPage() {
 			}
 			section(getFormat("header-green", " Advanced Configuration")) {
 				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", options: ["moderate": "Moderate", "severe,extreme": "Severe & Extreme", "moderate,severe,extreme": "Moderate, Severe & Extreme"], required: true, multiple: false, defaultValue: "Severe & Extreme"
-				input "myWeatherAlert", "enum", title: "Watch a specific Weather Alert?", required: false, multiple: true,
+				input "myWeatherAlert", "enum", title: "Watch for a specific Weather Event?", required: false, multiple: true,
                             options: [
 							"TOR":	"Tornado Warning",
                             "TOW":	"Tornado Watch",
