@@ -38,8 +38,8 @@ metadata {
 
 		command "sendNoaaMap1", ["string"]
 		
-    	attribute "noaa1", "string"
-		attribute "noaa1Count", "string"
+    	attribute "Alerts", "string"
+		attribute "AlertCount", "string"
 	}
 	preferences() {    	
         section(){
@@ -63,12 +63,14 @@ def sendNoaaMap1(noaaMap1) {
 	} else {
 		state.noaaMap1 = "Too many characters to display on Dashboard (${state.noaaMap1Count})"
 	}
-	sendEvent(name: "noaa1", value: state.noaaMap1, displayed: true)
-	sendEvent(name: "noaa1Count", value: state.noaaMap1Count, displayed: true)
+	sendEvent(name: "Alerts", value: state.noaaMap1, displayed: true)
+	sendEvent(name: "AlertCount", value: state.noaaMap1Count, displayed: true)
 }
 
 def installed(){
     log.info "NOAA Tile has been Installed"
+	sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
+	sendEvent(name: "AlertCount", value: "0", displayed: true)
 }
 
 def updated() {
