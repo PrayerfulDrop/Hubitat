@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.0.9 - added new Dashboard Tile ability (thanks to BPTWorld!)
  *   2.0.8 - added ability to turn on switch if a weather alert occurs
  *   2.0.7 - removed 30 minute option for polling
  *   2.0.6 - added ability to alert only on specific weather alert code events
@@ -58,7 +59,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.0.8"}
+def version(){"v2.0.9"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -159,6 +160,17 @@ def mainPage() {
 				}
 			}
 		}
+			
+			section(getFormat("header-green", " Dashboard Tile")) {}
+			section("Instructions for Dashboard Tile:", hideable: true, hidden: true) {
+				paragraph "<b>Want to be able to view NOAA Weather Alerts on a Dashboard? Now you can, simply follow these instructions!</b>"
+				paragraph " - Create a new 'Virtual Device'<br> - Name it something catchy like: 'NOAA Tile'<br> - Use our 'NOAA Tile' as the Driver<br> - Then select this new device below"
+				paragraph "Now all you have to do is add this device to one of your dashboards to see your counts on a tile!<br>Add a new tile with the following selections"
+				paragraph "- Pick a device = NOAA Tile<br>- Pick a template = attribute<br>- 3rd box = noaa1"
+			}
+			section() {
+			input(name: "noaaTileDevice", type: "capability.actuator", title: "Vitual Device created to send the alerts to:", submitOnChange: true, required: false, multiple: false)
+			}
 			section(getFormat("header-green", " Logging and Testing")) {
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
 				if(runTest) {
@@ -167,6 +179,7 @@ def mainPage() {
 					talkNow(testalert)
 					pushNow(testalert)
 					if(alertSwitch) { alertSwitch.on() }
+					tileNow(testalert)
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
 				paragraph getFormat("line")
@@ -253,6 +266,7 @@ def refresh() {
 					talkNow(state.alertmsg)
 					pushNow(state.alertmsg)
 					if(alertSwitch) { alertSwitch.on() }
+					tileNow(state.alertmsg) 
 					// determine if alert needs to be repeated after # of minutes
 					if(repeatYes && state.alertrepeat) {
 						runIn((60*repeatMinutes.toInteger()),repeatAlert())
@@ -433,6 +447,12 @@ def pushNow(alertmsg) {
 	}
 }
 
+def tileNow(alertmsg) {
+	state.msg = "${alertmsg}"
+	if(logEnable) log.debug "Sending to tileNow - msg: ${state.msg}"
+	if(noaaTileDevice) noaaTileDevice.sendNoaaMap1(state.msg)
+}
+	
 def repeatAlert() {
 	talkNow(state.alertmsg)
 	pushNow(state.alertmsg)
