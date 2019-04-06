@@ -1,7 +1,7 @@
 /**
  *  ****************  NOAA Tile Driver  ****************
  *
- *  importUrl: ""
+ *  importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy"
  *
  *  Design Usage:
  *  This driver formats the NOAA data to be used with Hubitat's Dashboards.
