@@ -29,7 +29,8 @@
  *
  *  Changes:
  *
- *  V1.0.0 - 04/01/19 - Initial release thanks to bptworld!
+ *  1.0.1 - Fixed formatting issues
+ *  1.0.0 - Initial release thanks to bptworld!
  */
 
 metadata {
