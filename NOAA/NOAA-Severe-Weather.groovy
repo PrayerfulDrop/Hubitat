@@ -60,7 +60,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.0.9"}
+def version(){"v2.1.0"}
 
 definition(
     name:"NOAA Weather Alerts",
