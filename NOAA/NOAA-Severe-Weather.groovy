@@ -166,7 +166,7 @@ def mainPage() {
 				paragraph "<b>Instructions for adding NOAA Weather Alerts to Hubitat Dashboards:</b><br>"
 				paragraph " -Install NOAA Tile Device driver<br>- Create a new Virtual Device and use the NOAA Tile Driver  'NOAA Tile'<br>- Select the new Virtual Device Below<br><br>"
 				paragraph "<b>Add the NOAA Tile device to your dashboard with the following options:</b><br>"
-				paragraph "- Pick a Device: NOAA Tile <br>- Pick a template: attribute<br>- Options - Select Attribute: noaa1"
+				paragraph "- Pick a Device: NOAA Tile <br>- Pick a template: attribute<br>- Options - Select Attribute: Alerts"
 			}
 			section() {
 			input(name: "noaaTileDevice", type: "capability.actuator", title: "Vitual Device created to send the alerts to:", submitOnChange: true, required: false, multiple: false)
