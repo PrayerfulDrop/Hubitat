@@ -132,17 +132,7 @@ def mainPage() {
 			}
 			section(getFormat("header-green", " Advanced Configuration")) {
 				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", options: ["moderate": "Moderate", "severe,extreme": "Severe & Extreme", "moderate,severe,extreme": "Moderate, Severe & Extreme"], required: true, multiple: false, defaultValue: "Severe & Extreme"
-				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", options: ["immediate": "Immediate", "immediate,expected": "Immediate & Expected"], required: true, multiple: false, defaultValue: "Immediate"
-				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
-				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
-				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
-				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
-				if(useCustomCords) {
-					paragraph "Below coordinates are acquired from your Hubitat:"
-					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}"
-					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}"
-				}
-			     input "myWeatherAlert", "enum", title: "Watch a specific Weather Alert?", required: false, multiple: true,
+				input "myWeatherAlert", "enum", title: "Watch a specific Weather Alert?", required: false, multiple: true,
                             options: [
 							"TOR":	"Tornado Warning",
                             "TOW":	"Tornado Watch",
@@ -157,7 +147,16 @@ def mainPage() {
                             "VOL":	"Volcanic Activity Statement",
                             "HWW":	"Hurricane Wind Warning"
                             ]
-
+				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", options: ["immediate": "Immediate", "immediate,expected": "Immediate & Expected"], required: true, multiple: false, defaultValue: "Immediate"
+				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
+				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
+				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
+				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
+				if(useCustomCords) {
+					paragraph "Below coordinates are acquired from your Hubitat:"
+					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}"
+					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}"
+				}
 			}
 		}
 			section(getFormat("header-green", " Logging and Testing")) {
