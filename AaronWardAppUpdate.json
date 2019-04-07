@@ -55,12 +55,12 @@
   "Example2UpdateNote": "NA",
   
   "NOAAWeatherAlertsType": "App",
-  "NOAAWeatherAlertsParentVersion": "2.1.1",
+  "NOAAWeatherAlertsParentVersion": "2.1.2",
   "NOAAWeatherAlertsChildVersion": "NA",
   "NOAAWeatherAlertsDriverVersion": "1.0.1",
   "NOAAWeatherAlertsParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
   "NOAAWeatherAlertsChildRawCode": "NA",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": "2.1.1 - fixed Weather Alert Event Codes",
+  "NOAAWeatherAlertsUpdateNote": "2.1.2 - added ability to restore volume for EchoSpeaks devices",
 }
