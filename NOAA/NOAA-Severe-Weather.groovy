@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.1.1 - fixed Weather Alert Event Codes
  *   2.1.0 - fixed test alert to reset dashboard tile
  *   2.0.9 - added new Dashboard Tile ability (thanks to BPTWorld!)
  *   2.0.8 - added ability to turn on switch if a weather alert occurs
@@ -60,7 +61,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.1.0"}
+def version(){"v2.1.1"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -136,18 +137,33 @@ def mainPage() {
 				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", options: ["moderate": "Moderate", "severe,extreme": "Severe & Extreme", "moderate,severe,extreme": "Moderate, Severe & Extreme"], required: true, multiple: false, defaultValue: "Severe & Extreme"
 				input "myWeatherAlert", "enum", title: "Watch only for a specific Weather event?", required: false, multiple: true,
                             options: [
-							"TOR":	"Tornado Warning",
-                            "TOW":	"Tornado Watch",
-                            "WRN":	"Severe Thunderstorm Warning",
-                            "SEW":	"Severe Thunderstorm Watch",
-                            "WIN":	"Winter Weather Advisory",
-                            "FLO":	"Flood Warning",
-                            "WND":	"High Wind Advisory",
-                            "HEA":	"Heat Advisory",
-                            "FOG":	"Dense Fog Advisory",
-                            "FIR":	"Fire Weather Advisory",
-                            "VOL":	"Volcanic Activity Statement",
-                            "HWW":	"Hurricane Wind Warning"
+							"BZW":	"Blizzard Warning",
+                            "CFA":	"Coastal Flood Watch",
+                            "CFW":	"Coastal Flood Warning",
+                            "DSW":	"Dust Storm Warning",
+                            "EWW":	"Extreme Wind Warning",
+                            "FFA":	"Flash Flood Watch",
+                            "FFW":	"Flash Flood Warning",
+                            "FLA":	"Flood Watch",
+                            "FLW":	"Flood Warning",
+                            "HWA":	"High Wind Watch",
+                            "HWW":	"High Wind Warning",
+                            "HUA":	"Hurricane Watch",
+	                        "HUW":	"Hurricane Warning",
+                            "SVA":	"Severe Thunderstorm Watch",
+                            "SVR":	"Severe Thunderstorm Warning",
+                            "SQW":	"Snow Squall Warning",
+                            "SMW":	"Special Marine Warning",
+                            "SSA":	"Storm Surge Watch",
+                            "SSW":	"Storm Surge Warning",
+                            "TOA":	"Tornado Watch",
+                            "TOR":	"Tornado Warning",
+                            "TRA":	"Tropical Storm Watch",
+                            "HUA":	"Tropical Storm Warning",   
+							"TSA":	"Tsunami Watch",
+                            "TSW":	"Tsunami Warning",
+                            "WSA":	"Winter Storm Watch",
+                            "WSW":	"Winter Storm Warning"
                             ]
 				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", options: ["immediate": "Immediate", "immediate,expected": "Immediate & Expected"], required: true, multiple: false, defaultValue: "Immediate"
 				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
@@ -230,10 +246,10 @@ def initialize() {
 def installCheck(){         
     state.appInstalled = app.getInstallationState() 
     if(state.appInstalled != 'COMPLETE'){
-    	section{paragraph "Please hit 'Done' to install '${app.label}' parent app "}
+    	section{paragraph "Please hit 'Done' to install '${app.label}'"}
     }
     else{
-    if (logEnable) log.debug "NOAA Weather Alerts is Installed Correctly"
+		if (logEnable) log.debug "${app.label} is Installed Correctly"
     }
 }
 
