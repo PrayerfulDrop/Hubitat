@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.1.2 - added ability to restore volume for EchoSpeaks devices
  *   2.1.1 - fixed Weather Alert Event Codes
  *   2.1.0 - fixed test alert to reset dashboard tile
  *   2.0.9 - added new Dashboard Tile ability (thanks to BPTWorld!)
@@ -61,7 +62,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.1.1"}
+def version(){"v2.1.2"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -95,8 +96,7 @@ def mainPage() {
 			      input "speechMode", "enum", required: false, title: "Select Speaker Type:", submitOnChange: true,  options: ["Music Player", "Speech Synth"] 
 				if (speechMode == "Music Player"){
            	   		      input "speaker1", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true, submitOnChange: true
-						  input (name: "echoSpeaks", type: "bool", defaultValue: "false", title: "Is this an 'echo speaks' device?", description: "Echo speaks device?")
-					input "volume1", "number", title: "Speaker volume", description: "0-100%", required: false, defaultValue: "75"
+						  input "volume1", "number", title: "Speaker volume", description: "0-100%", required: false, defaultValue: "75"
           	            }   
         	            if (speechMode == "Speech Synth"){
          	            	input "speaker1", "capability.speechSynthesis", title: "Choose speaker(s)", required: false, multiple: true
@@ -105,6 +105,7 @@ def mainPage() {
 					 if(echoSpeaks2 == true){ 
 						 input "echospeaker", "capability.musicPlayer", title: "Choose Echo Speaks device(s)", required: false, multiple: true
 					 	 input "echospeaksvolume", "number", title: "Echo Speaks volume", description: "0-100%", required: false, defaultValue: "75"}
+ 						 input "echospeaksrestorevolume", "number", title: "Restore Echo Speaks volume to:", description: "0-100%", required: true, defaultValue: "30"
 				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false)
 
 			}
@@ -406,19 +407,15 @@ def buildAlertMsg() {
 def talkNow(alertmsg) {								
 		
   		if (speechMode == "Music Player"){ 
-			if(echoSpeaks) {
-				try {speaker1.setVolumeSpeakAndRestore(volume1, alertmsg) }
-				catch (any) {log.warn "Music Player device has not been selected."}
-			}
-			if(!echoSpeaks) {
 				try {speaker1.playTextAndRestore(alertmsg)}
 				catch (any) {log.warn "Music Player device has not been selected."}
-
-			}
   		}   
 	
 		if(echoSpeaks2) {
-			try {echospeaker.setVolumeSpeakAndRestore(echospeaksvolume, alertmsg)}
+			try {
+				echospeaker.setLevel(echospeaksvolume)
+				echospeaker.playTextAndRestore(alertmsg, echospeaksrestorevolume)
+				}
 			catch (any) {log.warn "Echo Speaks device has not been selected."}
 		}
 	
