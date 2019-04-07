@@ -10,7 +10,7 @@
  *
  *  Copyright 2018 Aaron Ward
  *
- *  Special thanks to csteele for all his help and education of Groovy to me.
+ *  Special thanks to csteele for all his help and education of Groovy.  Another special thanks to contributions from bptworld!
  *  
  *  This App is free and was designed for my needs originally but has grown for most needs too.
  *
