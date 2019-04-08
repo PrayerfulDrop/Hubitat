@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.1.3 - added automatic volume restoral for EchoSpeaks devices
  *   2.1.2 - added ability to restore volume for EchoSpeaks devices
  *   2.1.1 - fixed Weather Alert Event Codes
  *   2.1.0 - fixed test alert to reset dashboard tile
@@ -62,11 +63,11 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.1.2"}
+def version(){"v2.1.3"}
 
 definition(
     name:"NOAA Weather Alerts",
-    namespace: "Aaron Ward",
+    namespace: "aaronward",
     author: "Aaron Ward",
     description: "NOAA Weather Alerts Application ",
     category: "Weather",
@@ -105,7 +106,6 @@ def mainPage() {
 					 if(echoSpeaks2 == true){ 
 						 input "echospeaker", "capability.musicPlayer", title: "Choose Echo Speaks device(s)", required: false, multiple: true
 					 	 input "echospeaksvolume", "number", title: "Echo Speaks volume", description: "0-100%", required: false, defaultValue: "75"}
- 						 input "echospeaksrestorevolume", "number", title: "Restore Echo Speaks volume to:", description: "0-100%", required: true, defaultValue: "30"
 				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false)
 
 			}
@@ -413,8 +413,7 @@ def talkNow(alertmsg) {
 	
 		if(echoSpeaks2) {
 			try {
-				echospeaker.setLevel(echospeaksvolume)
-				echospeaker.playTextAndRestore(alertmsg, echospeaksrestorevolume)
+				echospeaker.setVolumeSpeakAndRestore(echospeaksvolume, alertmsg)
 				}
 			catch (any) {log.warn "Echo Speaks device has not been selected."}
 		}
