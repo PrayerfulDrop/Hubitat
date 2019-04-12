@@ -312,6 +312,7 @@ def refresh() {
 			} 
 		else { 
 			log.info "No new alerts."	
+			if (logEnable) log.debug "The alert feed was empty.  Setting dashboard tile"
 			tileNow("No weather alerts to report.")
 		}
 			log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
