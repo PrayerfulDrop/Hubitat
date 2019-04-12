@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.1.4 - added alert certainty to support Hydrologic alerts, changed alert severity and urgency to multi-select, cleaned up code a bit, reset tile alerts if no alerts in feed
  *   2.1.3 - added automatic volume restoral for EchoSpeaks devices
  *   2.1.2 - added ability to restore volume for EchoSpeaks devices
  *   2.1.1 - fixed Weather Alert Event Codes
@@ -63,7 +64,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.1.3"}
+def version(){"v2.1.4"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -135,7 +136,11 @@ def mainPage() {
 				}
 			}
 			section(getFormat("header-green", " Advanced Configuration")) {
-				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", options: ["moderate": "Moderate", "severe,extreme": "Severe & Extreme", "moderate,severe,extreme": "Moderate, Severe & Extreme"], required: true, multiple: false, defaultValue: "Severe & Extreme"
+				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", 
+					options: [
+						"moderate": "Moderate", 
+						"severe": "Severe", 
+						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"
 				input "myWeatherAlert", "enum", title: "Watch only for a specific Weather event?", required: false, multiple: true,
                             options: [
 							"BZW":	"Blizzard Warning",
@@ -166,7 +171,18 @@ def mainPage() {
                             "WSA":	"Winter Storm Watch",
                             "WSW":	"Winter Storm Warning"
                             ]
-				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", options: ["immediate": "Immediate", "immediate,expected": "Immediate & Expected"], required: true, multiple: false, defaultValue: "Immediate"
+				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", required: true, multiple: true, 
+							options: [
+								"immediate": "Immediate", 
+								"expected": "Expected",
+								"future": "Future"], defaultValue: "Future"
+				
+				input name: "whatAlertCertainty", type: "enum", title: "Choose Alerts Certainty: ", required: false, multiple: true,
+							options: [
+								"possible": "Possible",
+								"likely": "Likely",
+								"observed": "Observed"], defaultValue: "Likely"
+
 				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
 				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
 				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
@@ -194,10 +210,7 @@ def mainPage() {
 				if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
 					testalert = "Testing Severe Weather Alert for the following counties: Springfield County.  The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console. . . This is the end of this Severe Weather Announcement."
-					talkNow(testalert)
-					pushNow(testalert)
-					if(alertSwitch) { alertSwitch.on() }
-					tileNow(testalert)
+					alertNow(testalert)
 					pauseExecution(15000)
 					tileNow("No weather alerts to report.")
 				}
@@ -283,10 +296,7 @@ def refresh() {
 				if (logEnable) log.debug "AlertSent: '${state.alertsent}  Pastalert: '${state.pastalert}'"
 				if(state.alertsent != state.pastalert){
 					// play TTS and send PushOver
-					talkNow(state.alertmsg)
-					pushNow(state.alertmsg)
-					if(alertSwitch) { alertSwitch.on() }
-					tileNow(state.alertmsg) 
+					alertNow(state.alertmsg)
 					// determine if alert needs to be repeated after # of minutes
 					if(repeatYes && state.alertrepeat) {
 						runIn((60*repeatMinutes.toInteger()),repeatAlert())
@@ -298,8 +308,12 @@ def refresh() {
 					if (logEnable) log.debug "AlertSent: '${state.alertsent}  Pastalert: '${state.pastalert}'"
 				} 
 				else log.info "No new alerts."
+					   
 			} 
-			else log.info "No new alerts."	
+		else { 
+			log.info "No new alerts."	
+			tileNow("No weather alerts to report.")
+		}
 			log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
 	}
     else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
@@ -314,16 +328,27 @@ def buildAlertMsg() {
 		state.latitude = "${location.latitude}"
 		state.longitude = "${location.longitude}"
 	}
+	wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert"
 	
-	// Determine if specific weather alerts have been selected
-	
-	if(myWeatherAlert != null) {
-		myCodes = myWeatherAlert.join(",")
-		wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert&urgency=${whatAlertUrgency}&severity=${whatAlertSeverity}&code=${myCodes}"
+	if(whatAlertUrgency != null) {
+		wxURI = wxURI + "&urgency=${whatAlertUrgency.join(",")}"
 	} else {
-		wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert&urgency=${whatAlertUrgency}&severity=${whatAlertSeverity}"
+		wxURI = wxURI + "&urgency=immediate"
+	}
+	if(whatAlertSeverity != null) {
+		wxURI = wxURI + "&severity=${whatAlertSeverity.join(",")}"
+	} else {
+		wxURI = wxURI + "&severity=severe"
+	}
+	if(whatAlertCertainty !=null) {
+		wxURI = wxURI + "&certainty=${whatAlertCertainty.join(",")}"
+	}
+	if(myWeatherAlert != null) {
+		wxURI = wxURI + "&code=${myWeatherAlert.join(",")}"
 	}
 
+//wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert&urgency=${AlertUrgency}&severity=${whatAlertSeverity}&code=${myCodes}"
+		
 		if (logEnable) log.debug "URI: ${wxURI}"
 		def requestParams =
 			[
@@ -408,19 +433,19 @@ def talkNow(alertmsg) {
 		
   		if (speechMode == "Music Player"){ 
 				try {speaker1.playTextAndRestore(alertmsg)}
-				catch (any) {log.warn "Music Player device has not been selected."}
+				catch (any) {log.warn "Music Player device(s) has not been selected."}
   		}   
 	
 		if(echoSpeaks2) {
 			try {
 				echospeaker.setVolumeSpeakAndRestore(echospeaksvolume, alertmsg)
 				}
-			catch (any) {log.warn "Echo Speaks device has not been selected."}
+			catch (any) {log.warn "Echo Speaks device(s) has not been selected."}
 		}
 	
 		if (speechMode == "Speech Synth"){ 
 			try {speaker1.speak(alertmsg)}
-			catch (any) {log.warn "Speech device has not been selected."}
+			catch (any) {log.warn "Speech device(s) has not been selected."}
 		}
 }
 
@@ -453,4 +478,12 @@ def repeatAlert() {
 	talkNow(state.alertmsg)
 	pushNow(state.alertmsg)
 	state.alertrepeat = true
+}
+
+def alertNow(alertmsg){
+		talkNow(alertmsg)
+		pushNow(alertmsg)
+		if(alertSwitch) { alertSwitch.on() }
+		tileNow(alertmsg) 
+
 }
