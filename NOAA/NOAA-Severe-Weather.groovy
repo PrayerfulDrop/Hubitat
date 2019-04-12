@@ -175,13 +175,13 @@ def mainPage() {
 							options: [
 								"immediate": "Immediate", 
 								"expected": "Expected",
-								"future": "Future"], defaultValue: "Future"
+								"future": "Future"], defaultValue: "Immediate"
 				
 				input name: "whatAlertCertainty", type: "enum", title: "Choose Alerts Certainty: ", required: false, multiple: true,
 							options: [
 								"possible": "Possible",
 								"likely": "Likely",
-								"observed": "Observed"], defaultValue: "Likely"
+								"observed": "Observed"]
 
 				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
 				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
