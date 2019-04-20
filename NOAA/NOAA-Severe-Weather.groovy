@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.1.5 - added minor severity for those who want weather forecasting and ALL weather alerts 
  *   2.1.4 - added alert certainty to support Hydrologic alerts, changed alert severity and urgency to multi-select, cleaned up code a bit, reset tile alerts if no alerts in feed
  *   2.1.3 - added automatic volume restoral for EchoSpeaks devices
  *   2.1.2 - added ability to restore volume for EchoSpeaks devices
@@ -64,7 +65,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.1.4"}
+def version(){"v2.1.5"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -138,9 +139,10 @@ def mainPage() {
 			section(getFormat("header-green", " Advanced Configuration")) {
 				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", 
 					options: [
+						"minor": "Minor",
 						"moderate": "Moderate", 
 						"severe": "Severe", 
-						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"
+						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Moderate"
 				input "myWeatherAlert", "enum", title: "Watch only for a specific Weather event?", required: false, multiple: true,
                             options: [
 							"BZW":	"Blizzard Warning",
