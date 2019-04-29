@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.1.6 - minor code cleanup for install, modified test alert to use custom formatting for testing
  *   2.1.5 - added minor severity for those who want weather forecasting and ALL weather alerts 
  *   2.1.4 - added alert certainty to support Hydrologic alerts, changed alert severity and urgency to multi-select, cleaned up code a bit, reset tile alerts if no alerts in feed
  *   2.1.3 - added automatic volume restoral for EchoSpeaks devices
@@ -65,7 +66,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.1.5"}
+def version(){"v2.1.6"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -112,7 +113,7 @@ def mainPage() {
 
 			}
 			section(getFormat("header-green", " Customization")) {
-				input (name: "alertCustomMsg", type: "text", title: "Alert Message:", require: false, defaultValue: "Attention, Attention. {alertseverity} Weather Alert for the following counties: {alertarea}. {alertheadline}. {alertinstruction}. This is the end of this Weather Announcement.")
+				input (name: "alertCustomMsg", type: "text", title: "Alert Message:", require: false, defaultValue: "Attention, Attention. {alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.")
 			}	
 			section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
         		paragraph "<b>Alert message variables:</b>"
@@ -142,7 +143,7 @@ def mainPage() {
 						"minor": "Minor",
 						"moderate": "Moderate", 
 						"severe": "Severe", 
-						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Moderate"
+						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"
 				input "myWeatherAlert", "enum", title: "Watch only for a specific Weather event?", required: false, multiple: true,
                             options: [
 							"BZW":	"Blizzard Warning",
@@ -195,7 +196,6 @@ def mainPage() {
 					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}"
 				}
 			}
-		}
 			
 			section(getFormat("header-green", " Dashboard Tile")) {}
 			section("Instructions for Dashboard Tile:", hideable: true, hidden: true) {
@@ -211,7 +211,7 @@ def mainPage() {
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
 				if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
-					testalert = "Testing Severe Weather Alert for the following counties: Springfield County.  The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console. . . This is the end of this Severe Weather Announcement."
+					testalert=buildTestAlert()
 					alertNow(testalert)
 					pauseExecution(15000)
 					tileNow("No weather alerts to report.")
@@ -219,7 +219,8 @@ def mainPage() {
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
 				paragraph getFormat("line")
 				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${version()}</div>"
-	}       
+			}       
+		}
 	}
 }
 
@@ -254,9 +255,6 @@ def updated() {
 
 def initialize() {
 	runIn(5, refresh)
-	state.repeatalert = true
-	state.alertarea = ""
-	state.alerturgency = ""
 }
 
 def installCheck(){         
@@ -333,6 +331,7 @@ def buildAlertMsg() {
 	}
 	wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert"
 	
+	// Build out the API options
 	if(whatAlertUrgency != null) {
 		wxURI = wxURI + "&urgency=${whatAlertUrgency.join(",")}"
 	} else {
@@ -350,7 +349,7 @@ def buildAlertMsg() {
 		wxURI = wxURI + "&code=${myWeatherAlert.join(",")}"
 	}
 
-//wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert&urgency=${AlertUrgency}&severity=${whatAlertSeverity}&code=${myCodes}"
+	//What default weather.gov API looks like: wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert&urgency=${AlertUrgency}&severity=${whatAlertSeverity}&code=${myCodes}"
 		
 		if (logEnable) log.debug "URI: ${wxURI}"
 		def requestParams =
@@ -425,11 +424,32 @@ def buildAlertMsg() {
 					try {alertmsg = alertmsg.replaceAll("\n"," ") }
 						catch (any) {}
 					state.alertmsg = alertmsg
-					//if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
+					if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
 				} 	
 			}
 			else log.warn "${response?.status}"
 		}
+}
+
+def buildTestAlert() {
+					alertmsg = alertCustomMsg
+					try {alertmsg = alertmsg.replace("{alertarea}","Springfield County") }
+						 catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertseverity}","Severe") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertcertainty}","Likely") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alerturgency}","Immediate") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertheadline}","The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertdescription}","The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console.  Also a notorius yellow haired boy is terrorizing animals with spit wads.  Be on the look out for suspicious activity.") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertinstruction}","Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console.") }
+						catch (any) {}
+					try {alertmsg = alertmsg.replace("{alertevent}","Nuclear Power Plant Warning") }
+						catch (any) {}
+					return alertmsg
 }
 
 def talkNow(alertmsg) {								
