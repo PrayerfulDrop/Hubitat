@@ -55,12 +55,12 @@
   "Example2UpdateNote": "NA",
   
   "NOAAWeatherAlertsType": "App",
-  "NOAAWeatherAlertsParentVersion": "2.1.5",
+  "NOAAWeatherAlertsParentVersion": "2.1.6",
   "NOAAWeatherAlertsChildVersion": "NA",
   "NOAAWeatherAlertsDriverVersion": "1.0.1",
   "NOAAWeatherAlertsParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
   "NOAAWeatherAlertsChildRawCode": "NA",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": " 2.1.5 - added minor severity for those who want weather forecasting and ALL weather alerts",
+  "NOAAWeatherAlertsUpdateNote": "2.1.6 - minor code cleanup for install, modified test alert to use custom formatting for testing",
 }
