@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.1.8 - fixed NOAA Dashboard Tile to reset after user predefined time, fixed bug with repeating the alert
  *   2.1.7 - moved options around into appropriate categories to support simple installation, added warning and URL to weather.gov for advanced configuration testing, removed required fields for simple install of NOAA
  *   2.1.6 - minor code cleanup for install, modified test alert to use custom formatting for testing
  *   2.1.5 - added minor severity for those who want weather forecasting and ALL weather alerts 
@@ -67,7 +68,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.1.7"}
+def version(){"v2.1.8"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -148,6 +149,7 @@ def mainPage() {
 			}
 			section() {
 			input(name: "noaaTileDevice", type: "capability.actuator", title: "NOAA Tile Device to send alerts to:", submitOnChange: true, required: false, multiple: false)
+			input name:"noaaTileReset", type: "text", title: "Number of minutes before resetting the NOAA Tile Dashboard?", require: false, defaultValue: "30"
 			}
 			section(getFormat("header-green", " Advanced Configuration")) {
 			paragraph "Use with caution as below settings may cause undesired results.  Reference <a href='https://www.weather.gov/documentation/services-web-api?prevfmt=application%2Fcap%2Bxml/default/get_alerts#/default/get_alerts' target='_blank'>Weather.gov API</a> and test your configuration first."
@@ -185,7 +187,7 @@ def mainPage() {
 							options: [
 								"immediate": "Immediate", 
 								"expected": "Expected",
-								"future": "Future"], defaultValue: "Immediate"
+								"future": "Future"]
 				
 				input name: "whatAlertCertainty", type: "enum", title: "Choose Alerts Certainty: ", required: false, multiple: true,
 							options: [
@@ -212,10 +214,9 @@ def mainPage() {
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
 				if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
+					if (logEnable) log.debug "Initiating a test alert."
 					testalert=buildTestAlert()
 					alertNow(testalert)
-					pauseExecution(15000)
-					tileNow("No weather alerts to report.")
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
 				paragraph getFormat("line")
@@ -256,6 +257,7 @@ def updated() {
 
 def initialize() {
 	runIn(5, refresh)
+	state.alertrepeat = true
 }
 
 def installCheck(){         
@@ -300,7 +302,7 @@ def refresh() {
 					alertNow(state.alertmsg)
 					// determine if alert needs to be repeated after # of minutes
 					if(repeatYes && state.alertrepeat) {
-						runIn((60*repeatMinutes.toInteger()),repeatAlert())
+						runIn((60*repeatMinutes.toInteger()),repeatAlert)
 						state.alertrepeat = false
 					}
 					// set the pastalert to the current alertsent timestamp
@@ -308,15 +310,10 @@ def refresh() {
 					log.info "Speaking: ${state.alertmsg}"
 					if (logEnable) log.debug "AlertSent: '${state.alertsent}  Pastalert: '${state.pastalert}'"
 				} 
-				else log.info "No new alerts."
-					   
+				else  log.info "No new alerts."
 			} 
-		else { 
-			log.info "No new alerts."	
-			if (logEnable) log.debug "The alert feed was empty.  Setting dashboard tile"
-			tileNow("No weather alerts to report.")
-		}
-			log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
+		else log.info "No new alerts."	
+		log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
 	}
     else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 }
@@ -381,7 +378,8 @@ def buildAlertMsg() {
 					alertsendername = response.data.features[0].properties.senderName
 					alertheadline = response.data.features[0].properties.headline
 					alertdescription = response.data.features[0].properties.description
-					alertinstruction = response.data.features[0].properties.instruction
+					if(response.data.features[0].properties.instruction) { alertinstruction = response.data.features[0].properties.instruction }
+				else {alertinstruction = response.data.features[0].properties.description }
 					alertevent = response.data.features[0].properties.event
 			
 				// build the alertmsg
@@ -454,11 +452,13 @@ def buildTestAlert() {
 def talkNow(alertmsg) {								
 		
   		if (speechMode == "Music Player"){ 
+				if (logEnable) log.debug "Sending alert to Music Player devices."
 				try {speaker1.playTextAndRestore(alertmsg)}
 				catch (any) {log.warn "Music Player device(s) has not been selected."}
   		}   
 	
 		if(echoSpeaks2) {
+			if (logEnable) log.debug "Sending alert to Echo Speaks devices."
 			try {
 				echospeaker.setVolumeSpeakAndRestore(echospeaksvolume, alertmsg)
 				}
@@ -466,6 +466,7 @@ def talkNow(alertmsg) {
 		}
 	
 		if (speechMode == "Speech Synth"){ 
+			if (logEnable) log.debug "Sending alert to Speech devices"
 			try {speaker1.speak(alertmsg)}
 			catch (any) {log.warn "Speech device(s) has not been selected."}
 		}
@@ -473,6 +474,7 @@ def talkNow(alertmsg) {
 
 def pushNow(alertmsg) {
 	if (pushovertts) {
+	if (logEnable) log.debug "Sending Pushover message."
 	def m = alertmsg =~ /(.|[\r\n]){1,1023}\W/
 	def n = alertmsg =~ /(.|[\r\n]){1,1023}\W/
 	def index = 0
@@ -490,22 +492,34 @@ def pushNow(alertmsg) {
 	}
 }
 
-def tileNow(alertmsg) {
-	state.msg = "${alertmsg}"
-	if(logEnable) log.debug "Sending to tileNow - msg: ${state.msg}"
-	if(noaaTileDevice) noaaTileDevice.sendNoaaMap1(state.msg)
+def tileReset() {
+			if (logEnable) log.debug "NOAA Tile has been reset."
+			tileNow("No weather alerts to report.","false")
 }
-	
+
+def tileNow(alertmsg, resetAlert) {
+	if(noaaTileDevice) {
+		state.msg = "${alertmsg}"
+		if(logEnable) log.debug "Sending to tileNow - msg: ${state.msg}"
+		noaaTileDevice.sendNoaaMap1(state.msg)
+		if(resetAlert == "true") {
+			if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
+			runIn((60*noaaTileReset.toInteger()),tileReset)
+		}
+	}
+}
+
 def repeatAlert() {
-	talkNow(state.alertmsg)
+	if (logEnable) log.debug "Repeating alert."
+	talkNow(state.alertmsg, true)
 	pushNow(state.alertmsg)
 	state.alertrepeat = true
 }
 
 def alertNow(alertmsg){
-		talkNow(alertmsg)
-		pushNow(alertmsg)
+		//talkNow(alertmsg)
+		//pushNow(alertmsg)
 		if(alertSwitch) { alertSwitch.on() }
-		tileNow(alertmsg) 
+		tileNow(alertmsg, "true") 
 
 }
