@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.1.7 - moved options around into appropriate categories to support simple installation, added warning and URL to weather.gov for advanced configuration testing, removed required fields for simple install of NOAA
  *   2.1.6 - minor code cleanup for install, modified test alert to use custom formatting for testing
  *   2.1.5 - added minor severity for those who want weather forecasting and ALL weather alerts 
  *   2.1.4 - added alert certainty to support Hydrologic alerts, changed alert severity and urgency to multi-select, cleaned up code a bit, reset tile alerts if no alerts in feed
@@ -66,7 +67,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.1.6"}
+def version(){"v2.1.7"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -93,7 +94,7 @@ def mainPage() {
 			section(getFormat("header-green", " General")) {
        			label title: "Enter a name for application:", required: false
 			}
-			section(getFormat("header-green", " Configuration")) {
+			section(getFormat("header-green", " Notification Devices")) {
 			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts?", required: true, defaultValue: false, submitOnChange: true 
 			    if(pushovertts == true){ input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true}
 				paragraph "Configure your TTS devices:"
@@ -112,7 +113,17 @@ def mainPage() {
 				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false)
 
 			}
-			section(getFormat("header-green", " Customization")) {
+			section(getFormat("header-green", " Configuration")) {
+				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", 
+					options: [
+						"minor": "Minor",
+						"moderate": "Moderate", 
+						"severe": "Severe", 
+						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"
+				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
+				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
+				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
+				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
 				input (name: "alertCustomMsg", type: "text", title: "Alert Message:", require: false, defaultValue: "Attention, Attention. {alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.")
 			}	
 			section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
@@ -128,22 +139,18 @@ def mainPage() {
 				paragraph " "
 				paragraph "<b>Example:</b> Attention, Attention. {alertseverity} weather alert. Certainty is {alertcertainty}. Urgency is {alerturgency}. {alertheadline}. {alertinstruction}. This is the end of the weather announcement."
 			}
-			section(getFormat("header-green", " Restrictions")) {
-				input "modesYes", "bool", title: "Enable restriction by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
-				if(modesYes){	
-				    input(name:"modes", type: "mode", title: "Restrict actions when current mode is:", multiple: true, required: false)
-				}
-				if(!modesYes){
-			          input "restrictbySwitch", "capability.switch", title: "Or use a switch to restrict:", required: false, multiple: false, defaultValue: null
-				}
+			section(getFormat("header-green", " Dashboard Tile")) {}
+			section("Instructions for Dashboard Tile:", hideable: true, hidden: true) {
+				paragraph "<b>Instructions for adding NOAA Weather Alerts to Hubitat Dashboards:</b><br>"
+				paragraph " -Install NOAA Tile Device driver<br>- Create a new Virtual Device and use the NOAA Tile Driver  'NOAA Tile'<br>- Select the new Virtual Device Below<br><br>"
+				paragraph "<b>Add the NOAA Tile device to your dashboard with the following options:</b><br>"
+				paragraph "- Pick a Device: NOAA Tile <br>- Pick a template: attribute<br>- Options - Select Attribute: Alerts"
+			}
+			section() {
+			input(name: "noaaTileDevice", type: "capability.actuator", title: "NOAA Tile Device to send alerts to:", submitOnChange: true, required: false, multiple: false)
 			}
 			section(getFormat("header-green", " Advanced Configuration")) {
-				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", 
-					options: [
-						"minor": "Minor",
-						"moderate": "Moderate", 
-						"severe": "Severe", 
-						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"
+			paragraph "Use with caution as below settings may cause undesired results.  Reference <a href='https://www.weather.gov/documentation/services-web-api?prevfmt=application%2Fcap%2Bxml/default/get_alerts#/default/get_alerts' target='_blank'>Weather.gov API</a> and test your configuration first."
 				input "myWeatherAlert", "enum", title: "Watch only for a specific Weather event?", required: false, multiple: true,
                             options: [
 							"BZW":	"Blizzard Warning",
@@ -174,7 +181,7 @@ def mainPage() {
                             "WSA":	"Winter Storm Watch",
                             "WSW":	"Winter Storm Warning"
                             ]
-				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", required: true, multiple: true, 
+				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", multiple: true, 
 							options: [
 								"immediate": "Immediate", 
 								"expected": "Expected",
@@ -186,26 +193,20 @@ def mainPage() {
 								"likely": "Likely",
 								"observed": "Observed"]
 
-				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
-				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
-				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
-				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
 				if(useCustomCords) {
 					paragraph "Below coordinates are acquired from your Hubitat:"
 					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}"
 					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}"
 				}
 			}
-			
-			section(getFormat("header-green", " Dashboard Tile")) {}
-			section("Instructions for Dashboard Tile:", hideable: true, hidden: true) {
-				paragraph "<b>Instructions for adding NOAA Weather Alerts to Hubitat Dashboards:</b><br>"
-				paragraph " -Install NOAA Tile Device driver<br>- Create a new Virtual Device and use the NOAA Tile Driver  'NOAA Tile'<br>- Select the new Virtual Device Below<br><br>"
-				paragraph "<b>Add the NOAA Tile device to your dashboard with the following options:</b><br>"
-				paragraph "- Pick a Device: NOAA Tile <br>- Pick a template: attribute<br>- Options - Select Attribute: Alerts"
-			}
-			section() {
-			input(name: "noaaTileDevice", type: "capability.actuator", title: "Vitual Device created to send the alerts to:", submitOnChange: true, required: false, multiple: false)
+			section(getFormat("header-green", " Restrictions")) {
+				input "modesYes", "bool", title: "Enable restriction by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
+				if(modesYes){	
+				    input(name:"modes", type: "mode", title: "Restrict actions when current mode is:", multiple: true, required: false)
+				}
+				if(!modesYes){
+			          input "restrictbySwitch", "capability.switch", title: "Or use a switch to restrict:", required: false, multiple: false, defaultValue: null
+				}
 			}
 			section(getFormat("header-green", " Logging and Testing")) {
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
@@ -334,8 +335,6 @@ def buildAlertMsg() {
 	// Build out the API options
 	if(whatAlertUrgency != null) {
 		wxURI = wxURI + "&urgency=${whatAlertUrgency.join(",")}"
-	} else {
-		wxURI = wxURI + "&urgency=immediate"
 	}
 	if(whatAlertSeverity != null) {
 		wxURI = wxURI + "&severity=${whatAlertSeverity.join(",")}"
