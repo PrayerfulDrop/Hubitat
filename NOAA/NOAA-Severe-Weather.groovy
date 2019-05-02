@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.1.9 - support for updated NOAA Tile Driver
  *   2.1.8 - fixed NOAA Dashboard Tile to reset after user predefined time, fixed bug with repeating the alert
  *   2.1.7 - moved options around into appropriate categories to support simple installation, added warning and URL to weather.gov for advanced configuration testing, removed required fields for simple install of NOAA
  *   2.1.6 - minor code cleanup for install, modified test alert to use custom formatting for testing
@@ -68,7 +69,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.1.8"}
+def version(){"v2.1.9"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -500,8 +501,8 @@ def tileReset() {
 def tileNow(alertmsg, resetAlert) {
 	if(noaaTileDevice) {
 		state.msg = "${alertmsg}"
-		if(logEnable) log.debug "Sending to tileNow - msg: ${state.msg}"
-		noaaTileDevice.sendNoaaMap1(state.msg)
+		if(logEnable) log.debug "Sending to NOAA Tile - msg: ${state.msg}"
+		noaaTileDevice.sendNoaaTile(state.msg)
 		if(resetAlert == "true") {
 			if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
 			runIn((60*noaaTileReset.toInteger()),tileReset)
@@ -517,8 +518,8 @@ def repeatAlert() {
 }
 
 def alertNow(alertmsg){
-		talkNow(alertmsg)
-		pushNow(alertmsg)
+		//talkNow(alertmsg)
+		//pushNow(alertmsg)
 		if(alertSwitch) { alertSwitch.on() }
 		tileNow(alertmsg, "true") 
 
