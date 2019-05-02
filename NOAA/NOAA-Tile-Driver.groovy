@@ -29,95 +29,119 @@
  *
  *  Changes:
  *
+ *  1.2.0 - rewrite of the driver app (again) for better optimization, automate disabling of logging
  *  1.1.0 - Longer alerts will scroll on dashboard for 5 minutes, fixed justification of text alignment
  *  1.0.0 - Initial release thanks to bptworld!
  */
 
 metadata {
-	definition (name: "NOAA Tile", namespace: "Aaron Ward", author: "Aaron Ward") {
-   		capability "Actuator"
-
-		command "sendNoaaMap1", ["string"]
-		
+	definition (
+		name: "NOAA Tile",
+		namespace: "aaronward",
+		author: "Aaron Ward",
+		importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy"
+		)
+		{
+		command "sendNoaaTile", ["string"]
+		capability "Actuator"
+		capability "Refresh"
+		attribute "DriverVersion", "string"
+		attribute "DriverAuthor", "string"
+		attribute "DriverStatus", "string"	
     	attribute "Alerts", "string"
-		attribute "AlertCount", "string"
-	}
+		}
 
 	preferences() {    	
-        section(){
-			input("fontSize", "text", title: "Data Font Size", required: true, defaultValue: "15")
 			input("timeExpire", "text", title: "Minutes to scroll alert?", required: true, defaultValue: "5")
             input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
-        }
     }
 }
 
-def sendNoaaMap1(noaaMap1) {
-	if (logEnable) log.debug "Received weather alert from NOAA App."
-	if(noaaMap1.length() > 380){
-		if (logEnable) log.debug "Scrolling alert on dashboard for ${timeExpire} minutes."
-  	  	def now = new Date()
-		long unxNow = now.getTime()
-		long unxEnd = now.getTime() + (timeExpire.toInteger()*60*1000)
-		unxNow = unxNow/1000
-    	unxEnd = unxEnd/1000
-		alertmsg =  "${noaaMap1}"
-			def m = alertmsg =~ /(.|[\r\n]){1,380}\W/
-		def index = 0
-		def x = 0
-		def fullmsg = []
-			while (m.find()) {
-			   fullmsg << m.group()
-			   index = index +1
-			}
-		while(unxNow < unxEnd){
-			state.noaaMap1 = "<center><table width='90%' height='90%'><tr>"
-			state.noaaMap1 += "<td style='text-align: justify;'>"
-			if(x==(index-1)) {state.noaaMap1 += "<div style='font-size: ${fontSize}px'> ${fullmsg[x]}</div>"}
-			else {state.noaaMap1 += "<div style='font-size: ${fontSize}px'> ${fullmsg[x]}...</div>"}
-			state.noaaMap1 += "<div align='right' style='font-size: ${fontSize}px'>${x+1}/${index}</div>"
-			state.noaaMap1 += "</td></tr></table>"
-			sendEvent(name: "Alerts", value: state.noaaMap1, displayed: true)
-			sendEvent(name: "AlertCount", value: fullmsg[x].length(), displayed: true)
-			if(x == (index-1)) {x=0} else {x=x+1}
-			pauseExecution(8000)
-			now = new Date()
-			unxNow = now.getTime()
-			unxNow = unxNow/1000
-		}
-			state.noaaMap1 = "<center><table width='90%' height='90%'><tr>"
-			state.noaaMap1 += "<td style='text-align: justify;'>"
-			state.noaaMap1 += "<div style='font-size: ${fontSize}px'> ${fullmsg[0]}...</div>"
-			state.noaaMap1 += "<div align='right' style='font-size: ${fontSize}px'>1/${index}</div>"
-			state.noaaMap1 += "</td></tr></table>"
-			sendEvent(name: "Alerts", value: state.noaaMap1, displayed: true)
-			sendEvent(name: "AlertCount", value: fullmsg[0].length(), displayed: true)
-		if (logEnable) log.debug "End scrolling of alerts."
-	} else {
-	if (logEnable) log.debug "Alert is under character limit.  No scrolling required."
-	state.noaaMap1 = "${noaaMap1}"
-	state.noaaMap1 = "<center><table width='90%' height='90%'><tr>"
-	state.noaaMap1 += "<td style='text-align: justify;'>"
-	state.noaaMap1 += "<div style='font-size: ${fontSize}px'> ${state.noaaMap1}</div>"
-	state.noaaMap1 += "</td></tr></table>"
-	state.noaaMap1Count = state.noaaMap1.length()
-	sendEvent(name: "Alerts", value: state.noaaMap1, displayed: true)
-	sendEvent(name: "AlertCount", value: state.noaaMap1Count, displayed: true)
-	}
-}
-
-def installed(){
-    log.info "NOAA Tile has been Installed"
-	sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
-	sendEvent(name: "AlertCount", value: "0", displayed: true)
+def initialize() {
+	log.info "NOAA Tile Driver Initializing."
+	refresh()
 }
 
 def updated() {
+	refresh()
+}
+
+def installed(){
+    log.info "NOAA Tile has been Installed."
+	setVersion()
+	sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
+}
+
+def refresh() {
 	if (logEnable) runIn(900,logsOff)
-    log.info "NOAA Tile has been Updated"
+    log.info "NOAA Tile has been updated."
+	state.clear()
 }
 
 def logsOff(){
     log.warn "Debug logging disabled."
-    app?.updateSetting("logEnable",[value:"false",type:"bool"])
+    device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
+
+def setVersion(){
+	sendEvent(name: "DriverAuthor", value: "aaronward")
+	sendEvent(name: "DriverVersion", value: "1.2.0")
+}
+
+def sendNoaaTile(noaaData) {
+	def messageSize = 380
+	alertmsg =  "${noaaData}"
+	log.info "Received weather alert from NOAA App."
+	if (logEnable) log.debug "Length of Alert: ${alertmsg.length()}"
+		if(alertmsg.length() > messageSize) {
+			if (logEnable) log.debug "Scrolling alert on dashboard for ${timeExpire} minutes."
+  	  		def now = new Date()
+			long unxNow = now.getTime()
+			//long unxEnd = now.getTime() + (timeExpire.toInteger()*60*1000)
+			long unxEnd = now.getTime() + (timeExpire.toInteger()*15*1000)
+			unxNow = unxNow/1000
+    		unxEnd = unxEnd/1000
+			//determine how many pages will the alert is
+			def m = alertmsg =~ /(.|[\r\n]){1,380}\W/
+			state.index = 0
+			def x = 0
+			state.fullmsg = []
+			while (m.find()) {
+			   state.fullmsg << m.group()
+			   state.index = state.index +1
+			}
+			
+			while(unxNow < unxEnd){
+				noaaTile = "<center><table width='90%' height='90%'><tr>"
+				noaaTile += "<td style='text-align: justify;'>"
+				if(x==(state.index-1)) { noaaTile += "<div style='font-size: 15px'> ${state.fullmsg[x]}</div>" }
+				else { noaaTile += "<div style='font-size: 15px'> ${state.fullmsg[x]}...</div>" }
+				noaaTile += "<div align='right' style='font-size: 15px'>${x+1}/${state.index}</div>"
+				noaaTile += "</td></tr></table>"
+				sendEvent(name: "Alerts", value: noaaTile, displayed: true)
+				if(x == (state.index-1)) {x=0} else {x=x+1}
+				pauseExecution(8000)
+				now = new Date()
+				unxNow = now.getTime()
+				unxNow = unxNow/1000
+			}
+			if (logEnable) log.debug "End scrolling of alerts."
+		}
+		
+		//build final alert to display
+		noaaTile = "<center><table width='90%' height='90%'><tr>"
+		if(noaaData.length() < messageSize) { 
+				noaaTile += "<td style='text-align: center;'>"
+				noaaTile += "<div style='font-size: ${fontSize}px'> ${alertmsg}</div>"
+				noaaTile += "<div align='right' style='font-size: ${fontSize}px'></div>" 
+		}
+			else { 
+				noaaTile += "<td style='text-align: justify;'>"
+				noaaTile += "<div style='font-size: 15px'> ${state.fullmsg[0]}...</div>" 
+				noaaTile += "<div align='right' style='font-size: 15px'>1/${state.index}</div>"
+			}
+		noaaTile += "</td></tr></table>"
+		sendEvent(name: "Alerts", value: noaaTile, displayed: true)
+		log.info "NOAA Weather Alert displayed on dashboard."
+}
+
