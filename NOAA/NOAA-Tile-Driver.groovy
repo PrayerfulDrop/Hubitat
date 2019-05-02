@@ -97,8 +97,7 @@ def sendNoaaTile(noaaData) {
 			if (logEnable) log.debug "Scrolling alert on dashboard for ${timeExpire} minutes."
   	  		def now = new Date()
 			long unxNow = now.getTime()
-			//long unxEnd = now.getTime() + (timeExpire.toInteger()*60*1000)
-			long unxEnd = now.getTime() + (timeExpire.toInteger()*15*1000)
+			long unxEnd = now.getTime() + (timeExpire.toInteger()*60*1000)
 			unxNow = unxNow/1000
     		unxEnd = unxEnd/1000
 			//determine how many pages will the alert is
