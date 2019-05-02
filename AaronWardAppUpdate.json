@@ -55,12 +55,12 @@
   "Example2UpdateNote": "NA",
   
   "NOAAWeatherAlertsType": "App",
-  "NOAAWeatherAlertsParentVersion": "2.1.8",
+  "NOAAWeatherAlertsParentVersion": "2.1.9",
   "NOAAWeatherAlertsChildVersion": "NA",
-  "NOAAWeatherAlertsDriverVersion": "1.1.0",
+  "NOAAWeatherAlertsDriverVersion": "1.2.0",
   "NOAAWeatherAlertsParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
   "NOAAWeatherAlertsChildRawCode": "NA",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": "2.1.8 - fixed NOAA Dashboard Tile to reset after user predefined time, fixed bug with repeating the alert",
+  "NOAAWeatherAlertsUpdateNote": "2.1.9 - support for updated NOAA Tile Driver",
 }
