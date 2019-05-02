@@ -518,8 +518,8 @@ def repeatAlert() {
 }
 
 def alertNow(alertmsg){
-		//talkNow(alertmsg)
-		//pushNow(alertmsg)
+		talkNow(alertmsg)
+		pushNow(alertmsg)
 		if(alertSwitch) { alertSwitch.on() }
 		tileNow(alertmsg, "true") 
 
