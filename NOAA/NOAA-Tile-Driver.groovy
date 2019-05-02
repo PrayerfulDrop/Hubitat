@@ -29,7 +29,7 @@
  *
  *  Changes:
  *
- *  1.0.1 - Fixed formatting issues
+ *  1.1.0 - Longer alerts will scroll on dashboard for 5 minutes, fixed justification of text alignment
  *  1.0.0 - Initial release thanks to bptworld!
  */
 
@@ -42,30 +42,68 @@ metadata {
     	attribute "Alerts", "string"
 		attribute "AlertCount", "string"
 	}
+
 	preferences() {    	
         section(){
 			input("fontSize", "text", title: "Data Font Size", required: true, defaultValue: "15")
-			input("fontSizeS", "text", title: "Date Font Size", required: true, defaultValue: "12")
+			input("timeExpire", "text", title: "Minutes to scroll alert?", required: true, defaultValue: "5")
             input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
         }
     }
 }
 
 def sendNoaaMap1(noaaMap1) {
-	state.noaaMap1a = "${noaaMap1}"
-	state.noaaMap1b = state.noaaMap1a.take(850)
-	state.noaaMap1 = "<table width='100%'><tr>"
-	state.noaaMap1 += "<td style='text-align: center;'>"
-	state.noaaMap1 += "<div style='font-size: ${fontSize}px'> ${state.noaaMap1b}</div>"
+	if (logEnable) log.debug "Received weather alert from NOAA App."
+	if(noaaMap1.length() > 380){
+		if (logEnable) log.debug "Scrolling alert on dashboard for ${timeExpire} minutes."
+  	  	def now = new Date()
+		long unxNow = now.getTime()
+		long unxEnd = now.getTime() + (timeExpire.toInteger()*60*1000)
+		unxNow = unxNow/1000
+    	unxEnd = unxEnd/1000
+		alertmsg =  "${noaaMap1}"
+			def m = alertmsg =~ /(.|[\r\n]){1,380}\W/
+		def index = 0
+		def x = 0
+		def fullmsg = []
+			while (m.find()) {
+			   fullmsg << m.group()
+			   index = index +1
+			}
+		while(unxNow < unxEnd){
+			state.noaaMap1 = "<center><table width='90%' height='90%'><tr>"
+			state.noaaMap1 += "<td style='text-align: justify;'>"
+			if(x==(index-1)) {state.noaaMap1 += "<div style='font-size: ${fontSize}px'> ${fullmsg[x]}</div>"}
+			else {state.noaaMap1 += "<div style='font-size: ${fontSize}px'> ${fullmsg[x]}...</div>"}
+			state.noaaMap1 += "<div align='right' style='font-size: ${fontSize}px'>${x+1}/${index}</div>"
+			state.noaaMap1 += "</td></tr></table>"
+			sendEvent(name: "Alerts", value: state.noaaMap1, displayed: true)
+			sendEvent(name: "AlertCount", value: fullmsg[x].length(), displayed: true)
+			if(x == (index-1)) {x=0} else {x=x+1}
+			pauseExecution(8000)
+			now = new Date()
+			unxNow = now.getTime()
+			unxNow = unxNow/1000
+		}
+			state.noaaMap1 = "<center><table width='90%' height='90%'><tr>"
+			state.noaaMap1 += "<td style='text-align: justify;'>"
+			state.noaaMap1 += "<div style='font-size: ${fontSize}px'> ${fullmsg[0]}...</div>"
+			state.noaaMap1 += "<div align='right' style='font-size: ${fontSize}px'>1/${index}</div>"
+			state.noaaMap1 += "</td></tr></table>"
+			sendEvent(name: "Alerts", value: state.noaaMap1, displayed: true)
+			sendEvent(name: "AlertCount", value: fullmsg[0].length(), displayed: true)
+		if (logEnable) log.debug "End scrolling of alerts."
+	} else {
+	if (logEnable) log.debug "Alert is under character limit.  No scrolling required."
+	state.noaaMap1 = "${noaaMap1}"
+	state.noaaMap1 = "<center><table width='90%' height='90%'><tr>"
+	state.noaaMap1 += "<td style='text-align: justify;'>"
+	state.noaaMap1 += "<div style='font-size: ${fontSize}px'> ${state.noaaMap1}</div>"
 	state.noaaMap1 += "</td></tr></table>"
 	state.noaaMap1Count = state.noaaMap1.length()
-	if(state.noaaMap1Count <= 1000) {
-		if(logEnable) log.debug "noaaMap1 - has ${state.noaaMap1Count} Characters<br>${state.noaaMap1}"
-	} else {
-		state.noaaMap1 = "Too many characters to display on Dashboard (${state.noaaMap1Count})"
-	}
 	sendEvent(name: "Alerts", value: state.noaaMap1, displayed: true)
 	sendEvent(name: "AlertCount", value: state.noaaMap1Count, displayed: true)
+	}
 }
 
 def installed(){
@@ -75,5 +113,11 @@ def installed(){
 }
 
 def updated() {
+	if (logEnable) runIn(900,logsOff)
     log.info "NOAA Tile has been Updated"
+}
+
+def logsOff(){
+    log.warn "Debug logging disabled."
+    app?.updateSetting("logEnable",[value:"false",type:"bool"])
 }
