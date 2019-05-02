@@ -57,7 +57,7 @@
   "NOAAWeatherAlertsType": "App",
   "NOAAWeatherAlertsParentVersion": "2.1.8",
   "NOAAWeatherAlertsChildVersion": "NA",
-  "NOAAWeatherAlertsDriverVersion": "1.0.1",
+  "NOAAWeatherAlertsDriverVersion": "1.1.0",
   "NOAAWeatherAlertsParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
   "NOAAWeatherAlertsChildRawCode": "NA",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
