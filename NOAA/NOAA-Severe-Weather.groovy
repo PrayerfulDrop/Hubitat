@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.2.0 - fixed repeat issues - can be tested with issuing a test alert
  *   2.1.9 - support for updated NOAA Tile Driver
  *   2.1.8 - fixed NOAA Dashboard Tile to reset after user predefined time, fixed bug with repeating the alert
  *   2.1.7 - moved options around into appropriate categories to support simple installation, added warning and URL to weather.gov for advanced configuration testing, removed required fields for simple install of NOAA
@@ -69,7 +70,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.1.9"}
+def version(){"v2.2.0"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -217,7 +218,12 @@ def mainPage() {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
 					if (logEnable) log.debug "Initiating a test alert."
 					testalert=buildTestAlert()
-					alertNow(testalert)
+					alertNow()
+					if(repeatYes && state.alertRepeat) {
+					if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
+						runIn((60*repeatMinutes.toInteger()),repeatAlert)
+						state.alertrepeat = false
+					}
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
 				paragraph getFormat("line")
@@ -258,7 +264,7 @@ def updated() {
 
 def initialize() {
 	runIn(5, refresh)
-	state.alertrepeat = true
+	state.alertRepeat = true
 }
 
 def installCheck(){         
@@ -300,9 +306,10 @@ def refresh() {
 				if (logEnable) log.debug "AlertSent: '${state.alertsent}  Pastalert: '${state.pastalert}'"
 				if(state.alertsent != state.pastalert){
 					// play TTS and send PushOver
-					alertNow(state.alertmsg)
+					alertNow()
 					// determine if alert needs to be repeated after # of minutes
-					if(repeatYes && state.alertrepeat) {
+					if(repeatYes==true && state.alertRepeat==true) {
+						if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
 						runIn((60*repeatMinutes.toInteger()),repeatAlert)
 						state.alertrepeat = false
 					}
@@ -447,7 +454,7 @@ def buildTestAlert() {
 						catch (any) {}
 					try {alertmsg = alertmsg.replace("{alertevent}","Nuclear Power Plant Warning") }
 						catch (any) {}
-					return alertmsg
+					state.alertmsg = alertmsg
 }
 
 def talkNow(alertmsg) {								
@@ -512,15 +519,14 @@ def tileNow(alertmsg, resetAlert) {
 
 def repeatAlert() {
 	if (logEnable) log.debug "Repeating alert."
-	talkNow(state.alertmsg, true)
-	pushNow(state.alertmsg)
-	state.alertrepeat = true
+	alertNow()
+	state.alertRepeat = true
 }
 
-def alertNow(alertmsg){
-		talkNow(alertmsg)
-		pushNow(alertmsg)
+def alertNow(){
+		talkNow(state.alertmsg)
+		pushNow(state.alertmsg)
 		if(alertSwitch) { alertSwitch.on() }
-		tileNow(alertmsg, "true") 
+		tileNow(state.alertmsg, "true") 
 
 }
