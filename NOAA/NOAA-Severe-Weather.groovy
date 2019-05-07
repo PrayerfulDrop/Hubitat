@@ -217,11 +217,11 @@ def mainPage() {
 				if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
 					if (logEnable) log.debug "Initiating a test alert."
-					testalert=buildTestAlert()
-					alertNow()
+					state.testalertmsg=buildTestAlert()
+					alertNow(state.testalertmsg)
 					if(repeatYes && state.alertRepeat) {
 					if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
-						runIn((60*repeatMinutes.toInteger()),repeatAlert)
+						runIn((60*repeatMinutes.toInteger()),repeattestAlert)
 						state.alertrepeat = false
 					}
 				}
@@ -306,7 +306,9 @@ def refresh() {
 				if (logEnable) log.debug "AlertSent: '${state.alertsent}  Pastalert: '${state.pastalert}'"
 				if(state.alertsent != state.pastalert){
 					// play TTS and send PushOver
-					alertNow()
+					alertNow(state.alertmsg)
+					state.pastalert = state.alertsent
+					log.info "Sending alert: ${state.alertmsg}"
 					// determine if alert needs to be repeated after # of minutes
 					if(repeatYes==true && state.alertRepeat==true) {
 						if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
@@ -314,9 +316,6 @@ def refresh() {
 						state.alertrepeat = false
 					}
 					// set the pastalert to the current alertsent timestamp
-					state.pastalert = state.alertsent
-					log.info "Speaking: ${state.alertmsg}"
-					if (logEnable) log.debug "AlertSent: '${state.alertsent}  Pastalert: '${state.pastalert}'"
 				} 
 				else  log.info "No new alerts."
 			} 
@@ -327,6 +326,7 @@ def refresh() {
 }
 
 def buildAlertMsg() {
+	if (logEnable) log.debug "Checking/Building alert message."
 	// Determine if custom coordinates have been selected
 	if(useCustomCords) {
 		state.latitude = "${customlatitude}"
@@ -365,7 +365,7 @@ def buildAlertMsg() {
 		httpGet(requestParams)	{	  response ->
 			if (response?.status == 200){
 				if(response.data.features){
-				
+					if (logEnable) log.debug "Building alertmsg."
 				// build out variables from JSON feed
 					alertseverity = response.data.features[0].properties.severity
 					alertarea = response.data.features[0].properties.areaDesc
@@ -430,7 +430,7 @@ def buildAlertMsg() {
 						catch (any) {}
 					state.alertmsg = alertmsg
 					if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
-				} 	
+				} 
 			}
 			else log.warn "${response?.status}"
 		}
@@ -454,7 +454,7 @@ def buildTestAlert() {
 						catch (any) {}
 					try {alertmsg = alertmsg.replace("{alertevent}","Nuclear Power Plant Warning") }
 						catch (any) {}
-					state.alertmsg = alertmsg
+					return alertmsg
 }
 
 def talkNow(alertmsg) {								
@@ -507,9 +507,8 @@ def tileReset() {
 
 def tileNow(alertmsg, resetAlert) {
 	if(noaaTileDevice) {
-		state.msg = "${alertmsg}"
-		if(logEnable) log.debug "Sending to NOAA Tile - msg: ${state.msg}"
-		noaaTileDevice.sendNoaaTile(state.msg)
+		if(logEnable) log.debug "Sending to NOAA Tile - msg: ${alertmsg}"
+		noaaTileDevice.sendNoaaTile(alertmsg)
 		if(resetAlert == "true") {
 			if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
 			runIn((60*noaaTileReset.toInteger()),tileReset)
@@ -519,14 +518,20 @@ def tileNow(alertmsg, resetAlert) {
 
 def repeatAlert() {
 	if (logEnable) log.debug "Repeating alert."
-	alertNow()
+	alertNow(state.alertmsg)
 	state.alertRepeat = true
 }
 
-def alertNow(){
+def repeattestAlert() {
+	if (logEnable) log.debug "Repeating alert."
+	alertNow(state.testalertmsg)
+	state.alertRepeat = true
+}
+
+def alertNow(alertmsg){
 		talkNow(state.alertmsg)
-		pushNow(state.alertmsg)
+		pushNow(alertmsg)
 		if(alertSwitch) { alertSwitch.on() }
-		tileNow(state.alertmsg, "true") 
+		tileNow(alertmsg, "true") 
 
 }
