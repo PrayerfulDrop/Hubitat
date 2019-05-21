@@ -43,6 +43,8 @@ metadata {
     definition (name: "Generic MQTT Driver", namespace: "aaronward", author: "Aaron Ward") {
         capability "Initialize"
         command "publishMsg", ["String"]
+		attribute "delay", "number"
+		attribute "distance", "number"
 	   }
 
     preferences {
@@ -69,6 +71,7 @@ def parse(String description) {
 	if (logEnable) log.debug topic
 	if (logEnable) log.debug payload
 	sendEvent(name: "${topic}", value: "${payload}", displayed: true)
+	state."${topic}" = "${payload}"
 
 }
 
