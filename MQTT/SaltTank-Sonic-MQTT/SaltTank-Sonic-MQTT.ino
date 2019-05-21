@@ -1,5 +1,5 @@
 /*
- *  MQTT Client for NodeMCU ESP-12E on Arduino
+ *  MQTT Client for Wemo D1 on Arduino
  *  UltraSonic HC-SR04 
  *  Built to work with any standard MQTT Broker
  */
@@ -7,7 +7,6 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <PubSubClient.h>
-#include "Ultrasonic.h"                                            // Include library file for ultrasonic (HC-SR04)
 
 //=====================Basic Setup ============================
 
@@ -18,14 +17,15 @@
 #define mqtt_user "xxxx"                                           // MQTT username if used
 #define mqtt_password "xxxxxxxxxx"                                 // MQTT password if used 
 #define distance_topic "topic_root/device/distance"                // distance topic value example: topic_root/device/distance
-#define subscribe_topic "topic_root/device/delay"                  // delay in minutes topic value example: topic_root/device/delay
-Ultrasonic ultrasonic(14,12);                                      // Assign Trig PIN 14(D5),Assign Echo PIN 12(D6)
+#define subscribe_topic "topic_root/device/delay"                  // delay in hours topic value example: topic_root/device/delay
 
 //===============Do not edit below here!=======================
-int GIu_Ultrasonic_Dist_CM=0;
+#define echoPin D7 // Echo Pin
+#define trigPin D6 // Trigger Pin
 unsigned long lastSend;
 unsigned long lastConnected;
 unsigned long lastLoop;
+long duration, distance; // Duration used to calculate distance
 
 int report=1;
 
@@ -34,6 +34,8 @@ PubSubClient client(espClient);
 
 void setup() {
   Serial.begin(115200);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
@@ -62,6 +64,7 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
+
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
@@ -70,18 +73,25 @@ void reconnect() {
     // If you do not want to use a username and password, change next line to
     // if (client.connect("ESP8266Client")) {
     if (client.connect(mqtt_clientname, mqtt_user, mqtt_password)) {
-      client.subscribe(subscribe_topic);
+      client.subscribe("wardhome/salt-tank/delay");
       Serial.println("connected");
       Serial.print("Subscribed to topic: ");
       Serial.println(subscribe_topic);
-      GIu_Ultrasonic_Dist_CM=ultrasonic.Ranging(INC);   // Read ultrasonic distance value in CM or INCH
-      client.publish(distance_topic, String(GIu_Ultrasonic_Dist_CM).c_str());              // Post Distance value in cayenne mqtt server
+      digitalWrite(trigPin, LOW);
+      delayMicroseconds(2);
+      digitalWrite(trigPin, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(trigPin, LOW);
+      duration = pulseIn(echoPin, HIGH);
+          //Calculate the distance (in cm) based on the speed of sound.
+      distance = (duration/58.2) * 0.3937;
+      client.publish(distance_topic, String(distance).c_str());              // Post Distance value to mqtt server
       Serial.print("Sonic reading is: ");
-      Serial.print(GIu_Ultrasonic_Dist_CM); 
+      Serial.print(distance); 
       Serial.println(" inches" );
       Serial.print("Delaying for ");
       Serial.print(report);
-      Serial.println(" minutes.");
+      Serial.println(" hours.");
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -95,6 +105,7 @@ void reconnect() {
 
 void callback(char* topic, byte* payload, unsigned int length)
 {
+  if(strcmp( topic, subscribe_topic ) == 0) {
   Serial.print("Message arrived in topic: ");
   Serial.println(topic);
   Serial.print("Message:");
@@ -104,13 +115,18 @@ void callback(char* topic, byte* payload, unsigned int length)
     temp = temp + ((char)payload[i]);
    }
   Serial.println(temp);
-  report = temp.toInt();
+  if(temp.toInt() != 0) {
+    report = temp.toInt();
+    Serial.print("Setting hours to delay to: ");
+    Serial.println(report);
+  }
+  }
 }
 
 void loop()
 {
   
-      int delaytime = report * 60000;
+      int delaytime = report * (60000 * 60);
       if ( millis() - lastConnected > 2000 ) {
       if ( !client.connected() ) {
           reconnect();
@@ -118,15 +134,22 @@ void loop()
        lastConnected = millis();
        }
        if ( millis() - lastSend > delaytime ) { // Update and send only after 1 seconds
-              GIu_Ultrasonic_Dist_CM=ultrasonic.Ranging(INC);   // Read ultrasonic distance value in CM or INCH
-              client.publish(distance_topic, String(GIu_Ultrasonic_Dist_CM).c_str());              // Post Distance value in cayenne mqtt server
-              Serial.print("Sonic reading is: ");
-              Serial.print(GIu_Ultrasonic_Dist_CM); 
-              Serial.println(" inches" );
-              Serial.print("Delaying for ");
-              Serial.print(report);
-              Serial.println(" minutes.");
-              lastSend = millis();
+          digitalWrite(trigPin, LOW);
+          delayMicroseconds(2);
+          digitalWrite(trigPin, HIGH);
+          delayMicroseconds(10);
+          digitalWrite(trigPin, LOW);
+          duration = pulseIn(echoPin, HIGH);
+          //Calculate the distance (in cm) based on the speed of sound.
+          distance = (duration/58.2) * 0.3937;
+          client.publish(distance_topic, String(distance).c_str());              // Post Distance value to mqtt server
+          Serial.print("Sonic reading is: ");
+          Serial.print(distance); 
+          Serial.println(" inches" );
+          Serial.print("Delaying for ");
+          Serial.print(report);
+          Serial.println(" hours.");
+          lastSend = millis();
       }
       if ( millis() - lastLoop > 2000 ) {
          client.loop();
