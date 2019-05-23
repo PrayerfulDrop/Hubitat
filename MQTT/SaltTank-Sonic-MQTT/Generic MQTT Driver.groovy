@@ -72,8 +72,9 @@ def parse(String description) {
 	if (logEnable) log.debug topic
 	if (logEnable) log.debug payload
 	sendEvent(name: "${topic}", value: "${payload}", displayed: true)
-	sendEvent(name: "Last Payload Received", value: date.toString(), displayed: true)
+	sendEvent(name: "Last Payload Received", value: "Topic: ${topic} - ${date.toString()}", displayed: true)
 	state."${topic}" = "${payload}"
+	state.lastpayloadreceived = "Topic: ${topic} : ${payload} - ${date.toString()}"
 
 }
 
