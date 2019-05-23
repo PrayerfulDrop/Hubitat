@@ -65,12 +65,14 @@ def installed() {
 
 // Parse incoming device messages to generate events
 def parse(String description) {
+	Date date = new Date(); 
 	topic = alphaV1parseMqttMessage(description).topic
 	topic = topic.substring(topic.lastIndexOf("/") + 1)
 	payload = alphaV1parseMqttMessage(description).payload
 	if (logEnable) log.debug topic
 	if (logEnable) log.debug payload
 	sendEvent(name: "${topic}", value: "${payload}", displayed: true)
+	sendEvent(name: "Last Payload Received", value: date.toString(), displayed: true)
 	state."${topic}" = "${payload}"
 
 }
