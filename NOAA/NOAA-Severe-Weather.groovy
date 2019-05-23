@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.2.1 - fixed custom coordinates not being displayed
  *   2.2.0 - fixed repeat issues - can be tested with issuing a test alert
  *   2.1.9 - support for updated NOAA Tile Driver
  *   2.1.8 - fixed NOAA Dashboard Tile to reset after user predefined time, fixed bug with repeating the alert
@@ -70,7 +71,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.2.0"}
+def version(){"v2.2.1"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -127,6 +128,11 @@ def mainPage() {
 				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
 				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
 				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
+				if(useCustomCords) {
+					paragraph "Below coordinates are acquired from your Hubitat:"
+					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}"
+					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}"
+				}
 				input (name: "alertCustomMsg", type: "text", title: "Alert Message:", require: false, defaultValue: "Attention, Attention. {alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.")
 			}	
 			section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
@@ -196,12 +202,6 @@ def mainPage() {
 								"possible": "Possible",
 								"likely": "Likely",
 								"observed": "Observed"]
-
-				if(useCustomCords) {
-					paragraph "Below coordinates are acquired from your Hubitat:"
-					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}"
-					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}"
-				}
 			}
 			section(getFormat("header-green", " Restrictions")) {
 				input "modesYes", "bool", title: "Enable restriction by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
