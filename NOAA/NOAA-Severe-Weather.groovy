@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.2.3 - fixed repeat every 5 minutes issue
  *   2.2.2 - added global volume/restore for all TTS devices, enabled ability for multiple different TTS device types, added support for Google Devices modified GUI to accomodate.
  *   2.2.1 - fixed custom coordinates not being displayed
  *   2.2.0 - fixed repeat issues - can be tested with issuing a test alert
@@ -72,7 +73,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.2.2"}
+def version(){"v2.2.3"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -309,11 +310,12 @@ def refresh() {
 	if (logEnable) log.debug "Restrictions on?  Modes: $result2, Switch: $result"
 
 	if( ! (result || result2) ) {
-			buildAlertMsg()	
+			getAlertMsg()	
 			if(state.alertarea) {
-				if (logEnable) log.debug "AlertSent: '${state.alertsent}  Pastalert: '${state.pastalert}'"
-				if(state.alertsent != state.pastalert){
+				if (logEnable) log.debug "AlertSent: '${state.alertsent}'  Pastalert: '${state.pastalert}'"
+				if(state.alertsent.equals(state.pastalert)){
 					// play TTS and send PushOver
+					buildAlertMsg()
 					alertNow(state.alertmsg)
 					state.pastalert = state.alertsent
 					log.info "Sending alert: ${state.alertmsg}"
@@ -333,8 +335,8 @@ def refresh() {
     else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 }
 
-def buildAlertMsg() {
-	if (logEnable) log.debug "Checking/Building alert message."
+def getAlertMsg() {
+	if (logEnable) log.debug "Conencting to weather.gov service."
 	// Determine if custom coordinates have been selected
 	if(useCustomCords) {
 		state.latitude = "${customlatitude}"
@@ -397,7 +399,13 @@ def buildAlertMsg() {
 					if(response.data.features[0].properties.instruction) { alertinstruction = response.data.features[0].properties.instruction }
 				else {alertinstruction = response.data.features[0].properties.description }
 					alertevent = response.data.features[0].properties.event
+				} }
+			else log.warn "${response?.status}"
+		}
+}
 			
+def buildAlertMsg() {
+		if (logEnable) log.debug "Checking/Building alert message."
 				// build the alertmsg
 					alertmsg = alertCustomMsg
 					try {alertmsg = alertmsg.replace("{alertarea}","${state.alertarea}") }
@@ -439,10 +447,8 @@ def buildAlertMsg() {
 					state.alertmsg = alertmsg
 					if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
 				} 
-			}
-			else log.warn "${response?.status}"
-		}
-}
+
+
 
 def buildTestAlert() {
 					alertmsg = alertCustomMsg
