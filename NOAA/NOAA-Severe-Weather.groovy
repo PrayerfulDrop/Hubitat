@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.2.2 - added global volume/restore for all TTS devices, enabled ability for multiple different TTS device types, added support for Google Devices modified GUI to accomodate.
  *   2.2.1 - fixed custom coordinates not being displayed
  *   2.2.0 - fixed repeat issues - can be tested with issuing a test alert
  *   2.1.9 - support for updated NOAA Tile Driver
@@ -71,7 +72,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.2.1"}
+def version(){"v2.2.2"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -99,22 +100,28 @@ def mainPage() {
        			label title: "Enter a name for application:", required: false
 			}
 			section(getFormat("header-green", " Notification Devices")) {
-			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts?", required: true, defaultValue: false, submitOnChange: true 
+				// PushOver Devices
+			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts?", required: false, defaultValue: false, submitOnChange: true 
 			    if(pushovertts == true){ input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true}
-				paragraph "Configure your TTS devices:"
-			      input "speechMode", "enum", required: false, title: "Select Speaker Type:", submitOnChange: true,  options: ["Music Player", "Speech Synth"] 
-				if (speechMode == "Music Player"){
-           	   		      input "speaker1", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true, submitOnChange: true
-						  input "volume1", "number", title: "Speaker volume", description: "0-100%", required: false, defaultValue: "75"
-          	            }   
-        	            if (speechMode == "Speech Synth"){
-         	            	input "speaker1", "capability.speechSynthesis", title: "Choose speaker(s)", required: false, multiple: true
-          	            }
-				input (name: "echoSpeaks2", type: "bool", defaultValue: "false", title: "Use Echo Speaks device(s) with TTS?", description: "Echo speaks device?", submitOnChange: true)
-					 if(echoSpeaks2 == true){ 
-						 input "echospeaker", "capability.musicPlayer", title: "Choose Echo Speaks device(s)", required: false, multiple: true
-					 	 input "echospeaksvolume", "number", title: "Echo Speaks volume", description: "0-100%", required: false, defaultValue: "75"}
-				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false)
+			     
+				// Music Speakers (Sonos, etc)
+				input(name: "musicmode", type: "bool", defaultValue: "false", title: "Use Music Speaker(s) with TTS?", description: "Music Speaker(s)?", submitOnChange: true)
+				if (musicmode) input "musicspeaker", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true, submitOnChange: true
+				
+				// Speech Speakers
+				input(name: "speechmode", type: "bool", defaultValue: "false", title: "Use Google or Speech Speaker(s) with TTS?", description: "Speech Speaker(s)?", submitOnChange: true)
+   	            if (speechmode) input "speechspeaker", "capability.speechSynthesis", title: "Choose speaker(s)", required: false, multiple: true, submitOnChange: true
+						
+				// Echo Speaks devices
+				input (name: "echoSpeaks2", type: "bool", defaultValue: "false", title: "Use Echo Speaks device(s) with TTS?", description: "Echo Speaks device?", submitOnChange: true)
+					 if(echoSpeaks2 == true) input "echospeaker", "capability.musicPlayer", title: "Choose Echo Speaks Device(s)", required: false, multiple: true, submitOnChange: true 
+				
+				// Master Volume settings
+				input "speakervolume", "number", title: "Alert Notification Volume", description: "0-100%", required: false, defaultValue: "75", submitOnChange: true
+				input "speakervolRestore", "number", title: "Restore volume to X after alert", description: "0-100", required: false, submitOnChange: true
+				
+				// Switch to set when alert active
+				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false, submitOnChange: true)
 
 			}
 			section(getFormat("header-green", " Configuration")) {
@@ -130,10 +137,10 @@ def mainPage() {
 				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
 				if(useCustomCords) {
 					paragraph "Below coordinates are acquired from your Hubitat:"
-					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}"
-					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}"
+					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}", submitOnChange: true
+					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}", submitOnChange: true
 				}
-				input (name: "alertCustomMsg", type: "text", title: "Alert Message:", require: false, defaultValue: "Attention, Attention. {alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.")
+				input name: "alertCustomMsg", type: "text", title: "Alert Message:", require: false, defaultValue: "Attention, Attention. {alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.", submitOnChange: true
 			}	
 			section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
         		paragraph "<b>Alert message variables:</b>"
@@ -157,11 +164,11 @@ def mainPage() {
 			}
 			section() {
 			input(name: "noaaTileDevice", type: "capability.actuator", title: "NOAA Tile Device to send alerts to:", submitOnChange: true, required: false, multiple: false)
-			input name:"noaaTileReset", type: "text", title: "Number of minutes before resetting the NOAA Tile Dashboard?", require: false, defaultValue: "30"
+			input name:"noaaTileReset", type: "text", title: "Number of minutes before resetting the NOAA Tile Dashboard?", require: false, defaultValue: "30", submitOnChange: true
 			}
 			section(getFormat("header-green", " Advanced Configuration")) {
 			paragraph "Use with caution as below settings may cause undesired results.  Reference <a href='https://www.weather.gov/documentation/services-web-api?prevfmt=application%2Fcap%2Bxml/default/get_alerts#/default/get_alerts' target='_blank'>Weather.gov API</a> and test your configuration first."
-				input "myWeatherAlert", "enum", title: "Watch only for a specific Weather event?", required: false, multiple: true,
+				input "myWeatherAlert", "enum", title: "Watch only for a specific Weather event?", required: false, multiple: true, submitOnChange: true,
                             options: [
 							"BZW":	"Blizzard Warning",
                             "CFA":	"Coastal Flood Watch",
@@ -191,13 +198,13 @@ def mainPage() {
                             "WSA":	"Winter Storm Watch",
                             "WSW":	"Winter Storm Warning"
                             ]
-				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", multiple: true, 
+				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", multiple: true, submitOnChange: true, 
 							options: [
 								"immediate": "Immediate", 
 								"expected": "Expected",
 								"future": "Future"]
 				
-				input name: "whatAlertCertainty", type: "enum", title: "Choose Alerts Certainty: ", required: false, multiple: true,
+				input name: "whatAlertCertainty", type: "enum", title: "Choose Alerts Certainty: ", required: false, multiple: true, submitOnChange: true,
 							options: [
 								"possible": "Possible",
 								"likely": "Likely",
@@ -206,10 +213,10 @@ def mainPage() {
 			section(getFormat("header-green", " Restrictions")) {
 				input "modesYes", "bool", title: "Enable restriction by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
 				if(modesYes){	
-				    input(name:"modes", type: "mode", title: "Restrict actions when current mode is:", multiple: true, required: false)
+				    input(name:"modes", type: "mode", title: "Restrict actions when current mode is:", multiple: true, required: false, submitOnChange: true)
 				}
 				if(!modesYes){
-			          input "restrictbySwitch", "capability.switch", title: "Or use a switch to restrict:", required: false, multiple: false, defaultValue: null
+			          input "restrictbySwitch", "capability.switch", title: "Or use a switch to restrict:", required: false, multiple: false, defaultValue: null, submitOnChange: true
 				}
 			}
 			section(getFormat("header-green", " Logging and Testing")) {
@@ -217,15 +224,15 @@ def mainPage() {
 				if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
 					if (logEnable) log.debug "Initiating a test alert."
-					state.testalertmsg=buildTestAlert()
-					alertNow(state.testalertmsg)
+					testalertmsg=buildTestAlert()
+					alertNow(testalertmsg)
 					if(repeatYes && state.alertRepeat) {
 					if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
 						runIn((60*repeatMinutes.toInteger()),repeattestAlert)
 						state.alertrepeat = false
 					}
 				}
- 				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true
+ 				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
 				paragraph getFormat("line")
 				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${version()}</div>"
 			}       
@@ -265,6 +272,7 @@ def updated() {
 def initialize() {
 	runIn(5, refresh)
 	state.alertRepeat = true
+	state.clear()
 }
 
 def installCheck(){         
@@ -438,7 +446,7 @@ def buildAlertMsg() {
 
 def buildTestAlert() {
 					alertmsg = alertCustomMsg
-					try {alertmsg = alertmsg.replace("{alertarea}","Springfield County") }
+					try {alertmsg = alertmsg.replace("{alertarea}","Springfield County.") }
 						 catch (any) {}
 					try {alertmsg = alertmsg.replace("{alertseverity}","Severe") }
 						catch (any) {}
@@ -458,26 +466,42 @@ def buildTestAlert() {
 }
 
 def talkNow(alertmsg) {								
-		
-  		if (speechMode == "Music Player"){ 
-				if (logEnable) log.debug "Sending alert to Music Player devices."
-				try {speaker1.playTextAndRestore(alertmsg)}
+
+		speechDuration = Math.max(Math.round(alertmsg.length()/12),2)+3		
+		atomicState.speechDuration2 = speechDuration * 1000
+	
+  		if (musicmode){ 
+				if (logEnable) log.debug "Sending alert to Music Speaker(s)."
+				try {
+					musicspeaker.playTextAndRestore(alertmsg, speakervolume)
+				}
 				catch (any) {log.warn "Music Player device(s) has not been selected."}
   		}   
 	
 		if(echoSpeaks2) {
-			if (logEnable) log.debug "Sending alert to Echo Speaks devices."
+			if (logEnable) log.debug "Sending alert to Echo Speaks device(s)."
 			try {
-				echospeaker.setVolumeSpeakAndRestore(echospeaksvolume, alertmsg)
+				echospeaker.setVolumeSpeakAndRestore(speakervolume, alertmsg)
 				}
 			catch (any) {log.warn "Echo Speaks device(s) has not been selected."}
 		}
 	
-		if (speechMode == "Speech Synth"){ 
-			if (logEnable) log.debug "Sending alert to Speech devices"
-			try {speaker1.speak(alertmsg)}
-			catch (any) {log.warn "Speech device(s) has not been selected."}
+		if (speechmode){ 
+			if (logEnable) log.debug "Sending alert to Speech Speaker(s)"
+			//try {
+				if (logEnable) log.debug "Setting Speech Speaker to volume level: ${speakervolume}"
+				speechspeaker.setVolume(speakervolume)
+				pauseExecution(1000)
+				speechspeaker.speak(alertmsg)
+				if (speakervolRestore) {
+					pauseExecution(atomicState.speechDuration2)
+					if (logEnable) log.debug "Restoring Speech Speaker to volume level: ${speakervolRestore}"
+					speechspeaker.setVolume(speakervolRestore)	
+				}
+			//}
+			//catch (any) {log.warn "Speech device(s) has not been selected."}
 		}
+	
 }
 
 def pushNow(alertmsg) {
@@ -529,7 +553,7 @@ def repeattestAlert() {
 }
 
 def alertNow(alertmsg){
-		talkNow(state.alertmsg)
+		talkNow(alertmsg)
 		pushNow(alertmsg)
 		if(alertSwitch) { alertSwitch.on() }
 		tileNow(alertmsg, "true") 
