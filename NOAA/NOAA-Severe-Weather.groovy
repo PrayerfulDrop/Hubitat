@@ -495,7 +495,7 @@ def talkNow(alertmsg) {
 	
 		if (speechmode){ 
 			if (logEnable) log.debug "Sending alert to Google and Speech Speaker(s)"
-			//try {
+			try {
 				if (logEnable) log.debug "Setting Speech Speaker to volume level: ${speakervolume}"
 				speechspeaker.setVolume(speakervolume)
 				pauseExecution(1000)
@@ -505,8 +505,8 @@ def talkNow(alertmsg) {
 					if (logEnable) log.debug "Restoring Speech Speaker to volume level: ${speakervolRestore}"
 					speechspeaker.setVolume(speakervolRestore)	
 				}
-			//}
-			//catch (any) {log.warn "Speech device(s) has not been selected."}
+			}
+			catch (any) {log.warn "Speech device(s) has not been selected."}
 		}
 	
 }
