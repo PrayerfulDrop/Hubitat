@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.2.4 - fixd installation issue and fixed comparison of alert sent dates issue
  *   2.2.3 - fixed repeat every 5 minutes issue
  *   2.2.2 - added global volume/restore for all TTS devices, enabled ability for multiple different TTS device types, added support for Google Devices modified GUI to accomodate.
  *   2.2.1 - fixed custom coordinates not being displayed
@@ -73,7 +74,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.2.3"}
+def version(){"v2.2.4"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -92,8 +93,8 @@ preferences {
 
 def mainPage() {
     dynamicPage(name: "mainPage") {
-    	installCheck()
-		if(state.appInstalled == 'COMPLETE'){
+    	//installCheck()
+		//if(state.appInstalled == 'COMPLETE'){
 			section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
 				paragraph "<div style='color:#1A77C9'>This application supplies Severe Weather alert TTS notifications.</div>"
 			}
@@ -239,7 +240,7 @@ def mainPage() {
 			}       
 		}
 	}
-}
+//}
 
 def installed() {
     if (logEnable) log.debug "Installed with settings: ${settings}"
@@ -273,8 +274,7 @@ def updated() {
 def initialize() {
 	runIn(5, refresh)
 	state.alertRepeat = true
-	state.clear()
-}
+	}
 
 def installCheck(){         
     state.appInstalled = app.getInstallationState() 
@@ -282,7 +282,7 @@ def installCheck(){
     	section{paragraph "Please hit 'Done' to install '${app.label}'"}
     }
     else{
-		if (logEnable) log.debug "${app.label} is Installed Correctly"
+		if (logEnable) log.debug "${app.label} has been updated."
     }
 }
 
@@ -310,33 +310,32 @@ def refresh() {
 	if (logEnable) log.debug "Restrictions on?  Modes: $result2, Switch: $result"
 
 	if( ! (result || result2) ) {
+			// Get the alert message
 			getAlertMsg()	
-			if(state.alertarea) {
-				if (logEnable) log.debug "AlertSent: '${state.alertsent}'  Pastalert: '${state.pastalert}'"
-				if(state.alertsent.equals(state.pastalert)){
-					// play TTS and send PushOver
-					buildAlertMsg()
-					alertNow(state.alertmsg)
-					state.pastalert = state.alertsent
-					log.info "Sending alert: ${state.alertmsg}"
-					// determine if alert needs to be repeated after # of minutes
-					if(repeatYes==true && state.alertRepeat==true) {
-						if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
-						runIn((60*repeatMinutes.toInteger()),repeatAlert)
-						state.alertrepeat = false
-					}
-					// set the pastalert to the current alertsent timestamp
-				} 
-				else  log.info "No new alerts."
+			if (logEnable) log.debug "AlertSent: '${state.alertsent}'  Pastalert: '${state.pastalert}'"
+			if(state.alertsent.equals(state.pastalert) && state.pastalert != null) { 
+				log.info "No new alerts." 
+				log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
+			} else {
+				// play TTS and send PushOver
+				buildAlertMsg()
+				log.info "Sending alert: ${state.alertmsg}"
+				alertNow(state.alertmsg)
+				// set the pastalert to the current alertsent timestamp
+				state.pastalert = state.alertsent
+				// determine if alert needs to be repeated after # of minutes
+				if(repeatYes==true && state.alertRepeat==true) {
+				if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
+					runIn((60*repeatMinutes.toInteger()),repeatAlert)
+					state.alertrepeat = false
+				}
 			} 
-		else log.info "No new alerts."	
-		log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
 	}
     else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 }
 
 def getAlertMsg() {
-	if (logEnable) log.debug "Conencting to weather.gov service."
+	if (logEnable) log.debug "Connecting to weather.gov service."
 	// Determine if custom coordinates have been selected
 	if(useCustomCords) {
 		state.latitude = "${customlatitude}"
@@ -375,9 +374,9 @@ def getAlertMsg() {
 		httpGet(requestParams)	{	  response ->
 			if (response?.status == 200){
 				if(response.data.features){
-					if (logEnable) log.debug "Building alertmsg."
+					if (logEnable) log.debug "Building alert variables."
 				// build out variables from JSON feed
-					alertseverity = response.data.features[0].properties.severity
+					state.alertseverity = response.data.features[0].properties.severity
 					alertarea = response.data.features[0].properties.areaDesc
 						alertarea = alertarea.replaceAll(";",",")
 						alertarea = alertarea.replaceAll("\n"," ")
@@ -385,44 +384,44 @@ def getAlertMsg() {
 						alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
 					state.alertarea = new StringBuffer(alertarea).reverse().toString()
 					state.alertsent = response.data.features[0].properties.sent
-					alerteffective = response.data.features[0].properties.effective
-					alertexpires = response.data.features[0].properties.expires
-					alertstatus = response.data.features[0].properties.status
-					alertmessagetype = response.data.features[0].properties.messageType
-					alertcategory = response.data.features[0].properties.category
-					alertseverity = response.data.features[0].properties.severity
-					alertcertainty = response.data.features[0].properties.certainty
+					state.alerteffective = response.data.features[0].properties.effective
+					state.alertexpires = response.data.features[0].properties.expires
+					state.alertstatus = response.data.features[0].properties.status
+					state.alertmessagetype = response.data.features[0].properties.messageType
+					state.alertcategory = response.data.features[0].properties.category
+					state.alertseverity = response.data.features[0].properties.severity
+					state.alertcertainty = response.data.features[0].properties.certainty
 					state.alerturgency = response.data.features[0].properties.urgency
-					alertsendername = response.data.features[0].properties.senderName
-					alertheadline = response.data.features[0].properties.headline
-					alertdescription = response.data.features[0].properties.description
-					if(response.data.features[0].properties.instruction) { alertinstruction = response.data.features[0].properties.instruction }
-				else {alertinstruction = response.data.features[0].properties.description }
-					alertevent = response.data.features[0].properties.event
+					state.alertsendername = response.data.features[0].properties.senderName
+					state.alertheadline = response.data.features[0].properties.headline
+					state.alertdescription = response.data.features[0].properties.description
+					if(response.data.features[0].properties.instruction) { state.alertinstruction = response.data.features[0].properties.instruction }
+				else {state.alertinstruction = response.data.features[0].properties.description }
+					state.alertevent = response.data.features[0].properties.event
 				} }
 			else log.warn "${response?.status}"
 		}
 }
 			
 def buildAlertMsg() {
-		if (logEnable) log.debug "Checking/Building alert message."
+		if (logEnable) log.debug "Building alert message."
 				// build the alertmsg
 					alertmsg = alertCustomMsg
 					try {alertmsg = alertmsg.replace("{alertarea}","${state.alertarea}") }
 						 catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertseverity}","${alertseverity}") }
+					try {alertmsg = alertmsg.replace("{alertseverity}","${state.alertseverity}") }
 						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertcertainty}","${alertcertainty}") }
+					try {alertmsg = alertmsg.replace("{alertcertainty}","${state.alertcertainty}") }
 						catch (any) {}
 					try {alertmsg = alertmsg.replace("{alerturgency}","${state.alerturgency}") }
 						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertheadline}","${alertheadline}") }
+					try {alertmsg = alertmsg.replace("{alertheadline}","${state.alertheadline}") }
 						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertdescription}","${alertdescription}") }
+					try {alertmsg = alertmsg.replace("{alertdescription}","${state.alertdescription}") }
 						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertinstruction}","${alertinstruction}") }
+					try {alertmsg = alertmsg.replace("{alertinstruction}","${state.alertinstruction}") }
 						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertevent}","${alertevent}") }
+					try {alertmsg = alertmsg.replace("{alertevent}","${state.alertevent}") }
 						catch (any) {}					
 					try {alertmsg = alertmsg.replace(" CST","") }
 						catch (any) {}
@@ -493,7 +492,7 @@ def talkNow(alertmsg) {
 		}
 	
 		if (speechmode){ 
-			if (logEnable) log.debug "Sending alert to Speech Speaker(s)"
+			if (logEnable) log.debug "Sending alert to Google and Speech Speaker(s)"
 			//try {
 				if (logEnable) log.debug "Setting Speech Speaker to volume level: ${speakervolume}"
 				speechspeaker.setVolume(speakervolume)
@@ -559,9 +558,8 @@ def repeattestAlert() {
 }
 
 def alertNow(alertmsg){
-		talkNow(alertmsg)
 		pushNow(alertmsg)
 		if(alertSwitch) { alertSwitch.on() }
 		tileNow(alertmsg, "true") 
-
+		talkNow(alertmsg)
 }
