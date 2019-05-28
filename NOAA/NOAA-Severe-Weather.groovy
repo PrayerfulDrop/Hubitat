@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.2.5 - fixed new introduced looping error due to code changes
  *   2.2.4 - fixed installation issue and fixed comparison of alert sent dates issue
  *   2.2.3 - fixed repeat every 5 minutes issue
  *   2.2.2 - added global volume/restore for all TTS devices, enabled ability for multiple different TTS device types, added support for Google Devices modified GUI to accomodate.
@@ -74,7 +75,7 @@ import groovy.json.*
 import java.util.regex.*
 
 	
-def version(){"v2.2.4"}
+def version(){"v2.2.5"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -313,10 +314,11 @@ def refresh() {
 			// Get the alert message
 			getAlertMsg()	
 			if (logEnable) log.debug "AlertSent: '${state.alertsent}'  Pastalert: '${state.pastalert}'"
-			if(state.alertsent.equals(state.pastalert) && state.pastalert != null) { 
+			if(state.alertsent.equals(state.pastalert)) { 
 				log.info "No new alerts." 
 				log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
 			} else {
+				if(state.alertsent!=null){
 				// play TTS and send PushOver
 				buildAlertMsg()
 				log.info "Sending alert: ${state.alertmsg}"
@@ -328,6 +330,7 @@ def refresh() {
 				if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
 					runIn((60*repeatMinutes.toInteger()),repeatAlert)
 					state.alertrepeat = false
+				}
 				}
 			} 
 	}
