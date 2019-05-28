@@ -62,5 +62,5 @@
   "NOAAWeatherAlertsChildRawCode": "NA",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": "2.2.5 - fixed new introduced looping error due to code changes",
+  "NOAAWeatherAlertsUpdateNote": "2.2.5 - fixed new introduced looping error due to code changes, reduced info message from two lines of logs to a one to save log retention",
 }
