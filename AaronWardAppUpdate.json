@@ -55,12 +55,12 @@
   "Example2UpdateNote": "NA",
   
   "NOAAWeatherAlertsType": "App",
-  "NOAAWeatherAlertsParentVersion": "2.2.4",
+  "NOAAWeatherAlertsParentVersion": "2.2.5",
   "NOAAWeatherAlertsChildVersion": "NA",
   "NOAAWeatherAlertsDriverVersion": "1.2.0",
   "NOAAWeatherAlertsParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
   "NOAAWeatherAlertsChildRawCode": "NA",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": "2.2.4 - fixed installation issue and fixed comparison of alert sent dates issue",
+  "NOAAWeatherAlertsUpdateNote": "2.2.5 - fixed new introduced looping error due to code changes",
 }
