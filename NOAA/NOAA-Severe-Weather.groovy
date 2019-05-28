@@ -315,8 +315,7 @@ def refresh() {
 			getAlertMsg()	
 			if (logEnable) log.debug "AlertSent: '${state.alertsent}'  Pastalert: '${state.pastalert}'"
 			if(state.alertsent.equals(state.pastalert)) { 
-				log.info "No new alerts." 
-				log.info "Waiting ${whatPoll.toInteger()} minutes before next poll..."
+				log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 			} else {
 				if(state.alertsent!=null){
 				// play TTS and send PushOver
