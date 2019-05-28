@@ -28,7 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   2.2.5 - fixed new introduced looping error due to code changes
+ *   2.2.5 - fixed new introduced looping error due to code changes, reduced info message from two lines of logs to a one to save log retention
  *   2.2.4 - fixed installation issue and fixed comparison of alert sent dates issue
  *   2.2.3 - fixed repeat every 5 minutes issue
  *   2.2.2 - added global volume/restore for all TTS devices, enabled ability for multiple different TTS device types, added support for Google Devices modified GUI to accomodate.
