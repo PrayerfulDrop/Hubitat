@@ -55,12 +55,12 @@
   "Example2UpdateNote": "NA",
   
   "NOAAWeatherAlertsType": "App",
-  "NOAAWeatherAlertsParentVersion": "2.2.6",
+  "NOAAWeatherAlertsParentVersion": "2.2.7",
   "NOAAWeatherAlertsChildVersion": "NA",
   "NOAAWeatherAlertsDriverVersion": "1.2.0",
   "NOAAWeatherAlertsParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
   "NOAAWeatherAlertsChildRawCode": "NA",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": "2.2.6 - Added ability to see weather.gov API current response with app settings in place",
+  "NOAAWeatherAlertsUpdateNote": "2.2.7 - Added weather.gov URI that is built based on user options in app",
 }
