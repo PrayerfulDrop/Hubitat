@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.2.6 - Added ability to see weather.gov API current response with app settings in place
  *   2.2.5 - fixed new introduced looping error due to code changes, reduced info message from two lines of logs to a one to save log retention
  *   2.2.4 - fixed installation issue and fixed comparison of alert sent dates issue
  *   2.2.3 - fixed repeat every 5 minutes issue
@@ -73,9 +74,9 @@
 
 import groovy.json.*
 import java.util.regex.*
-
+import java.text.SimpleDateFormat
 	
-def version(){"v2.2.5"}
+def version(){"v2.2.6"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -236,6 +237,15 @@ def mainPage() {
 					}
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
+				input "getAPI", "bool", title: "Get current weather.gov API response with above settings?", required: false, defaultValue: false, submitOnChange: true
+				if(getAPI) {
+					app?.updateSetting("getAPI",[value:"false",type:"bool"])
+					getAlertMsg()
+					def date = new Date()
+					sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
+					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
+					else { paragraph "No JSON feed currently available for your coordinates.  Change options above to acquire results from weather.gov API."}
+				}
 				paragraph getFormat("line")
 				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${version()}</div>"
 			}       
@@ -313,7 +323,7 @@ def refresh() {
 	if( ! (result || result2) ) {
 			// Get the alert message
 			getAlertMsg()	
-			if (logEnable) log.debug "AlertSent: '${state.alertsent}'  Pastalert: '${state.pastalert}'"
+			if (logEnable) log.debug "Polled weather API: Alert Sent Timestamp: '${state.alertsent}'   Past Alert Timestamp: '${state.pastalert}'"
 			if(state.alertsent.equals(state.pastalert)) { 
 				log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 			} else {
@@ -335,6 +345,7 @@ def refresh() {
 	}
     else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 }
+
 
 def getAlertMsg() {
 	if (logEnable) log.debug "Connecting to weather.gov service."
@@ -373,11 +384,13 @@ def getAlertMsg() {
 				requestContentType: "application/json",
 				contentType: "application/json"
 			]
+	
 		httpGet(requestParams)	{	  response ->
 			if (response?.status == 200){
 				if(response.data.features){
 					if (logEnable) log.debug "Building alert variables."
 				// build out variables from JSON feed
+					state.alertJSON = true
 					state.alertseverity = response.data.features[0].properties.severity
 					alertarea = response.data.features[0].properties.areaDesc
 						alertarea = alertarea.replaceAll(";",",")
@@ -391,16 +404,16 @@ def getAlertMsg() {
 					state.alertstatus = response.data.features[0].properties.status
 					state.alertmessagetype = response.data.features[0].properties.messageType
 					state.alertcategory = response.data.features[0].properties.category
-					state.alertseverity = response.data.features[0].properties.severity
 					state.alertcertainty = response.data.features[0].properties.certainty
 					state.alerturgency = response.data.features[0].properties.urgency
 					state.alertsendername = response.data.features[0].properties.senderName
 					state.alertheadline = response.data.features[0].properties.headline
 					state.alertdescription = response.data.features[0].properties.description
 					if(response.data.features[0].properties.instruction) { state.alertinstruction = response.data.features[0].properties.instruction }
-				else {state.alertinstruction = response.data.features[0].properties.description }
+					else {state.alertinstruction = response.data.features[0].properties.description }
 					state.alertevent = response.data.features[0].properties.event
-				} }
+				}  else { state.alertJSON = false }
+			}
 			else log.warn "${response?.status}"
 		}
 }
