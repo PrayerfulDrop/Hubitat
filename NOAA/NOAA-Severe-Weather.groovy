@@ -28,6 +28,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.2.8 - added customization for introduction to alert for TTS devices to cleanup PushOver and NOAA Tile notifications, catch potential API service availability issues
  *   2.2.7 - Added weather.gov URI that is built based on user options in app
  *   2.2.6 - Added ability to see weather.gov API current response with app settings in place
  *   2.2.5 - fixed new introduced looping error due to code changes, reduced info message from two lines of logs to a one to save log retention
@@ -77,7 +78,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.2.7"}
+def version(){"v2.2.8"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -122,8 +123,8 @@ def mainPage() {
 					 if(echoSpeaks2 == true) input "echospeaker", "capability.musicPlayer", title: "Choose Echo Speaks Device(s)", required: false, multiple: true, submitOnChange: true 
 				
 				// Master Volume settings
-				input "speakervolume", "number", title: "Alert Notification Volume", description: "0-100%", required: false, defaultValue: "75", submitOnChange: true
-				input "speakervolRestore", "number", title: "Restore volume to X after alert", description: "0-100", required: false, submitOnChange: true
+				input "speakervolume", "number", title: "Alert Notification Volume:", description: "0-100%", required: false, defaultValue: "75", submitOnChange: true
+				input "speakervolRestore", "number", title: "Restore volume after alert to:", description: "0-100", required: false, submitOnChange: true
 				
 				// Switch to set when alert active
 				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false, submitOnChange: true)
@@ -145,7 +146,9 @@ def mainPage() {
 					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}", submitOnChange: true
 					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}", submitOnChange: true
 				}
-				input name: "alertCustomMsg", type: "text", title: "Alert Message:", require: false, defaultValue: "Attention, Attention. {alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.", submitOnChange: true
+				input name:"useAlertIntro", type: "bool", title: "Announce an introduction to TTS device?", require: false, defaultValue: false, submitOnChange: true
+				if(useAlertIntro) input name:"AlertIntro", type: "text", title: "Alert Introduction:", require: false, defaultValue:"Attention, Attention."
+				input name: "alertCustomMsg", type: "text", title: "Alert Message:", require: false, defaultValue: "{alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.", submitOnChange: true
 			}	
 			section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
         		paragraph "<b>Alert message variables:</b>"
@@ -387,6 +390,7 @@ def getAlertMsg() {
 				contentType: "application/json"
 			]
 	
+	try {
 		httpGet(requestParams)	{	  response ->
 			if (response?.status == 200){
 				if(response.data.features){
@@ -418,6 +422,8 @@ def getAlertMsg() {
 			}
 			else log.warn "${response?.status}"
 		}
+	}
+	catch (any) { log.warn "Weather.gov API did not respond to JSON request."}
 }
 			
 def buildAlertMsg() {
@@ -488,7 +494,7 @@ def buildTestAlert() {
 }
 
 def talkNow(alertmsg) {								
-
+	if(useAlertIntro) alertmsg = "${AlertIntro}" + alertmsg
 		speechDuration = Math.max(Math.round(alertmsg.length()/12),2)+3		
 		atomicState.speechDuration2 = speechDuration * 1000
 	
