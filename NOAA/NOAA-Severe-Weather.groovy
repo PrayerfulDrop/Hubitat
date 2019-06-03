@@ -29,8 +29,8 @@
  *
  *  Changes:
  *   2.2.8 - added customization for introduction to alert for TTS devices to cleanup PushOver and NOAA Tile notifications, catch potential API service availability issues
- *   2.2.7 - Added weather.gov URI that is built based on user options in app
- *   2.2.6 - Added ability to see weather.gov API current response with app settings in place
+ *   2.2.7 - added weather.gov URI that is built based on user options in app
+ *   2.2.6 - added ability to see weather.gov API current response with app settings in place
  *   2.2.5 - fixed new introduced looping error due to code changes, reduced info message from two lines of logs to a one to save log retention
  *   2.2.4 - fixed installation issue and fixed comparison of alert sent dates issue
  *   2.2.3 - fixed repeat every 5 minutes issue
@@ -71,7 +71,7 @@
  *   1.0.3 - added restrictions based on modes, pushover notification support and logEnable for only 15 min
  *   1.0.2 - added standard logEnable logic for 30 min disable, latitude and longitude from Hub Location, announcement intro customization, random bug fixes
  *   1.0.1 - misc bug fixes
- *   1.0.0 - Initial code concept
+ *   1.0.0 - initial code concept
 **/
 
 import groovy.json.*
