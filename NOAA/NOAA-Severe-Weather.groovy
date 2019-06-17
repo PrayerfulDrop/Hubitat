@@ -26,8 +26,11 @@
  *
  *
  * ------------------------------------------------------------------------------------------------------------------------------
+ *              Donations are always appreciated: https://www.paypal.me/aaronmward
+ * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.2.9 - fixed some confusing wording, customized look and feel to match NOAA color theme, added ability to set log debug diable timeout, added donations link
  *   2.2.8 - added customization for introduction to alert for TTS devices to cleanup PushOver and NOAA Tile notifications, catch potential API service availability issues
  *   2.2.7 - added weather.gov URI that is built based on user options in app
  *   2.2.6 - added ability to see weather.gov API current response with app settings in place
@@ -78,7 +81,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.2.8"}
+def version(){"v2.2.9"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -100,69 +103,70 @@ def mainPage() {
     	//installCheck()
 		//if(state.appInstalled == 'COMPLETE'){
 			section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
-				paragraph "<div style='color:#1A77C9'>This application supplies Severe Weather alert TTS notifications.</div>"
+				paragraph "<div style='color:#1A77C9'>This application provides customized Weather Alerts.</div>"
 			}
 			section(getFormat("header-green", " General")) {
-       			label title: "Enter a name for application:", required: false
+       			label title: "Custom Application Name (for multiple instances of NOAA):", required: false
 			}
 			section(getFormat("header-green", " Notification Devices")) {
 				// PushOver Devices
-			    input "pushovertts", "bool", title: "Send a 'Pushover' message for NOAA Weather Alerts?", required: false, defaultValue: false, submitOnChange: true 
+			    input "pushovertts", "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true 
 			    if(pushovertts == true){ input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true}
 			     
 				// Music Speakers (Sonos, etc)
-				input(name: "musicmode", type: "bool", defaultValue: "false", title: "Use Music Speaker(s) with TTS?", description: "Music Speaker(s)?", submitOnChange: true)
+				input(name: "musicmode", type: "bool", defaultValue: "false", title: "Use Music Speaker(s) for TTS?", description: "Music Speaker(s)?", submitOnChange: true)
 				if (musicmode) input "musicspeaker", "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true, submitOnChange: true
 				
 				// Speech Speakers
-				input(name: "speechmode", type: "bool", defaultValue: "false", title: "Use Google or Speech Speaker(s) with TTS?", description: "Speech Speaker(s)?", submitOnChange: true)
+				input(name: "speechmode", type: "bool", defaultValue: "false", title: "Use Google or Speech Speaker(s) for TTS?", description: "Speech Speaker(s)?", submitOnChange: true)
    	            if (speechmode) input "speechspeaker", "capability.speechSynthesis", title: "Choose speaker(s)", required: false, multiple: true, submitOnChange: true
 						
 				// Echo Speaks devices
-				input (name: "echoSpeaks2", type: "bool", defaultValue: "false", title: "Use Echo Speaks device(s) with TTS?", description: "Echo Speaks device?", submitOnChange: true)
+				input (name: "echoSpeaks2", type: "bool", defaultValue: "false", title: "Use Echo Speaks device(s) for TTS?", description: "Echo Speaks device?", submitOnChange: true)
 					 if(echoSpeaks2 == true) input "echospeaker", "capability.musicPlayer", title: "Choose Echo Speaks Device(s)", required: false, multiple: true, submitOnChange: true 
 				
 				// Master Volume settings
-				input "speakervolume", "number", title: "Alert Notification Volume:", description: "0-100%", required: false, defaultValue: "75", submitOnChange: true
-				input "speakervolRestore", "number", title: "Restore volume after alert to:", description: "0-100", required: false, submitOnChange: true
+				input "speakervolume", "number", title: "Notification Volume Level:", description: "0-100%", required: false, defaultValue: "75", submitOnChange: true
+				input "speakervolRestore", "number", title: "Restore Volume Level:", description: "0-100", required: false, submitOnChange: true
 				
 				// Switch to set when alert active
 				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false, submitOnChange: true)
 
 			}
 			section(getFormat("header-green", " Configuration")) {
-				input name: "whatAlertSeverity", type: "enum", title: "Choose Weather Severity to monitor: ", 
+				input name: "whatAlertSeverity", type: "enum", title: "Weather Severity to monitor: ", 
 					options: [
 						"minor": "Minor",
 						"moderate": "Moderate", 
 						"severe": "Severe", 
 						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"
-				input name: "whatPoll", type: "enum", title: "Choose poll frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
-				input "repeatYes", "bool", title: "Repeat alerts after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
+				input name: "whatPoll", type: "enum", title: "Poll Frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
+				input "repeatYes", "bool", title: "Repeat Alert after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
 				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
 				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
 				if(useCustomCords) {
-					paragraph "Below coordinates are acquired from your Hubitat:"
+					paragraph "Below coordinates are acquired from your Hubitat Hub.  Enter your custom coordinates:"
 					input name:"customlatitude", type:"text", title: "Latitude coordinate:", require: false, defaultValue: "${location.latitude}", submitOnChange: true
 					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}", submitOnChange: true
 				}
-				input name:"useAlertIntro", type: "bool", title: "Announce an introduction to TTS device?", require: false, defaultValue: false, submitOnChange: true
-				if(useAlertIntro) input name:"AlertIntro", type: "text", title: "Alert Introduction:", require: false, defaultValue:"Attention, Attention."
-				input name: "alertCustomMsg", type: "text", title: "Alert Message:", require: false, defaultValue: "{alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.", submitOnChange: true
-			}	
-			section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
-        		paragraph "<b>Alert message variables:</b>"
-				paragraph "{alertseverity} = alertseverity"
-				paragraph "{alertcertainty} = alert certainty of occuring"
-				paragraph "{alerturgency} = alert urgency"
-				paragraph "{alertevent} = alert event type"
-				paragraph "{alertheadline} = alert headline"
-				paragraph "{alertdescription} = alert description"
-				paragraph "{alertinstruction} = alert instructions"
-				paragraph "{alertarea} = counties or area being affected"	
-				paragraph " "
-				paragraph "<b>Example:</b> Attention, Attention. {alertseverity} weather alert. Certainty is {alertcertainty}. Urgency is {alerturgency}. {alertheadline}. {alertinstruction}. This is the end of the weather announcement."
-			}
+				input name:"useAlertIntro", type: "bool", title: "Use a pre-notification message to TTS device(s)?", require: false, defaultValue: false, submitOnChange: true
+				if(useAlertIntro) input name:"AlertIntro", type: "text", title: "Alert pre-notification message:", require: false, defaultValue:"Attention, Attention."              
+                input name: "alertCustomMsg", type: "text", title: "Custom Alert Message (use customization instructions):", require: false, defaultValue: "{alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.", submitOnChange: true
+            }	
+        	   section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
+        	    	paragraph "<b>Alert message variables:</b>"
+			    	paragraph "{alertseverity} = alertseverity"
+    				paragraph "{alertcertainty} = alert certainty of occuring"
+    				paragraph "{alerturgency} = alert urgency"
+    				paragraph "{alertevent} = alert event type"
+	    			paragraph "{alertheadline} = alert headline"
+		    		paragraph "{alertdescription} = alert description"
+			    	paragraph "{alertinstruction} = alert instructions"
+				    paragraph "{alertarea} = counties, cities or area"	
+				    paragraph " "
+				    paragraph "<b>Example:</b>{alertseverity} weather alert. Certainty is {alertcertainty}. Urgency is {alerturgency}. {alertheadline}. {alertinstruction}. This is the end of the weather announcement."
+			    }
+
 			section(getFormat("header-green", " Dashboard Tile")) {}
 			section("Instructions for Dashboard Tile:", hideable: true, hidden: true) {
 				paragraph "<b>Instructions for adding NOAA Weather Alerts to Hubitat Dashboards:</b><br>"
@@ -172,11 +176,11 @@ def mainPage() {
 			}
 			section() {
 			input(name: "noaaTileDevice", type: "capability.actuator", title: "NOAA Tile Device to send alerts to:", submitOnChange: true, required: false, multiple: false)
-			input name:"noaaTileReset", type: "text", title: "Number of minutes before resetting the NOAA Tile Dashboard?", require: false, defaultValue: "30", submitOnChange: true
+			input name:"noaaTileReset", type: "text", title: "Reset NOAA Tile on dashboard after how many minutes?", require: false, defaultValue: "30", submitOnChange: true
 			}
 			section(getFormat("header-green", " Advanced Configuration")) {
-			paragraph "Use with caution as below settings may cause undesired results.  Reference <a href='https://www.weather.gov/documentation/services-web-api?prevfmt=application%2Fcap%2Bxml/default/get_alerts#/default/get_alerts' target='_blank'>Weather.gov API</a> and test your configuration first."
-				input "myWeatherAlert", "enum", title: "Watch only for a specific Weather event?", required: false, multiple: true, submitOnChange: true,
+			paragraph "Use with caution as below settings may cause undesired results.  Reference <a href='https://www.weather.gov/documentation/services-web-api?prevfmt=application%2Fcap%2Bxml/default/get_alerts#/default/get_alerts' target='_blank'>Weather.gov API</a> and use the API response test button below to determine your desired results."
+				input "myWeatherAlert", "enum", title: "Watch for a specific Weather event(s)?", required: false, multiple: true, submitOnChange: true,
                             options: [
 							"BZW":	"Blizzard Warning",
                             "CFA":	"Coastal Flood Watch",
@@ -206,25 +210,25 @@ def mainPage() {
                             "WSA":	"Winter Storm Watch",
                             "WSW":	"Winter Storm Warning"
                             ]
-				input name: "whatAlertUrgency", type: "enum", title: "Choose Alerts Urgency: ", multiple: true, submitOnChange: true, 
+				input name: "whatAlertUrgency", type: "enum", title: "Watch for a specific Alert Urgency: ", multiple: true, submitOnChange: true, 
 							options: [
 								"immediate": "Immediate", 
 								"expected": "Expected",
 								"future": "Future"]
 				
-				input name: "whatAlertCertainty", type: "enum", title: "Choose Alerts Certainty: ", required: false, multiple: true, submitOnChange: true,
+				input name: "whatAlertCertainty", type: "enum", title: "Watch for a specific Alert Certainty: ", required: false, multiple: true, submitOnChange: true,
 							options: [
 								"possible": "Possible",
 								"likely": "Likely",
 								"observed": "Observed"]
 			}
 			section(getFormat("header-green", " Restrictions")) {
-				input "modesYes", "bool", title: "Enable restriction by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
+				input "modesYes", "bool", title: "Enable restriction of notifications by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
 				if(modesYes){	
-				    input(name:"modes", type: "mode", title: "Restrict actions when current mode is:", multiple: true, required: false, submitOnChange: true)
+				    input(name:"modes", type: "mode", title: "Restrict notifications when current mode is:", multiple: true, required: false, submitOnChange: true)
 				}
 				if(!modesYes){
-			          input "restrictbySwitch", "capability.switch", title: "Or use a switch to restrict:", required: false, multiple: false, defaultValue: null, submitOnChange: true
+			          input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict notfications:", required: false, multiple: false, defaultValue: null, submitOnChange: true
 				}
 			}
 			section(getFormat("header-green", " Logging and Testing")) {
@@ -241,17 +245,18 @@ def mainPage() {
 					}
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
-				input "getAPI", "bool", title: "Get current weather.gov API response with above settings?", required: false, defaultValue: false, submitOnChange: true
+                if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true                
+				input "getAPI", "bool", title: "Test above configuration and display current weather.gov API response?", required: false, defaultValue: false, submitOnChange: true
 				if(getAPI) {
 					app?.updateSetting("getAPI",[value:"false",type:"bool"])
 					getAlertMsg()
 					def date = new Date()
 					sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
 					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
-					else { paragraph "No JSON feed currently available for your coordinates.  Change options above to acquire results from weather.gov API."}
+					else { paragraph "No JSON feed currently available for your coordinates.  Either there is no weather alerts in your area or you need to change options above to acquire desired results."}
 				}
 				paragraph getFormat("line")
-				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${version()}</div>"
+				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
 			}       
 		}
 	}
@@ -265,7 +270,11 @@ def installed() {
 def updated() {
     if (logEnable) log.debug "Updated with settings: ${settings}"
     unsubscribe()
-    if (logEnable) runIn(900,logsOff)
+    if (logEnable && logMinutes.toInteger() != 0) {
+        if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
+        runIn((logMinutes.toInteger() * 60),logsOff)
+    }
+    else { log.warn "Debug logs set to not automatically disable." }
     initialize()
 	switch (whatPoll.toInteger()) {
 		case 1: 
@@ -306,7 +315,7 @@ def getImage(type) {
 }
 
 def getFormat(type, myText=""){
-    if(type == "header-green") return "<div style='color:#ffffff;font-weight: bold;background-color:#81BC00;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
+    if(type == "header-green") return "<div style='color:#ffffff;font-weight: bold;background-color:#1A7BC7;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
     if(type == "line") return "\n<hr style='background-color:#1A77C9; height: 1px; border: 0;'></hr>"
     if(type == "title") return "<h2 style='color:#1A77C9;font-weight: bold'>${myText}</h2>"
 }
