@@ -30,7 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   2.2.9 - fixed some confusing wording, customized look and feel to match NOAA color theme, added ability to set log debug diable timeout, added donations link
+ *   2.2.9 - fixed some confusing wording, customized look and feel to match NOAA color theme, added ability to set log debug disable timeout, added donations link
  *   2.2.8 - added customization for introduction to alert for TTS devices to cleanup PushOver and NOAA Tile notifications, catch potential API service availability issues
  *   2.2.7 - added weather.gov URI that is built based on user options in app
  *   2.2.6 - added ability to see weather.gov API current response with app settings in place
