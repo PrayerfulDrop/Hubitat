@@ -2,7 +2,7 @@
   "GitHubAuthor": "Aaron Ward",
   "GitHubMainURL": "https://github.com/PrayerfulDrop/Hubitat",
   "App01": "NOAA Weather Alerts",
-  "App02": "",
+  "App02": "MQTT Generic Driver",
   "App03": "",
   "App04": "",
   "App05": "",
@@ -63,4 +63,12 @@
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
   "NOAAWeatherAlertsUpdateNote": "2.2.9 - fixed some confusing wording, customized look and feel to match NOAA color theme, added ability to set log debug diable timeout, added donations link",
+  
+  "MQTTGenericDriverType": "Driver",
+  "MQTTGenericDriverVersion": "1.0.0",
+  "MQTTGenericDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/MQTT/SaltTank-Sonic-MQTT/Generic%20MQTT%20Driver.groovy",
+  "MQTTGenericDriverName": "MQTT Generic Driver",
+  "MQTTGenericDriverDiscussion": "https://community.hubitat.com/t/project-mqtt-generic-driver-and-salt-tank-monitor-using-arduino/16008",
+  "MQTTGenericDriverUpdateNote": "1.0.0 - Initial release",
+
 }
