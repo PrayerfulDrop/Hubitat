@@ -1,6 +1,6 @@
 /**
  *
- * Hubitat Import URL: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Mailbag/Mailbag.groovy
+ * Hubitat Import URL: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/You%20Got%20Mail/yougotmail.groovy
  *
  *  **************** You Got Mail  ****************
  *
