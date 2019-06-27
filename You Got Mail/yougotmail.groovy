@@ -7,7 +7,7 @@
  *  Design Usage:
  *  This app is designed to notify you when a contact sensor on a mailbox is opened.  Custom messages are announced depending on mail delivery times.
  *
- *  Copyright 2018 Aaron Ward
+ *  Copyright 2019 Aaron Ward
  *
  *  This App is free and was designed for my needs originally but has grown for most needs too.
  *
@@ -27,6 +27,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.2 - Added notification option if mailbox was left open
  *   1.0.1 - Added a notification governor which is user defined (thank you Cobra for coding guidance!) 
  *   1.0.0 - initial code concept
 **/
@@ -35,7 +36,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v1.0.1"}
+def version(){"v1.0.2"}
 
 definition(
     name:"You Got Mail",
@@ -97,7 +98,13 @@ def mainPage() {
                 input name: "notifyopenmailbox", type: "bool", defaultValue: "false", title: "Notify if mailbox is opened outside of mail delivery times?", required: false, submitOnChange: true
                 if(notifyopenmailbox) {
                     input name: "mailboxopen", type: "text", title: "Message when mailbox is opened: ", required: false, submitOnChange: true, defaultValue: "Someone has opened your mailbox."
-                    input name: "pushoveronly", type: "bool", title: "Notify via Pushover only?", required: false, submitOnChange: true, defaultValue: true
+                    input name: "pushoveronly", type: "bool", title: "Notify via Pushover only?", required: false, submitOnChange: true, defaultValue: false
+                }
+                paragraph "<hr>"
+                input name: "notifyopenmailboxopen", type: "bool", title: "Notify when mailbox is left open?", required: false, defaultValue: false, submitOnChange: true
+                if(notifyopenmailboxopen) {
+                    input name: "mailboxleftopenmessage", type: "text", title: "Message when mailbox is opened: ", required: false, submitOnChange: true, defaultValue: "Your mailbox has been left open."
+                    input name: "mailboxleftopen", type: "text", title: "How many minutes mailbox left open to notify?", required: false, defaultValue: "10", submitOnChange: true 
                 }
             }
         	section(getFormat("header-green", " Logging and Testing")) {
@@ -133,7 +140,7 @@ def installed() {
 }
 
 
-def updated () {
+def updated() {
     if (logEnable) log.debug "Updated with settings: ${settings}"
     initialize()
 }
@@ -144,15 +151,27 @@ def initialize() {
       runIn((logMinutes.toInteger() * 60),logsOff)   
     }
     if(state.alreadySent) reset()
-    subscribe(mailboxcontact, "contact", contactSensorHandler)   
+    subscribe(mailboxcontact, "contact", contactSensorHandler)  
+    if(logEnable) log.debug "Initalizing...checking mailbox.  Current state is: ${mailboxcontact.currentContact}"
+    if(mailboxcontact.currentContact == "open") checkopen()
 }
 
 def reset() {   // Thank you to Cobra for guidance!
     state.alreadySent = false
 }
 
+def checkopen() {
+    if(state.mailboxopen == true && mailboxcontact.currentContact == "open") {
+        if(logEnable) log.debug "Mailbox was left open.  Notifying and checking again in ${mailboxleftopen} minute(s)."
+         pushNow(mailboxleftopenmessage)
+        }    
+    state.mailboxopen = true
+    runIn((mailboxleftopen.toInteger() * 60),checkopen)
+}
+
 def contactSensorHandler(evt) {
     if(evt.value=="open") {
+        if(logEnable) "Mailbox was opened."
         if(!state.alreadySent) {
             if (logEnable) log.debug "Notification has not been sent in past ${frequency} minutes."
                 if(timeOfDayIsBetween(toDateTime(maildeliveryStartTime), toDateTime(maildeliveryStopTime), new Date(), location.timeZone)) {
@@ -174,6 +193,11 @@ def contactSensorHandler(evt) {
         } else {
             if (logEnable) log.debug "Notifications were sent in the past ${frequency} minutes.  Not sending notification."
         }
+        checkopen()
+    }
+    else { 
+        state.mailboxopen = false
+        if(logEnable) log.debug "Mailbox was closed."
     }
  }
 
