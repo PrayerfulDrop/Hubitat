@@ -5,8 +5,7 @@
  *  **************** You Got Mail  ****************
  *
  *  Design Usage:
- *  This app is designed to notify you of severe and extreme weather alerts to a specified TTS device.  This is only for US based users.  
- *  Willing to collaborate with others to create world-wide solution.
+ *  This app is designed to notify you when a contact sensor on a mailbox is opened.  Custom messages are announced depending on mail delivery times.
  *
  *  Copyright 2018 Aaron Ward
  *
