@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.1 - Added a notification governor which is user defined (thank you Cobra for coding guidance!) 
  *   1.0.0 - initial code concept
 **/
 
@@ -36,7 +37,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v1.0.0"}
+def version(){"v1.0.1"}
 
 definition(
     name:"You Got Mail",
@@ -86,7 +87,7 @@ def mainPage() {
             section(getFormat("header-green", " Mailbox Configuration")) {
                 input name: "maildeliveryStartTime", type: "time", title: "Mail Delivery Start Time:", required: false
         		input name: "maildeliveryStopTime", type: "time", title: "Mail Delivery End Time:", required: false
-                //input name: "frequency", type: "decimal", title: "How many minutes to wait between notifications?", required: false, defaultValue: "1", submitOnChange: true
+                input name: "frequency", type: "text", title: "How many minutes to wait between notifications?", required: false, defaultValue: "1", submitOnChange: true
 		        input name: "mailboxcontact", type: "capability.contactSensor", title: "Choose contact sensor on mailbox:", required: false, multiple: false, submitOnChange: true
                 input name: "mailnotification", type: "text", title: "Message when mail is delivered: (for random messages seperate using semicolon)", required: false, submitOnChange: true, defaultValue: "Mail has arrived. You've. got. mail!;Look what was just delivered.  Your mail!;Tally ho!... Mail has arrived!"
                 paragraph "<b>Current message(s) to announce:</b><ul>"
@@ -142,16 +143,23 @@ def updated () {
 def initialize() {
    if (logEnable && logMinutes.toInteger() != 0) {
       if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
-      runIn((logMinutes.toInteger() * 60),logsOff)
+      runIn((logMinutes.toInteger() * 60),logsOff)   
     }
+    if(state.alreadySent) reset()
     subscribe(mailboxcontact, "contact", contactSensorHandler)   
+}
+
+def reset() {   // Thank you to Cobra for guidance!
+    state.alreadySent = false
 }
 
 def contactSensorHandler(evt) {
     if(evt.value=="open") {
-
+        if(!state.alreadySent) {
+            if (logEnable) log.debug "Notification has not been sent in past ${frequency} minutes."
                 if(timeOfDayIsBetween(toDateTime(maildeliveryStartTime), toDateTime(maildeliveryStopTime), new Date(), location.timeZone)) {
                     if (logEnable) log.debug "Current time is within mail delivery timeframe"
+                    // Inspiration code below from BPTWorld
                     def values = "${mailnotification}".split(";")
 	            	vSize = values.size()
 	            	count = vSize.toInteger()
@@ -161,11 +169,17 @@ def contactSensorHandler(evt) {
                     state.lastTime = now
                 } else {
                     if (logEnable) log.debug "Current time is outside of mail delivery timeframe"
-                    if(notifyopenmailbox && pushoveronly == false) { alertNow(mailboxopen) }
+                    if(notifyopenmailbox && !pushoveronly) { alertNow(mailboxopen) }
                     else { pushNow(mailboxopen) }
                 }
+            state.alreadySent = true
+            runIn((frequency.toInteger() * 60),reset)
+        } else {
+            if (logEnable) log.debug "Notifications were sent in the past ${frequency} minutes.  Not sending notification."
+        }
     }
  }
+
 
 def talkNow(alertmsg) {								
 	if(useAlertIntro) alertmsg = "${AlertIntro}" + alertmsg
