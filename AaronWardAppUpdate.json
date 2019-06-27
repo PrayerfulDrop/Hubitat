@@ -65,12 +65,12 @@
   "NOAAWeatherAlertsUpdateNote": "2.2.9 - fixed some confusing wording, customized look and feel to match NOAA color theme, added ability to set log debug diable timeout, added donations link",
 
   "YouGotMailType": "App",
-  "YouGotMailParentVersion": "1.0.0",
+  "YouGotMailParentVersion": "1.0.1",
   "YouGotMailChildVersion": "NA",
   "YouGotMailDriverVersion": "NA",
   "YouGotMailParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/You%20Got%20Mail/yougotmail.groovy",
   "YouGotMailChildRawCode": "NA",
   "YouGotMailDriverRawCode": "NA",
   "YouGotMailDiscussion": "https://community.hubitat.com/t/release-you-got-mail/17946",
-  "YouGotMailUpdateNote": "1.0.0 Initial Concept",
+  "YouGotMailUpdateNote": "1.0.1 - Added a notification governor which is user defined (thank you Cobra for coding guidance!)",
 }
