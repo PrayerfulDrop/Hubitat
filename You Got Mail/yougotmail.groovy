@@ -9,8 +9,6 @@
  *
  *  Copyright 2018 Aaron Ward
  *
- *  Special thanks to csteele for all his help and education of Groovy.  Another special thanks to contributions from bptworld!
- *  
  *  This App is free and was designed for my needs originally but has grown for most needs too.
  *
  *-------------------------------------------------------------------------------------------------------------------
@@ -166,7 +164,6 @@ def contactSensorHandler(evt) {
                 	def randomKey = new Random().nextInt(count)
                     if (logEnable) log.debug values[randomKey]
 		            alertNow(values[randomKey])
-                    state.lastTime = now
                 } else {
                     if (logEnable) log.debug "Current time is outside of mail delivery timeframe"
                     if(notifyopenmailbox && !pushoveronly) { alertNow(mailboxopen) }
