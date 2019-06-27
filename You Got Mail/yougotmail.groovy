@@ -87,7 +87,7 @@ def mainPage() {
             section(getFormat("header-green", " Mailbox Configuration")) {
                 input name: "maildeliveryStartTime", type: "time", title: "Mail Delivery Start Time:", required: false
         		input name: "maildeliveryStopTime", type: "time", title: "Mail Delivery End Time:", required: false
-                input name: "frequency", type: "decimal", title: "How many minutes to wait between notifications?", required: false, defaultValue: "1", submitOnChange: true
+                //input name: "frequency", type: "decimal", title: "How many minutes to wait between notifications?", required: false, defaultValue: "1", submitOnChange: true
 		        input name: "mailboxcontact", type: "capability.contactSensor", title: "Choose contact sensor on mailbox:", required: false, multiple: false, submitOnChange: true
                 input name: "mailnotification", type: "text", title: "Message when mail is delivered: (for random messages seperate using semicolon)", required: false, submitOnChange: true, defaultValue: "Mail has arrived. You've. got. mail!;Look what was just delivered.  Your mail!;Tally ho!... Mail has arrived!"
                 paragraph "<b>Current message(s) to announce:</b><ul>"
@@ -218,4 +218,3 @@ def alertNow(alertmsg){
 		if(mailboxSwitch) { mailboxSwitch.on() }
 		talkNow(alertmsg)
 }
-
