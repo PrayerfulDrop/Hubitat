@@ -27,6 +27,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.3 - fixed logic for mailbox left open notification
  *   1.0.2 - Added notification option if mailbox was left open
  *   1.0.1 - Added a notification governor which is user defined (thank you Cobra for coding guidance!) 
  *   1.0.0 - initial code concept
@@ -36,7 +37,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v1.0.2"}
+def version(){"v1.0.3"}
 
 definition(
     name:"You Got Mail",
@@ -152,8 +153,9 @@ def initialize() {
     }
     if(state.alreadySent) reset()
     subscribe(mailboxcontact, "contact", contactSensorHandler)  
-    if(logEnable) log.debug "Initalizing...checking mailbox.  Current state is: ${mailboxcontact.currentContact}"
-    if(mailboxcontact.currentContact == "open") checkopen()
+    if(mailboxcontact.currentContact == "open") { checkopen() } 
+    else { state.mailboxopen = false }
+    if(logEnable) log.debug "Initalizing...checking mailbox.  Current state is: ${mailboxcontact.currentContact} and State.MailboxOpen is: ${state.mailboxopen}"    
 }
 
 def reset() {   // Thank you to Cobra for guidance!
@@ -164,9 +166,16 @@ def checkopen() {
     if(state.mailboxopen == true && mailboxcontact.currentContact == "open") {
         if(logEnable) log.debug "Mailbox was left open.  Notifying and checking again in ${mailboxleftopen} minute(s)."
          pushNow(mailboxleftopenmessage)
-        }    
-    state.mailboxopen = true
-    runIn((mailboxleftopen.toInteger() * 60),checkopen)
+    } else {
+        if(mailboxcontact.currentContact == "open") {
+            state.mailboxopen = true
+            if(logEnable) log.debug "Mailbox has been left open.  Setting state variable to ${state.mailboxopen} and checking again in ${mailboxleftopen} minute(s)."
+            runIn((mailboxleftopen.toInteger() * 60),checkopen)
+        } else { 
+            state.mailboxopen = false
+            if(logEnable) log.debug "Mailbox is closed.  Setting state variable to ${state.mailboxopen}."
+        }
+    }
 }
 
 def contactSensorHandler(evt) {
