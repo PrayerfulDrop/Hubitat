@@ -16,6 +16,10 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ * ------------------------------------------------------------------------------------------------------------------------------
+ *
+ *  Changes:
+ *  1.0.0 - initial code port and modifications
  */
 
 metadata {
@@ -32,6 +36,9 @@ metadata {
 		capability "Battery"
 		capability "Configuration"
 	}
+	preferences() {    	
+            input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: false)
+    }    
 
 	// simulator metadata
 	simulator {
@@ -81,6 +88,7 @@ def updated() {
 		cmds = [zwave.wakeUpV1.wakeUpNoMoreInformation().format()]
 	}
 	response(cmds)
+    if (logEnable) runIn(900,logsOff)
 }
 
 def configure() {
@@ -88,6 +96,11 @@ def configure() {
 		zwave.manufacturerSpecificV2.manufacturerSpecificGet(),
 		zwave.batteryV1.batteryGet()
 	], 6000)
+}
+
+def logsOff(){
+    log.warn "Debug logging disabled."
+    device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
 
 def sensorValueEvent(value) {
