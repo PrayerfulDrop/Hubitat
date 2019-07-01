@@ -1,7 +1,7 @@
 /**
  *  Z-Wave Door/Window Sensor as Smoke Detector (modified from original Z-Wave Door/Window Sensor)
  * 
- *  importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy"
+ *  importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy"
  *
  *  Copyright 2019 Aaron Ward
  *
@@ -22,8 +22,8 @@ metadata {
 	definition (
             name: "Z-Wave Door/Window Sensor as Smoke Detector", 
             namespace: "aaronward", 
-            author: "Aaron Ward"
-            importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy"
+            author: "Aaron Ward",
+            importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy"
      ) {
 		
         //capability "Contact Sensor"
