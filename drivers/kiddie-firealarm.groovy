@@ -5,7 +5,7 @@
  *
  *  Copyright 2019 Aaron Ward
  *
- *  Original code ported from: https://github.com/luder888/SmartThingsPublic/blob/master/devicetypes/luder888/zwave-door-window-sensor-as-smoke-detector.src/zwave-door-window-sensor-as-smoke-detector.groovy
+ *  Original code ported and modified for hubitat from: https://github.com/luder888/SmartThingsPublic/blob/master/devicetypes/luder888/zwave-door-window-sensor-as-smoke-detector.src/zwave-door-window-sensor-as-smoke-detector.groovy
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
