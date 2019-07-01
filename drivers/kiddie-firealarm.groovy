@@ -53,7 +53,7 @@ def parse(String description) {
 	def result = null
 	if (description.startsWith("Err 106")) {
 		if (state.sec) {
-			log.debug description
+			if(logEnable) log.debug description
 		} else {
 			result = createEvent(
 				descriptionText: "This sensor failed to complete the network security key exchange.",
@@ -66,15 +66,19 @@ def parse(String description) {
 	} else if (description != "updated") {
 		def cmd = zwave.parse(description, [0x20: 1, 0x25: 1, 0x30: 1, 0x31: 5, 0x80: 1, 0x84: 1, 0x71: 3, 0x9C: 1])
 		if (cmd) {
-        	log.debug "valid command"
+        	if(logEnable) log.debug "valid command"
 			result = zwaveEvent(cmd)
 		}
 	}
-	log.debug "parsed '$description' to $result"
+	if(logEnable) log.debug "parsed '$description' to $result"
 	return result
 }
 
 def updated() {
+    if (logEnable) {
+        log.debug "Logs enabled. Logs will be disabled in 15 minutes."
+        runIn(900,logsOff)
+    }
 	def cmds = []
 	if (!state.MSR) {
 		cmds = [
@@ -88,7 +92,7 @@ def updated() {
 		cmds = [zwave.wakeUpV1.wakeUpNoMoreInformation().format()]
 	}
 	response(cmds)
-    if (logEnable) runIn(900,logsOff)
+    
 }
 
 def configure() {
@@ -248,7 +252,7 @@ private commands(commands, delay=200) {
 def retypeBasedOnMSR() {
 	switch (state.MSR) {
 		case "0086-0002-002D":
-			log.debug "Changing device type to Z-Wave Water Sensor"
+			if(logEnable) log.debug "Changing device type to Z-Wave Water Sensor"
 			setDeviceType("Z-Wave Water Sensor")
 			break
 		case "011F-0001-0001":  // Schlage motion
@@ -257,19 +261,19 @@ def retypeBasedOnMSR() {
 		case "0060-0001-0002":  // Everspring SP814
 		case "0060-0001-0003":  // Everspring HSP02
 		case "011A-0601-0901":  // Enerwave ZWN-BPC
-			log.debug "Changing device type to Z-Wave Motion Sensor"
+			if(logEnable) log.debug "Changing device type to Z-Wave Motion Sensor"
 			setDeviceType("Z-Wave Motion Sensor")
 			break
 		case "013C-0002-000D":  // Philio multi +
-			log.debug "Changing device type to 3-in-1 Multisensor Plus (SG)"
+			if(logEnable) log.debug "Changing device type to 3-in-1 Multisensor Plus (SG)"
 			setDeviceType("3-in-1 Multisensor Plus (SG)")
 			break
 		case "0109-2001-0106":  // Vision door/window
-			log.debug "Changing device type to Z-Wave Plus Door/Window Sensor"
+			if(logEnable) log.debug "Changing device type to Z-Wave Plus Door/Window Sensor"
 			setDeviceType("Z-Wave Plus Door/Window Sensor")
 			break
 		case "0109-2002-0205": // Vision Motion
-			log.debug "Changing device type to Z-Wave Plus Motion/Temp Sensor"
+			if(logEnable) log.debug "Changing device type to Z-Wave Plus Motion/Temp Sensor"
 			setDeviceType("Z-Wave Plus Motion/Temp Sensor")
 			break
 	}
