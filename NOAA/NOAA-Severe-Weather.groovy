@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.3.0 - fixed google mini initialization errors - kudos to Cobra for coding guidance
  *   2.2.9 - fixed some confusing wording, customized look and feel to match NOAA color theme, added ability to set log debug disable timeout, added donations link
  *   2.2.8 - added customization for introduction to alert for TTS devices to cleanup PushOver and NOAA Tile notifications, catch potential API service availability issues
  *   2.2.7 - added weather.gov URI that is built based on user options in app
@@ -81,7 +82,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.2.9"}
+def version(){"v2.3.0"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -127,7 +128,7 @@ def mainPage() {
 				
 				// Master Volume settings
 				input "speakervolume", "number", title: "Notification Volume Level:", description: "0-100%", required: false, defaultValue: "75", submitOnChange: true
-				input "speakervolRestore", "number", title: "Restore Volume Level:", description: "0-100", required: false, submitOnChange: true
+				input "speakervolRestore", "number", title: "Restore Volume Level:", description: "0-100", required: false, defaultValue: "60", submitOnChange: true
 				
 				// Switch to set when alert active
 				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false, submitOnChange: true)
@@ -527,6 +528,8 @@ def talkNow(alertmsg) {
 			if (logEnable) log.debug "Sending alert to Google and Speech Speaker(s)"
 			try {
 				if (logEnable) log.debug "Setting Speech Speaker to volume level: ${speakervolume}"
+                speechspeaker.initialize() 
+                pauseExecution(1000)
 				speechspeaker.setVolume(speakervolume)
 				pauseExecution(1000)
 				speechspeaker.speak(alertmsg)
