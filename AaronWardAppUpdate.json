@@ -55,14 +55,14 @@
   "Example2UpdateNote": "NA",
   
   "NOAAWeatherAlertsType": "App",
-  "NOAAWeatherAlertsParentVersion": "2.2.9",
+  "NOAAWeatherAlertsParentVersion": "2.3.0",
   "NOAAWeatherAlertsChildVersion": "NA",
   "NOAAWeatherAlertsDriverVersion": "1.2.0",
   "NOAAWeatherAlertsParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
   "NOAAWeatherAlertsChildRawCode": "NA",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": "2.2.9 - fixed some confusing wording, customized look and feel to match NOAA color theme, added ability to set log debug diable timeout, added donations link",
+  "NOAAWeatherAlertsUpdateNote": "2.3.0 - fixed google mini initialization errors - kudos to Cobra for coding guidance",
 
   "YouGotMailType": "App",
   "YouGotMailParentVersion": "1.0.3",
