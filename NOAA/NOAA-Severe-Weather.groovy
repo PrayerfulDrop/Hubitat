@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.3.1 - fixed google mini volume issue and test repeat scenario - kudos to razorwing for troubleshooting
  *   2.3.0 - fixed google mini initialization errors - kudos to Cobra for coding guidance
  *   2.2.9 - fixed some confusing wording, customized look and feel to match NOAA color theme, added ability to set log debug disable timeout, added donations link
  *   2.2.8 - added customization for introduction to alert for TTS devices to cleanup PushOver and NOAA Tile notifications, catch potential API service availability issues
@@ -82,7 +83,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.3.0"}
+def version(){"v2.3.1"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -237,12 +238,12 @@ def mainPage() {
 				if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
 					if (logEnable) log.debug "Initiating a test alert."
-					testalertmsg=buildTestAlert()
-					alertNow(testalertmsg)
+					state.testalertmsg=buildTestAlert()
+					alertNow(state.testalertmsg)
 					if(repeatYes && state.alertRepeat) {
 					if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
 						runIn((60*repeatMinutes.toInteger()),repeattestAlert)
-						state.alertrepeat = false
+					    state.alertrepeat = false
 					}
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
@@ -529,9 +530,9 @@ def talkNow(alertmsg) {
 			try {
 				if (logEnable) log.debug "Setting Speech Speaker to volume level: ${speakervolume}"
                 speechspeaker.initialize() 
-                pauseExecution(1000)
+                pauseExecution(2000)
 				speechspeaker.setVolume(speakervolume)
-				pauseExecution(1000)
+				pauseExecution(2000)
 				speechspeaker.speak(alertmsg)
 				if (speakervolRestore) {
 					pauseExecution(atomicState.speechDuration2)
