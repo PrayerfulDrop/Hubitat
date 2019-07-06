@@ -1,7 +1,7 @@
 /**
  *  ****************  Generic MQTT Driver  ****************
  *
- *  importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/MQTT/SaltTank-Sonic-MQTT/Generic%20MQTT%20Driver.groovy"
+ *  importUrl: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/Generic%20MQTT%20Client.groovy
  *
  *  Design Usage:
  *  This driver is a generic MQTT driver to pull and post to a MQTT broker.
@@ -30,7 +30,7 @@
  */
 
 metadata {
-    definition (name: "Generic MQTT Driver", namespace: "aaronward", author: "Aaron Ward", importURL: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/MQTT/SaltTank-Sonic-MQTT/Generic%20MQTT%20Driver.groovy") {
+    definition (name: "Generic MQTT Driver", namespace: "aaronward", author: "Aaron Ward", importURL: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/Generic%20MQTT%20Client.groovy") {
         capability "Initialize"
         command "publishMsg", ["String"]
 		attribute "delay", "number"
