@@ -8,11 +8,7 @@
  *
  *  Copyright 2019 Aaron Ward
  *  
- *  This driver is free and you may do as you likr with it.  I give huge KUDDOS to bptworld for supplying v1.0.0 of this driver
- *
- *  Remember...I am not a programmer, everything I do takes a lot of time and research (then MORE research)!
- *  Donations are never necessary but always appreciated.  Donations to support development efforts are accepted via: 
- *
+ *  This driver is free and you may do as you likr with it.  
  *
  * ------------------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
