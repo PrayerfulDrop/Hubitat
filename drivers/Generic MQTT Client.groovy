@@ -70,7 +70,6 @@ def parse(String description) {
 
 def publishMsg(String s) {
 	if (logEnable) log.debug "Sent this: ${s} to ${settings?.topicPub}"
-    //interfaces.mqtt.publish(device, settings?.topicPub, s)
     interfaces.mqtt.publish(settings?.topicPub, s)
 }
 
@@ -90,13 +89,11 @@ def initialize() {
 	try {
         //open connection
 		mqttbroker = "tcp://" + settings?.MQTTBroker + ":1883"
-        //interfaces.mqtt.connect(device, mqttbroker, "hubitat", settings?.username,settings?.password)
         interfaces.mqtt.connect(mqttbroker, "hubitat", settings?.username,settings?.password)
         //give it a chance to start
         pauseExecution(1000)
         log.info "Connection established"
 		if (logEnable) log.debug "Subscribed to: ${settings?.topicSub}"
-        //interfaces.mqtt.subscribe(device, settings?.topicSub)
         interfaces.mqtt.subscribe(settings?.topicSub)
     } catch(e) {
         if (logEnable) log.debug "Initialize error: ${e.message}"
