@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.3.2 - fixed issues with Alexa TTS Speech devices not working
  *   2.3.1 - fixed google mini volume issue and test repeat scenario - kudos to razorwing for troubleshooting
  *   2.3.0 - fixed google mini initialization errors - kudos to Cobra for coding guidance
  *   2.2.9 - fixed some confusing wording, customized look and feel to match NOAA color theme, added ability to set log debug disable timeout, added donations link
@@ -83,7 +84,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.3.1"}
+def version(){"v2.3.2"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -510,37 +511,46 @@ def talkNow(alertmsg) {
 		atomicState.speechDuration2 = speechDuration * 1000
 	
   		if (musicmode){ 
-				if (logEnable) log.debug "Sending alert to Music Speaker(s)."
 				try {
 					musicspeaker.playTextAndRestore(alertmsg, speakervolume)
+                    if (logEnable) log.debug "Sending alert to Music Speaker(s)."
 				}
-				catch (any) {log.warn "Music Player device(s) has not been selected."}
+				catch (any) {log.warn "Music Player device(s) has not been selected or not supported."}
   		}   
 	
 		if(echoSpeaks2) {
-			if (logEnable) log.debug "Sending alert to Echo Speaks device(s)."
 			try {
 				echospeaker.setVolumeSpeakAndRestore(speakervolume, alertmsg)
+                if (logEnable) log.debug "Sending alert to Echo Speaks device(s)."
 				}
-			catch (any) {log.warn "Echo Speaks device(s) has not been selected."}
+			catch (any) {log.warn "Echo Speaks device(s) has not been selected or are not supported."}
 		}
 	
 		if (speechmode){ 
-			if (logEnable) log.debug "Sending alert to Google and Speech Speaker(s)"
 			try {
-				if (logEnable) log.debug "Setting Speech Speaker to volume level: ${speakervolume}"
                 speechspeaker.initialize() 
-                pauseExecution(2000)
-				speechspeaker.setVolume(speakervolume)
+                if (logEnable) log.debug "Initializing Speech Speaker"
+                pauseExecution(2500)
+            }
+            catch (any) { if(logEnable) log.debug "Speech device doesn't support initialize command" }
+            try { 
+                speechspeaker.setVolume(speakervolume)
+                if (logEnable) log.debug "Setting Speech Speaker to volume level: ${speakervolume}"
 				pauseExecution(2000)
-				speechspeaker.speak(alertmsg)
+            }
+            catch (any) { if (logEnable) log.debug "Speech speaker doesn't support volume level command" }
+                
+			if (logEnable) log.debug "Sending alert to Google and Speech Speaker(s)"
+            speechspeaker.speak(alertmsg)
+            
+            try {
 				if (speakervolRestore) {
 					pauseExecution(atomicState.speechDuration2)
-					if (logEnable) log.debug "Restoring Speech Speaker to volume level: ${speakervolRestore}"
 					speechspeaker.setVolume(speakervolRestore)	
-				}
-			}
-			catch (any) {log.warn "Speech device(s) has not been selected."}
+                    if (logEnable) log.debug "Restoring Speech Speaker to volume level: ${speakervolRestore}"
+                }
+            }
+                catch (any) { if (logEnable) log.debug "Speech speaker doesn't support restore volume command" }
 		}
 	
 }
