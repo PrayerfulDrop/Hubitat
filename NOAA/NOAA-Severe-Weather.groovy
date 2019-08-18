@@ -296,7 +296,6 @@ def updated() {
 
 def initialize() {
 	runIn(5, refresh)
-	state.alertRepeat = true
 	}
 
 def installCheck(){         
@@ -586,7 +585,6 @@ def tileNow(alertmsg, resetAlert) {
 def repeatAlert() {
 	if (logEnable) log.debug "Repeating alert."
 	alertNow(state.alertmsg)
-	state.alertRepeat = true
 }
 
 
