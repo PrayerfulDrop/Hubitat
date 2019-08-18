@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.3.3 - fixed repeat issues, fixed fast TTS speak issues due to capitalization of alerts
  *   2.3.2 - fixed issues with Alexa TTS Speech devices not working
  *   2.3.1 - fixed google mini volume issue and test repeat scenario - kudos to razorwing for troubleshooting
  *   2.3.0 - fixed google mini initialization errors - kudos to Cobra for coding guidance
@@ -84,7 +85,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.3.2"}
+def version(){"v2.3.3"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -239,13 +240,8 @@ def mainPage() {
 				if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
 					if (logEnable) log.debug "Initiating a test alert."
-					state.testalertmsg=buildTestAlert()
-					alertNow(state.testalertmsg)
-					if(repeatYes && state.alertRepeat) {
-					if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
-						runIn((60*repeatMinutes.toInteger()),repeattestAlert)
-					    state.alertrepeat = false
-					}
+					state.alertmsg=buildTestAlert()
+					alertNow(state.alertmsg)
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true                
@@ -255,7 +251,7 @@ def mainPage() {
 					getAlertMsg()
 					def date = new Date()
 					sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
-					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
+					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${state.alertmsg}<br><br><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
 					else { paragraph "No JSON feed currently available for your coordinates.  Either there are no weather alerts in your area or you need to change options above to acquire desired results."}
 				}
 				paragraph getFormat("line")
@@ -350,12 +346,6 @@ def refresh() {
 				alertNow(state.alertmsg)
 				// set the pastalert to the current alertsent timestamp
 				state.pastalert = state.alertsent
-				// determine if alert needs to be repeated after # of minutes
-				if(repeatYes==true && state.alertRepeat==true) {
-				if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
-					runIn((60*repeatMinutes.toInteger()),repeatAlert)
-					state.alertrepeat = false
-				}
 				}
 			} 
 	}
@@ -478,6 +468,8 @@ def buildAlertMsg() {
 						catch (any) {}
 					try {alertmsg = alertmsg.replaceAll("\n"," ") }
 						catch (any) {}
+                    try {alertmsg = alertmsg.trim().replaceAll("[ ]{2,}", ", ") }
+                        catch (any) {}
 					state.alertmsg = alertmsg
 					if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
 				} 
@@ -512,7 +504,7 @@ def talkNow(alertmsg) {
 	
   		if (musicmode){ 
 				try {
-					musicspeaker.playTextAndRestore(alertmsg, speakervolume)
+					musicspeaker.playTextAndRestore(alertmsg.toLowerCase(), speakervolume)
                     if (logEnable) log.debug "Sending alert to Music Speaker(s)."
 				}
 				catch (any) {log.warn "Music Player device(s) has not been selected or not supported."}
@@ -520,7 +512,7 @@ def talkNow(alertmsg) {
 	
 		if(echoSpeaks2) {
 			try {
-				echospeaker.setVolumeSpeakAndRestore(speakervolume, alertmsg)
+				echospeaker.setVolumeSpeakAndRestore(speakervolume, alertmsg.toLowerCase())
                 if (logEnable) log.debug "Sending alert to Echo Speaks device(s)."
 				}
 			catch (any) {log.warn "Echo Speaks device(s) has not been selected or are not supported."}
@@ -541,7 +533,7 @@ def talkNow(alertmsg) {
             catch (any) { if (logEnable) log.debug "Speech speaker doesn't support volume level command" }
                 
 			if (logEnable) log.debug "Sending alert to Google and Speech Speaker(s)"
-            speechspeaker.speak(alertmsg)
+            speechspeaker.speak(alertmsg.toLowerCase())
             
             try {
 				if (speakervolRestore) {
@@ -597,15 +589,15 @@ def repeatAlert() {
 	state.alertRepeat = true
 }
 
-def repeattestAlert() {
-	if (logEnable) log.debug "Repeating alert."
-	alertNow(state.testalertmsg)
-	state.alertRepeat = true
-}
 
 def alertNow(alertmsg){
 		pushNow(alertmsg)
 		if(alertSwitch) { alertSwitch.on() }
-		tileNow(alertmsg, "true") 
 		talkNow(alertmsg)
+		// determine if alert needs to be repeated after # of minutes
+		if(repeatYes==true) {
+			if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
+		    runIn((60*repeatMinutes.toInteger()),repeatAlert)
+		}    
+		tileNow(alertmsg, "true") 
 }
