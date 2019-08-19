@@ -599,7 +599,7 @@ def alertNow(alertmsg){
 		if(alertSwitch) { alertSwitch.on() }
 		talkNow(alertmsg)
 		// determine if alert needs to be repeated after # of minutes
-		if(repeatYes==true && state.alertRepeat==true) {
+		if(repeatYes == true && state.repeatAlert == true) {
 			if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
 		    runIn((60*repeatMinutes.toInteger()),repeatAlert)
 		}    
