@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.3.5 - removed repeat functionality option until it can be rewritten
  *   2.3.4 - fixed bug with repeats (again)
  *   2.3.3 - fixed repeat issues, fixed fast TTS speak issues due to capitalization of alerts
  *   2.3.2 - fixed issues with Alexa TTS Speech devices not working
@@ -86,7 +87,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.3.4"}
+def version(){"v2.3.5"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -146,8 +147,8 @@ def mainPage() {
 						"severe": "Severe", 
 						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"
 				input name: "whatPoll", type: "enum", title: "Poll Frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
-				input "repeatYes", "bool", title: "Repeat Alert after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
-				if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
+				//input "repeatYes", "bool", title: "Repeat Alert after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
+				//if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
 				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
 				if(useCustomCords) {
 					paragraph "Below coordinates are acquired from your Hubitat Hub.  Enter your custom coordinates:"
@@ -599,9 +600,9 @@ def alertNow(alertmsg){
 		if(alertSwitch) { alertSwitch.on() }
 		talkNow(alertmsg)
 		// determine if alert needs to be repeated after # of minutes
-		if(repeatYes == true && state.repeatAlert == true) {
-			if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
-		    runIn((60*repeatMinutes.toInteger()),repeatAlert)
-		}    
+//		if(repeatYes == true && state.repeatAlert == true) {
+//			if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
+//		    runIn((60*repeatMinutes.toInteger()),repeatAlert)
+//		}    
 		tileNow(alertmsg, "true") 
 }
