@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.3.4 - fixed bug with repeats (again)
  *   2.3.3 - fixed repeat issues, fixed fast TTS speak issues due to capitalization of alerts
  *   2.3.2 - fixed issues with Alexa TTS Speech devices not working
  *   2.3.1 - fixed google mini volume issue and test repeat scenario - kudos to razorwing for troubleshooting
@@ -85,7 +86,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.3.3"}
+def version(){"v2.3.4"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -292,6 +293,7 @@ def updated() {
 			runEvery5Minutes(refresh)
 			break
 	}
+    state.repeatAlert = false
 }
 
 def initialize() {
@@ -585,6 +587,7 @@ def tileNow(alertmsg, resetAlert) {
 def repeatAlert() {
 	if (logEnable) log.debug "Repeating alert."
 	alertNow(state.alertmsg)
+    state.repeatAlert = false
 }
 
 
@@ -593,7 +596,7 @@ def alertNow(alertmsg){
 		if(alertSwitch) { alertSwitch.on() }
 		talkNow(alertmsg)
 		// determine if alert needs to be repeated after # of minutes
-		if(repeatYes==true) {
+		if(repeatYes==true && state.alertRepeat==true) {
 			if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
 		    runIn((60*repeatMinutes.toInteger()),repeatAlert)
 		}    
