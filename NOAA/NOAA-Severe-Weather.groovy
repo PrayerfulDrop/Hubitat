@@ -242,6 +242,7 @@ def mainPage() {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
 					if (logEnable) log.debug "Initiating a test alert."
 					state.alertmsg=buildTestAlert()
+                    if(repeatYes) state.repeatAlert=true
 					alertNow(state.alertmsg)
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
@@ -344,7 +345,9 @@ def refresh() {
 				// play TTS and send PushOver
 				buildAlertMsg()
 				log.info "Sending alert: ${state.alertmsg}"
+                if(repeatYes==true) state.repeatAlert = true
 				alertNow(state.alertmsg)
+                
 				// set the pastalert to the current alertsent timestamp
 				state.pastalert = state.alertsent
 				}
