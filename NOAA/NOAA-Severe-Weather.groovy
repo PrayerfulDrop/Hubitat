@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.3.6 - fixed repeat capabilities (thx to Cobra for guidance) and added # of repeats as new functionality, cleaned up more code, added pushover conditions based on times repeating and character count
  *   2.3.5 - removed repeat functionality option until it can be rewritten
  *   2.3.4 - fixed bug with repeats (again)
  *   2.3.3 - fixed repeat issues, fixed fast TTS speak issues due to capitalization of alerts
@@ -87,7 +88,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.3.5"}
+def version(){"v2.3.6"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -147,8 +148,10 @@ def mainPage() {
 						"severe": "Severe", 
 						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"
 				input name: "whatPoll", type: "enum", title: "Poll Frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
-				//input "repeatYes", "bool", title: "Repeat Alert after certain amount of minutes?", require: false, defaultValue: false, submitOnChange: true
-				//if(repeatYes){ input name:"repeatMinutes", type: "text", title: "Number of minutes before repeating the alert?", require: false, defaultValue: "30" }
+				input "repeatYes", "bool", title: "Repeat Alert?", require: false, defaultValue: false, submitOnChange: true
+				if(repeatYes) {
+                    input name:"repeatTimes", type: "text", title: "Number of times to repeat the alert?", require: false, defaultValue: "1"
+                    input name:"repeatMinutes", type: "text", title: "Number of minutes between each repeating alert?", require: false, defaultValue: "30" }
 				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
 				if(useCustomCords) {
 					paragraph "Below coordinates are acquired from your Hubitat Hub.  Enter your custom coordinates:"
@@ -243,8 +246,11 @@ def mainPage() {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
 					if (logEnable) log.debug "Initiating a test alert."
 					state.alertmsg=buildTestAlert()
-                    if(repeatYes) state.repeatAlert=true
-					alertNow(state.alertmsg)
+                    alertNow(state.alertmsg, false)
+                    if(repeatYes==true) {
+                        state.num=repeatTimes.toInteger()
+                        repeatNow()
+                    }
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true                
@@ -295,10 +301,13 @@ def updated() {
 			runEvery5Minutes(refresh)
 			break
 	}
-    state.repeatAlert = false
 }
 
 def initialize() {
+    state.num = repeatTimes.toInteger()
+    state.frequency = repeatMinutes.toInteger() * 60
+    state.count = 1
+    state.repeat = false
 	runIn(5, refresh)
 	}
 
@@ -344,13 +353,15 @@ def refresh() {
 			} else {
 				if(state.alertsent!=null){
 				// play TTS and send PushOver
-				buildAlertMsg()
-				log.info "Sending alert: ${state.alertmsg}"
-                if(repeatYes==true) state.repeatAlert = true
-				alertNow(state.alertmsg)
-                
-				// set the pastalert to the current alertsent timestamp
-				state.pastalert = state.alertsent
+				    buildAlertMsg()
+				    log.info "Sending alert: ${state.alertmsg}"
+                    alertNow(state.alertmsg, false)
+                    if(repeatYes==true) {
+                        state.num=repeatTimes.toInteger()
+                        repeatNow()
+                    }
+				    // set the pastalert to the current alertsent timestamp
+				    state.pastalert = state.alertsent
 				}
 			} 
 	}
@@ -552,21 +563,32 @@ def talkNow(alertmsg) {
 	
 }
 
-def pushNow(alertmsg) {
+def pushNow(alertmsg, repeatCheck) {
 	if (pushovertts) {
-	if (logEnable) log.debug "Sending Pushover message."
-	def m = alertmsg =~ /(.|[\r\n]){1,1023}\W/
-	def n = alertmsg =~ /(.|[\r\n]){1,1023}\W/
-	def index = 0
-	def index2 = 1
-		while (m.find()) {
-		   index = index +1
-		}
+	    if (logEnable) log.debug "Sending Pushover message."
+        if(repeatCheck) {
+            if(repeatTimes.toInteger()>1){ 
+                alertmsg = "[Alert Repeat ${state.count}/${repeatTimes}] " + alertmsg
+            } else {
+                alertmsg = "[Alert Repeat] " + alertmsg
+            }
+        }
+	    def m = alertmsg =~ /(.|[\r\n]){1,1023}\W/
+	    def n = alertmsg =~ /(.|[\r\n]){1,1023}\W/
+	    def index = 0
+	    def index2 = 1
+	   	while (m.find()) {
+	   	   index = index + 1
+	    }
 
 		while(n.find()) {
 			fullMsg1 = n.group()
-			pushoverdevice.deviceNotification("(${index2}/${index}) ${fullMsg1}")
-			index2 = index2 +1
+            if(index>1) {
+			    pushoverdevice.deviceNotification("(${index2}/${index}) ${fullMsg1}")
+            } else {
+                pushoverdevice.deviceNotification("${fullMsg1}")
+            }
+			index2 = index2 + 1
 			pauseExecution(1000)
         } 
 	}
@@ -588,21 +610,27 @@ def tileNow(alertmsg, resetAlert) {
 	}
 }
 
-def repeatAlert() {
-	if (logEnable) log.debug "Repeating alert."
-	alertNow(state.alertmsg)
-    state.repeatAlert = false
+
+def repeatNow(){
+    if(logEnable) log.debug "Repeating alert in ${repeatMinutes} minutes.  This is ${state.count}/${repeatTimes} repeated alerts."
+    if(state.repeat) {
+        alertNow(state.alertmsg, true)
+        state.count = state.count + 1
+    }
+    state.repeat = true
+	if(state.num > 0){
+	    state.num = state.num - 1
+        runIn(state.frequency,repeatNow)
+    } else { 
+        if(logEnable) log.debug "Finished repeating alerts."
+        state.count = 1
+        state.repeat = false 
+    }
 }
 
-
-def alertNow(alertmsg){
-		pushNow(alertmsg)
+def alertNow(alertmsg, repeatCheck){
+		pushNow(alertmsg, repeatCheck)
 		if(alertSwitch) { alertSwitch.on() }
-		talkNow(alertmsg)
-		// determine if alert needs to be repeated after # of minutes
-//		if(repeatYes == true && state.repeatAlert == true) {
-//			if (logEnable) log.debug "Scheduling a repeat alert in ${repeatMinutes} minutes."
-//		    runIn((60*repeatMinutes.toInteger()),repeatAlert)
-//		}    
+		talkNow(alertmsg)  
 		tileNow(alertmsg, "true") 
 }
