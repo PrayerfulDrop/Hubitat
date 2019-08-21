@@ -30,7 +30,8 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   2.3.6 - fixed repeat capabilities (thx to Cobra for guidance) and added # of repeats as new functionality, cleaned up more code, added pushover conditions based on times repeating and character count
+ *   2.3.7 - fixed initializing errors being reported for default state when running test in initial setup without hitting done
+ *   2.3.6 - fixed repeat capabilities (thx to Cobra for guidance) and added # of repeats as new functionality
  *   2.3.5 - removed repeat functionality option until it can be rewritten
  *   2.3.4 - fixed bug with repeats (again)
  *   2.3.3 - fixed repeat issues, fixed fast TTS speak issues due to capitalization of alerts
@@ -88,7 +89,7 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.3.6"}
+def version(){"v2.3.7"}
 
 definition(
     name:"NOAA Weather Alerts",
@@ -150,8 +151,8 @@ def mainPage() {
 				input name: "whatPoll", type: "enum", title: "Poll Frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
 				input "repeatYes", "bool", title: "Repeat Alert?", require: false, defaultValue: false, submitOnChange: true
 				if(repeatYes) {
-                    input name:"repeatTimes", type: "text", title: "Number of times to repeat the alert?", require: false, defaultValue: "1"
-                    input name:"repeatMinutes", type: "text", title: "Number of minutes between each repeating alert?", require: false, defaultValue: "30" }
+                    input name:"repeatTimes", type: "text", title: "Number of times to repeat the alert?", require: false, defaultValue: "1", submitOnChange:true
+                    input name:"repeatMinutes", type: "text", title: "Number of minutes between each repeating alert?", require: false, defaultValue: "30", submitOnChange:true }
 				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
 				if(useCustomCords) {
 					paragraph "Below coordinates are acquired from your Hubitat Hub.  Enter your custom coordinates:"
@@ -304,12 +305,16 @@ def updated() {
 }
 
 def initialize() {
+    checkState()
+	runIn(5, refresh)
+	}
+
+def checkState() {
     state.num = repeatTimes.toInteger()
     state.frequency = repeatMinutes.toInteger() * 60
     state.count = 1
     state.repeat = false
-	runIn(5, refresh)
-	}
+}
 
 def installCheck(){         
     state.appInstalled = app.getInstallationState() 
@@ -612,7 +617,8 @@ def tileNow(alertmsg, resetAlert) {
 
 
 def repeatNow(){
-    if(logEnable) log.debug "Repeating alert in ${repeatMinutes} minutes.  This is ${state.count}/${repeatTimes} repeated alerts."
+    if(state.frequency==null) { checkState() }
+    if(logEnable) log.debug "Repeating alert in ${repeatMinutes} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s)."
     if(state.repeat) {
         alertNow(state.alertmsg, true)
         state.count = state.count + 1
