@@ -55,14 +55,14 @@
   "Example2UpdateNote": "NA",
   
   "NOAAWeatherAlertsType": "App",
-  "NOAAWeatherAlertsParentVersion": "2.3.6",
+  "NOAAWeatherAlertsParentVersion": "2.3.7",
   "NOAAWeatherAlertsChildVersion": "NA",
   "NOAAWeatherAlertsDriverVersion": "1.2.0",
   "NOAAWeatherAlertsParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
   "NOAAWeatherAlertsChildRawCode": "NA",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": "2.3.6 - fixed repeat capabilities (thx to Cobra for guidance) and added # of repeats as new functionality, cleaned up more code, added pushover conditions based on times repeating and character count",
+  "NOAAWeatherAlertsUpdateNote": "2.3.7 - fixed initializing errors being reported for default state when running test in initial setup without hitting done",
 
   "YouGotMailType": "App",
   "YouGotMailParentVersion": "1.0.3",
