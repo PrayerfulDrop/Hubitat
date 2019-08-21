@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.3.8 - added repeat intros to TTS notifications to distinguish a new notification over an existing, added AppWatchdogv2 support
  *   2.3.7 - fixed initializing errors being reported for default state when running test in initial setup without hitting done
  *   2.3.6 - fixed repeat capabilities (thx to Cobra for guidance) and added # of repeats as new functionality
  *   2.3.5 - removed repeat functionality option until it can be rewritten
@@ -89,8 +90,6 @@ import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
 	
-def version(){"v2.3.7"}
-
 definition(
     name:"NOAA Weather Alerts",
     namespace: "aaronward",
@@ -241,7 +240,22 @@ def mainPage() {
 			          input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict notfications:", required: false, multiple: false, defaultValue: null, submitOnChange: true
 				}
 			}
-			section(getFormat("header-green", " Logging and Testing")) {
+        section(getFormat("header-green", " Logging and Testing")) { }
+        
+                 // ** App Watchdog Code **
+            section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
+				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
+                paragraph "<b>Requirements</b><br> - Must install the app 'App Watchdog'. Please visit <a href='https://community.hubitat.com/t/release-app-watchdog/9952' target='_blank'>this page</a> for more information.<br> - When you are ready to go, turn on the switch below<br> - Then select 'App Watchdog Data' from the dropdown.<br> - That's it, you will now be notified automaticaly of updates."
+                input(name: "sendToAWSwitch", type: "bool", defaultValue: "false", title: "Use App Watchdog to track this apps version info?", description: "Update App Watchdog", submitOnChange: "true")
+			}
+            if(sendToAWSwitch) {
+                section(" App Watchdog 2") {    
+                    if(sendToAWSwitch) input(name: "awDevice", type: "capability.actuator", title: "Please select 'App Watchdog Data' from the dropdown", submitOnChange: true, required: true, multiple: false)
+			        if(sendToAWSwitch && awDevice) setVersion()
+                }
+            }
+            // ** End App Watchdog Code **
+        section() {
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
 				if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
@@ -254,7 +268,8 @@ def mainPage() {
                     }
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
-                if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true                
+                if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true 
+                               
 				input "getAPI", "bool", title: "Test above configuration and display current weather.gov API response?", required: false, defaultValue: false, submitOnChange: true
 				if(getAPI) {
 					app?.updateSetting("getAPI",[value:"false",type:"bool"])
@@ -265,11 +280,28 @@ def mainPage() {
 					else { paragraph "No JSON feed currently available for your coordinates.  Either there are no weather alerts in your area or you need to change options above to acquire desired results."}
 				}
 				paragraph getFormat("line")
-				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
+				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>${state.version}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
 			}       
 		}
 	}
 //}
+
+def setVersion(){
+    // *  V2.0.0 - 08/18/19 - Now App Watchdog compliant
+	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
+    // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
+    state.appName = "NOAAWeatherAlertsParentVersion"
+	state.version = "v2.3.8"
+    
+    try {
+        if(sendToAWSwitch && awDevice) {
+            awInfo = "${state.appName}:${state.version}"
+		    awDevice.sendAWinfoMap(awInfo)
+            if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
+            schedule("0 0 3 ? * * *", setVersion)
+	    }
+    } catch (e) { log.error "In setVersion - ${e}" }
+}
 
 def installed() {
     if (logEnable) log.debug "Installed with settings: ${settings}"
@@ -518,8 +550,12 @@ def buildTestAlert() {
 					return alertmsg
 }
 
-def talkNow(alertmsg) {								
-	if(useAlertIntro) alertmsg = "${AlertIntro}" + alertmsg
+def talkNow(alertmsg) {			
+        if(repeatCheck) {
+            if(useAlertIntro) { alertmsg = "Repeating previous alert,, ${AlertIntro}" + alertmsg
+                              } else { alertmsg = "Repeating previous alert,," + alertmsg }
+        } else { if(useAlertIntro) alertmsg = "${AlertIntro}" + alertmsg }
+        
 		speechDuration = Math.max(Math.round(alertmsg.length()/12),2)+3		
 		atomicState.speechDuration2 = speechDuration * 1000
 	
