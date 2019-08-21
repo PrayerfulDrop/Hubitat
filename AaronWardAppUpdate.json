@@ -1,6 +1,7 @@
 {
   "GitHubAuthor": "Aaron Ward",
   "GitHubMainURL": "https://github.com/PrayerfulDrop/Hubitat",
+  "GitHubAppCount": "20",
   "App01": "NOAA Weather Alerts",
   "App02": "You Got Mail",
   "App03": "Generic MQTT",
