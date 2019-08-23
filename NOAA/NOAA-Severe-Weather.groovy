@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.3.9 - fixed TTS repeat intro for talkNow routine
  *   2.3.8 - added repeat intros to TTS notifications to distinguish a new notification over an existing, added AppWatchdogv2 support
  *   2.3.7 - fixed initializing errors being reported for default state when running test in initial setup without hitting done
  *   2.3.6 - fixed repeat capabilities (thx to Cobra for guidance) and added # of repeats as new functionality
@@ -85,6 +86,23 @@
  *   1.0.1 - misc bug fixes
  *   1.0.0 - initial code concept
 **/
+
+def setVersion(){
+    // *  V2.0.0 - 08/18/19 - Now App Watchdog compliant
+	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
+    // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
+    state.appName = "NOAAWeatherAlertsParentVersion"
+	state.version = "2.3.9"
+    
+    try {
+        if(sendToAWSwitch && awDevice) {
+            awInfo = "${state.appName}:${state.version}"
+		    awDevice.sendAWinfoMap(awInfo)
+            if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
+            schedule("0 0 3 ? * * *", setVersion)
+	    }
+    } catch (e) { log.error "In setVersion - ${e}" }
+}
 
 import groovy.json.*
 import java.util.regex.*
@@ -284,24 +302,6 @@ def mainPage() {
 			}       
 		}
 	}
-//}
-
-def setVersion(){
-    // *  V2.0.0 - 08/18/19 - Now App Watchdog compliant
-	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
-    // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
-    state.appName = "NOAAWeatherAlertsParentVersion"
-	state.version = "2.3.8"
-    
-    try {
-        if(sendToAWSwitch && awDevice) {
-            awInfo = "${state.appName}:${state.version}"
-		    awDevice.sendAWinfoMap(awInfo)
-            if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
-            schedule("0 0 3 ? * * *", setVersion)
-	    }
-    } catch (e) { log.error "In setVersion - ${e}" }
-}
 
 def installed() {
     if (logEnable) log.debug "Installed with settings: ${settings}"
@@ -550,7 +550,7 @@ def buildTestAlert() {
 					return alertmsg
 }
 
-def talkNow(alertmsg) {			
+def talkNow(alertmsg, repeatCheck) {			
         if(repeatCheck) {
             if(useAlertIntro) { alertmsg = "Repeating previous alert,, ${AlertIntro}" + alertmsg
                               } else { alertmsg = "Repeating previous alert,," + alertmsg }
@@ -673,6 +673,6 @@ def repeatNow(){
 def alertNow(alertmsg, repeatCheck){
 		pushNow(alertmsg, repeatCheck)
 		if(alertSwitch) { alertSwitch.on() }
-		talkNow(alertmsg)  
+		talkNow(alertmsg, repeatCheck)  
 		tileNow(alertmsg, "true") 
 }
