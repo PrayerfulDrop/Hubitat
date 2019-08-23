@@ -177,7 +177,7 @@ def mainPage() {
 					input name:"customlongitude", type:"text", title: "Longitude coordinate:", require: false, defaultValue: "${location.longitude}", submitOnChange: true
 				}
 				input name:"useAlertIntro", type: "bool", title: "Use a pre-notification message to TTS device(s)?", require: false, defaultValue: false, submitOnChange: true
-				if(useAlertIntro) input name:"AlertIntro", type: "text", title: "Alert pre-notification message:", require: false, defaultValue:"Attention, Attention."              
+				if(useAlertIntro) input name:"AlertIntro", type: "text", title: "Alert pre-notification message:", require: false, defaultValue:"Attention, Attention"              
                 input name: "alertCustomMsg", type: "text", title: "Custom Alert Message (use customization instructions):", require: false, defaultValue: "{alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.", submitOnChange: true
             }	
         	   section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
@@ -554,7 +554,7 @@ def talkNow(alertmsg, repeatCheck) {
         if(repeatCheck) {
             if(useAlertIntro) { alertmsg = "Repeating previous alert,, ${AlertIntro}" + alertmsg
                               } else { alertmsg = "Repeating previous alert,," + alertmsg }
-        } else { if(useAlertIntro) alertmsg = "${AlertIntro}" + alertmsg }
+        } else { if(useAlertIntro) alertmsg = "${AlertIntro}, " + alertmsg }
         
 		speechDuration = Math.max(Math.round(alertmsg.length()/12),2)+3		
 		atomicState.speechDuration2 = speechDuration * 1000
