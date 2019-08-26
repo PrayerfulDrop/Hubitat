@@ -27,6 +27,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.5 - added additional AppWatchDogv2 support
  *   1.0.4 - added AppWatchDogv2 support
  *   1.0.3 - fixed logic for mailbox left open notification
  *   1.0.2 - Added notification option if mailbox was left open
@@ -37,6 +38,22 @@
 import groovy.json.*
 import java.util.regex.*
 import java.text.SimpleDateFormat
+
+def setVersion(){
+    // *  V2.0.0 - 08/18/19 - Now App Watchdog compliant
+	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
+    // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
+    state.appName = "YouGotMailParentVersion"
+	state.version = "1.0.5"
+    
+    try {
+        if(sendToAWSwitch && awDevice) {
+            awInfo = "${state.appName}:${state.version}"
+		    awDevice.sendAWinfoMap(awInfo)
+            if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
+	    }
+    } catch (e) { log.error "In setVersion - ${e}" }
+}
 	
 definition(
     name:"You Got Mail",
@@ -108,7 +125,7 @@ def mainPage() {
                 }
             }
         section(getFormat("header-green", " Logging and Testing")) { }
-        // ** App Watchdog Code **
+// ** App Watchdog Code **
             section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
 				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
                 paragraph "<b>Requirements</b><br> - Must install the app 'App Watchdog'. Please visit <a href='https://community.hubitat.com/t/release-app-watchdog/9952' target='_blank'>this page</a> for more information.<br> - When you are ready to go, turn on the switch below<br> - Then select 'App Watchdog Data' from the dropdown.<br> - That's it, you will now be notified automaticaly of updates."
@@ -142,23 +159,6 @@ def getFormat(type, myText=""){
     if(type == "title") return "<h2 style='color:#1A77C9;font-weight: bold'>${myText}</h2>"
 }
 
-def setVersion(){
-    // *  V2.0.0 - 08/18/19 - Now App Watchdog compliant
-	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
-    // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
-    state.appName = "YouGotMailParentVersion"
-	state.version = "1.0.4"
-    
-    try {
-        if(sendToAWSwitch && awDevice) {
-            awInfo = "${state.appName}:${state.version}"
-		    awDevice.sendAWinfoMap(awInfo)
-            if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
-            schedule("0 0 3 ? * * *", setVersion)
-	    }
-    } catch (e) { log.error "In setVersion - ${e}" }
-}
-
 def logsOff(){
     log.warn "Debug logging disabled."
     app?.updateSetting("logEnable",[value:"false",type:"bool"])
@@ -185,6 +185,7 @@ def initialize() {
     if(mailboxcontact.currentContact == "open") { checkopen() } 
     else { state.mailboxopen = false }
     if(logEnable) log.debug "Initalizing...checking mailbox.  Current state is: ${mailboxcontact.currentContact} and State.MailboxOpen is: ${state.mailboxopen}"    
+    if(awDevice) schedule("0 0 3 ? * * *", setVersion)
 }
 
 def reset() {   // Thank you to Cobra for guidance!
