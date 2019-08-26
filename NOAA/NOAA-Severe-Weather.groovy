@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.4.0 - added new AppWatchDog2 code enhancements
  *   2.3.9 - fixed TTS repeat intro for talkNow routine
  *   2.3.8 - added repeat intros to TTS notifications to distinguish a new notification over an existing, added AppWatchdogv2 support
  *   2.3.7 - fixed initializing errors being reported for default state when running test in initial setup without hitting done
@@ -92,14 +93,13 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "NOAAWeatherAlertsParentVersion"
-	state.version = "2.3.9"
+	state.version = "2.4.0"
     
     try {
         if(sendToAWSwitch && awDevice) {
             awInfo = "${state.appName}:${state.version}"
 		    awDevice.sendAWinfoMap(awInfo)
             if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
-            schedule("0 0 3 ? * * *", setVersion)
 	    }
     } catch (e) { log.error "In setVersion - ${e}" }
 }
@@ -259,8 +259,7 @@ def mainPage() {
 				}
 			}
         section(getFormat("header-green", " Logging and Testing")) { }
-        
-                 // ** App Watchdog Code **
+// ** App Watchdog Code **
             section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
 				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
                 paragraph "<b>Requirements</b><br> - Must install the app 'App Watchdog'. Please visit <a href='https://community.hubitat.com/t/release-app-watchdog/9952' target='_blank'>this page</a> for more information.<br> - When you are ready to go, turn on the switch below<br> - Then select 'App Watchdog Data' from the dropdown.<br> - That's it, you will now be notified automaticaly of updates."
@@ -315,7 +314,7 @@ def updated() {
         if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
         runIn((logMinutes.toInteger() * 60),logsOff)
     }
-    else { log.warn "Debug logs set to not automatically disable." }
+    else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
     initialize()
 	switch (whatPoll.toInteger()) {
 		case 1: 
@@ -339,6 +338,7 @@ def updated() {
 def initialize() {
     checkState()
 	runIn(5, refresh)
+    if(awDevice) schedule("0 0 3 ? * * *", setVersion)
 	}
 
 def checkState() {
