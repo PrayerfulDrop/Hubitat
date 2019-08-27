@@ -1,6 +1,7 @@
 {
   "GitHubAuthor": "Aaron Ward",
   "GitHubMainURL": "https://github.com/PrayerfulDrop/Hubitat",
+  "PaypalLink": "https://paypal.me/aaronmward?locale.x=en_US",
   "Apps": "NOAA Weather Alerts, You Got Mail",
    
   "NOAAWeatherAlertsType": "App",
