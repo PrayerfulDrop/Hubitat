@@ -29,6 +29,7 @@
  *
  *  Changes:
  *
+ *  1.2.1 - added AppWatchDogDriver2 support
  *  1.2.0 - rewrite of the driver app (again) for better optimization, automate disabling of logging
  *  1.1.0 - Longer alerts will scroll on dashboard for 5 minutes, fixed justification of text alignment
  *  1.0.0 - Initial release thanks to bptworld!
@@ -42,6 +43,7 @@ metadata {
 		importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy"
 		)
 		{
+        command "updateVersion"
 		command "sendNoaaTile", ["string"]
 		capability "Actuator"
 		capability "Refresh"
@@ -49,6 +51,7 @@ metadata {
 		attribute "DriverAuthor", "string"
 		attribute "DriverStatus", "string"	
     	attribute "Alerts", "string"
+        attribute "dwDriverInfo", "string"
 		}
 
 	preferences() {    	
@@ -84,8 +87,15 @@ def logsOff(){
 }
 
 def setVersion(){
-	sendEvent(name: "DriverAuthor", value: "aaronward")
-	sendEvent(name: "DriverVersion", value: "1.2.0")
+    appName = "NOAATileDriver"
+	version = "1.2.1" 
+    dwInfo = "${appName}:${version}"
+    sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
+}
+
+def updateVersion() {
+    log.info "In updateVersion"
+    setVersion()
 }
 
 def sendNoaaTile(noaaData) {
@@ -97,7 +107,8 @@ def sendNoaaTile(noaaData) {
 			if (logEnable) log.debug "Scrolling alert on dashboard for ${timeExpire} minutes."
   	  		def now = new Date()
 			long unxNow = now.getTime()
-			long unxEnd = now.getTime() + (timeExpire.toInteger()*60*1000)
+			//long unxEnd = now.getTime() + (timeExpire.toInteger()*60*1000)
+			long unxEnd = now.getTime() + (timeExpire.toInteger()*15*1000)
 			unxNow = unxNow/1000
     		unxEnd = unxEnd/1000
 			//determine how many pages will the alert is
