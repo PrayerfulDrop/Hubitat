@@ -19,6 +19,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *  1.0.1 - added AppWatchDogv2 support
  *  1.0.0 - initial code port and modifications
  */
 
@@ -31,10 +32,12 @@ metadata {
      ) {
 		
         //capability "Contact Sensor"
-        capability "Smoke Detector"
+        	capability "Smoke Detector"
 		capability "Sensor"
 		capability "Battery"
 		capability "Configuration"
+		attribute "dwDriverInfo", "string"
+		command "updateVersion"
 	}
 	preferences() {    	
             input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: false)
@@ -47,6 +50,18 @@ metadata {
 		status "clear": "command: 2001, payload: 00"
 		status "wake up": "command: 8407, payload: "
 	}
+}
+
+def setVersion(){
+    appName = "KiddieFireAlarmDriver"
+	version = "1.0.1" 
+    dwInfo = "${appName}:${version}"
+    sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
+}
+
+def updateVersion() {
+    log.info "In updateVersion"
+    setVersion()
 }
 
 def parse(String description) {
