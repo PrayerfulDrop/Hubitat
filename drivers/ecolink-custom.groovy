@@ -19,6 +19,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *  1.0.1 - added AppWatchDogv2 support
  *  1.0.0 - initial code port and modifications
  */
 
@@ -30,14 +31,27 @@ metadata {
             importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/ecolink-custom.groovy"
      ) {
 		
-        capability "Contact Sensor"
+        	capability "Contact Sensor"
 		capability "Battery"
 		capability "Configuration"
+		attribute "dwDriverInfo", "string"
+		command "updateVersion"
 	}
 	preferences() {    	
             input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: false)
     }    
 
+}
+def setVersion(){
+    appName = "ECOLinkCustomDriver"
+	version = "1.0.1" 
+    dwInfo = "${appName}:${version}"
+    sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
+}
+
+def updateVersion() {
+    log.info "In updateVersion"
+    setVersion()
 }
 
 def parse(String description) {
