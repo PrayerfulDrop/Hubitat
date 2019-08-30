@@ -25,6 +25,7 @@
  *
  *  Changes:
  *
+ *  1.0.2 - added support for AppWatchDogv2
  *  1.0.1 - added importURL and updated to new MQTT client methods
  *  1.0.0 - Initial release
  */
@@ -32,9 +33,11 @@
 metadata {
     definition (name: "Generic MQTT Driver", namespace: "aaronward", author: "Aaron Ward", importURL: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/Generic%20MQTT%20Client.groovy") {
         capability "Initialize"
-        command "publishMsg", ["String"]
-		attribute "delay", "number"
-		attribute "distance", "number"
+        command "updateVersion"
+	command "publishMsg", ["String"]
+	attribute "delay", "number"
+	attribute "distance", "number"
+	attribute "dwDriverInfo", "string"
 	   }
 
     preferences {
@@ -51,6 +54,18 @@ metadata {
 
 def installed() {
     log.info "installed..."
+}
+
+def setVersion(){
+    appName = "MQTTGenericDriver"
+	version = "1.0.2" 
+    dwInfo = "${appName}:${version}"
+    sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
+}
+
+def updateVersion() {
+    log.info "In updateVersion"
+    setVersion()
 }
 
 // Parse incoming device messages to generate events
