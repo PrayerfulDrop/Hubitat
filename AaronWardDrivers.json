@@ -1,0 +1,26 @@
+{
+  "GitHubAuthor": "Aaron Ward",
+  "GitHubMainURL": "https://github.com/PrayerfulDrop/Hubitat",
+  "PaypalLink": "https://paypal.me/aaronmward?locale.x=en_US",
+  "Drivers": "NOAA Tile Driver, MQTT Generic Driver, ECOLink Custom Driver, Kiddie Fire Alarm Driver",
+  
+  "NOAATileDriverVersion": "1.2.1",
+  "NOAATileDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
+  "NOAATileDriverDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
+  "NOAATileDriverUpdateNote": "1.2.1 - added AppWatchDogDriver2 support",
+  
+  "MQTTGenericDriverVersion": "v1.0.2",
+  "MQTTGenericDriverRawCode": "https://community.hubitat.com/t/project-mqtt-generic-driver-and-salt-tank-monitor-using-arduino/16008",
+  "MQTTGenericDriverDiscussion": "",
+  "MQTTGenericDriverUpdateNote": "1.0.2 - added support for AppWatchDogv2",
+  
+  "ECOLinkCustomDriverVersion": "1.0.1",
+  "ECOLinkCustomDriverRawCode": "https://community.hubitat.com/t/release-you-got-mail/17946/15",
+  "ECOLinkCustomDriverDiscussion": "",
+  "ECOLinkCustomDriverUpdateNote": "1.0.1 - added AppWatchDogv2 support",
+  
+  "KiddieFireAlarmDriverVersion": "1.0.1",
+  "KiddieFireAlarmDriverRawCode": "",
+  "KiddieFireAlarmDriverDiscussion": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy",
+  "KiddieFireAlarmDriverUpdateNote": "1.0.1 - added AppWatchDogv2 support",
+}
