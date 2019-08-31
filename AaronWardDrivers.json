@@ -19,8 +19,8 @@
   "ECOLinkCustomDriverDiscussion": "",
   "ECOLinkCustomDriverUpdateNote": "1.0.1 - added AppWatchDogv2 support",
   
-  "KiddieFireAlarmDriverVersion": "1.0.1",
+  "KiddieFireAlarmDriverVersion": "1.0.2",
   "KiddieFireAlarmDriverRawCode": "",
   "KiddieFireAlarmDriverDiscussion": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy",
-  "KiddieFireAlarmDriverUpdateNote": "1.0.1 - added AppWatchDogv2 support",
+  "KiddieFireAlarmDriverUpdateNote": "1.0.2 - added support for CO2 capabilities",
 }
