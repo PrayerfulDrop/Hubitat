@@ -1,5 +1,5 @@
 /**
- *  Z-Wave Door/Window Sensor as Smoke Detector (modified from original Z-Wave Door/Window Sensor)
+ *  GOControl Contact Sensor:Smoke/Carbon Monoxide Detector
  * 
  *  importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy"
  *
@@ -26,7 +26,7 @@
 
 metadata {
 	definition (
-            name: "ECOLink as Smoke or Carbon Monoxide Detector", 
+            name: "GOControl Contact Sensor:Smoke/Carbon Monoxide Detector", 
             namespace: "aaronward", 
             author: "Aaron Ward",
             importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy"
