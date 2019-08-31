@@ -26,7 +26,7 @@
 
 metadata {
 	definition (
-            name: "Z-Wave Door/Window Sensor as Smoke Detector", 
+            name: "ECOLink as Smoke or Carbon Monoxide Detector", 
             namespace: "aaronward", 
             author: "Aaron Ward",
             importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy"
