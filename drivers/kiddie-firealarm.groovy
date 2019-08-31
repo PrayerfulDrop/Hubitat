@@ -19,6 +19,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *  1.0.2 - added support for CO2 capabilities
  *  1.0.1 - added AppWatchDogv2 support
  *  1.0.0 - initial code port and modifications
  */
@@ -32,14 +33,16 @@ metadata {
      ) {
 		
         //capability "Contact Sensor"
-        	capability "Smoke Detector"
-		capability "Sensor"
-		capability "Battery"
-		capability "Configuration"
-		attribute "dwDriverInfo", "string"
-		command "updateVersion"
+            capability "Smoke Detector"
+		    capability "Sensor"
+		    capability "Battery"
+		    capability "Configuration"
+            capability "CarbonMonoxideDetector"
+		    attribute "dwDriverInfo", "string"
+		    command "updateVersion"
 	}
-	preferences() {    	
+	preferences() {    
+            input("smokedetection", "bool", title: "Use as Smoke Detector? (False = Carbon Monoxide Settings)", required: true, defaultValue: true)
             input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: false)
     }    
 
@@ -54,7 +57,7 @@ metadata {
 
 def setVersion(){
     appName = "KiddieFireAlarmDriver"
-	version = "1.0.1" 
+	version = "1.0.2" 
     dwInfo = "${appName}:${version}"
     sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
 }
@@ -123,11 +126,19 @@ def logsOff(){
 }
 
 def sensorValueEvent(value) {
-	if (value) {
-		createEvent(name: "smoke", value: "detected", descriptionText: "$device.displayName detected smoke")
-	} else {
-		createEvent(name: "smoke", value: "clear", descriptionText: "$device.displayName is clear (no smoke)")
-	}
+    if(smokedetection) {
+        if (value) {
+    		createEvent(name: "smoke", value: "detected", descriptionText: "$device.displayName detected smoke")
+    	} else {
+    		createEvent(name: "smoke", value: "clear", descriptionText: "$device.displayName is clear (no smoke)")
+    	}
+    } else {
+        if (value) {
+    		createEvent(name: "carbonMonoxide", value: "detected", descriptionText: "$device.displayName detected Carbon Monoxide")
+    	} else {
+    		createEvent(name: "carbonMonoxide", value: "clear", descriptionText: "$device.displayName is clear (no Carbon Monoxide)")
+    	}
+    }
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd)
