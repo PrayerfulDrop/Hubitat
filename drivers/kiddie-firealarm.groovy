@@ -19,7 +19,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *  1.0.2 - added support for CO2 capabilities
+ *  1.0.2 - added support for Carbon Monoxide capabilities
  *  1.0.1 - added AppWatchDogv2 support
  *  1.0.0 - initial code port and modifications
  */
