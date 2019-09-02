@@ -27,6 +27,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.0.6 - enforced inputs required for the app to work, added ability to rename app for multiple apps
  *   1.0.5 - added additional AppWatchDogv2 support
  *   1.0.4 - added AppWatchDogv2 support
  *   1.0.3 - fixed logic for mailbox left open notification
@@ -44,7 +45,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "YouGotMailParentVersion"
-	state.version = "1.0.5"
+	state.version = "1.06"
     
     try {
         if(sendToAWSwitch && awDevice) {
@@ -75,25 +76,28 @@ def mainPage() {
 			section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
 				paragraph "<div style='color:#1A77C9'>This application provides notifications when a contact sensor on a mailbox is opened.</div>"
 			}
+        	section(getFormat("header-green", " General")) {
+       			label title: "Custom Application Name (for multiple instances of You Got Mail):", required: false
+			}
 			section(getFormat("header-green", " Notification Devices")) {
 				// PushOver Devices
 			    input name: "pushovertts", type: "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true 
 			    if(pushovertts) input name: "pushoverdevice", type: "capability.notification", title: "PushOver Device", required: true, multiple: true
 			     
 				// Music Speakers (Sonos, etc)
-				input name: "musicmode", type: "bool", defaultValue: "false", title: "Use Music Speaker(s) for TTS?", description: "Music Speaker(s)?", submitOnChange: true
-				if (musicmode) input name: "musicspeaker", type: "capability.musicPlayer", title: "Choose speaker(s)", required: false, multiple: true, submitOnChange: true
+				input name: "musicmode", type: "bool", defaultValue: "false", title: "Use Music Speaker(s) for TTS?", description: "Music Speaker(s)?",  required: false, submitOnChange: true
+				if (musicmode) input name: "musicspeaker", type: "capability.musicPlayer", title: "Choose speaker(s)", required: true, multiple: true, submitOnChange: true
 				
 				// Speech Speakers
-				input name: "speechmode", type: "bool", defaultValue: "false", title: "Use Google or Speech Speaker(s) for TTS?", description: "Speech Speaker(s)?", submitOnChange: true
-   	            if (speechmode) input name: "speechspeaker", type: "capability.speechSynthesis", title: "Choose speaker(s)", required: false, multiple: true, submitOnChange: true
+				input name: "speechmode", type: "bool", defaultValue: "false", title: "Use Google or Speech Speaker(s) for TTS?", description: "Speech Speaker(s)?",  required: false, submitOnChange: true
+   	            if (speechmode) input name: "speechspeaker", type: "capability.speechSynthesis", title: "Choose speaker(s)", required: true, multiple: true, submitOnChange: true
 						
 				// Echo Speaks devices
-				input name: "echoSpeaks2", type: "bool", defaultValue: "false", title: "Use Echo Speaks device(s) for TTS?", description: "Echo Speaks device?", submitOnChange: true
-			    if(echoSpeaks2) input name: "echospeaker", type: "capability.musicPlayer", title: "Choose Echo Speaks Device(s)", required: false, multiple: true, submitOnChange: true 
+				input name: "echoSpeaks2", type: "bool", defaultValue: "false", title: "Use Echo Speaks device(s) for TTS?", description: "Echo Speaks device?",  required: false, submitOnChange: true
+			    if(echoSpeaks2) input name: "echospeaker", type: "capability.musicPlayer", title: "Choose Echo Speaks Device(s)", required: true, multiple: true, submitOnChange: true 
 				
 				// Master Volume settings
-				input name :"speakervolume", type: "number", title: "Notification Volume Level:", description: "0-100%", required: false, defaultValue: "75", submitOnChange: true
+				input name :"speakervolume", type: "number", title: "Notification Volume Level:", description: "0-100%", required: false, defaultValue: "90", submitOnChange: true
 				input name: "speakervolRestore", type: "number", title: "Restore Volume Level:", description: "0-100", required: false,  defaultValue: "75", submitOnChange: true
 				
 				// Switch to set when alert active
@@ -101,10 +105,10 @@ def mainPage() {
 
 			}
             section(getFormat("header-green", " Mailbox Configuration")) {
-                input name: "maildeliveryStartTime", type: "time", title: "Mail Delivery Start Time:", required: false
-        		input name: "maildeliveryStopTime", type: "time", title: "Mail Delivery End Time:", required: false
+                input name: "maildeliveryStartTime", type: "time", title: "Mail Delivery Start Time:", required: true
+        		input name: "maildeliveryStopTime", type: "time", title: "Mail Delivery End Time:", required: true
                 input name: "frequency", type: "text", title: "How many minutes to wait between notifications?", required: false, defaultValue: "1", submitOnChange: true
-		        input name: "mailboxcontact", type: "capability.contactSensor", title: "Choose contact sensor on mailbox:", required: false, multiple: false, submitOnChange: true
+		        input name: "mailboxcontact", type: "capability.contactSensor", title: "Choose contact sensor on mailbox:", required: true, multiple: false, submitOnChange: true
                 input name: "mailnotification", type: "text", title: "Message when mail is delivered: (for random messages seperate using semicolon)", required: false, submitOnChange: true, defaultValue: "Mail has arrived. You've. got. mail!;Look what was just delivered.  Your mail!;Tally ho!... Mail has arrived!"
                 paragraph "<b>Current message(s) to announce:</b><ul>"
 					def messages = "${mailnotification}".split(";")
@@ -176,10 +180,11 @@ def updated() {
 }
 
 def initialize() {
-   if (logEnable && logMinutes.toInteger() != 0) {
-      if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
-      runIn((logMinutes.toInteger() * 60),logsOff)   
+    if (logEnable && logMinutes.toInteger() != 0) {
+        if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
+        runIn((logMinutes.toInteger() * 60),logsOff)
     }
+    else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
     if(state.alreadySent) reset()
     subscribe(mailboxcontact, "contact", contactSensorHandler)  
     if(mailboxcontact.currentContact == "open") { checkopen() } 
