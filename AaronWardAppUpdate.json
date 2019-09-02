@@ -25,7 +25,7 @@
   "NOAAWeatherAlertsUpdateNote": "2.4.0 - added new AppWatchDog2 code enhancements",
 
   "YouGotMailType": "App",
-  "YouGotMailParentVersion": "1.0.5",
+  "YouGotMailParentVersion": "1.0.6",
   "YouGotMailChild1Version": "",
   "YouGotMailChild1Name": "",
   "YouGotMailChild2Version": "",
@@ -42,6 +42,6 @@
   "YouGotMailChild4RawCode": "",
   "YouGotMailDriverRawCode": "",
   "YouGotMailDiscussion": "https://community.hubitat.com/t/release-you-got-mail/17946",
-  "YouGotMailUpdateNote": "1.0.5 - added additional AppWatchDogv2 support",
+  "YouGotMailUpdateNote": "1.0.6 - enforced inputs required for the app to work, added ability to rename app for multiple apps",
   
  }
