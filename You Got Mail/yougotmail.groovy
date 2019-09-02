@@ -27,7 +27,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   1.0.6 - enforced inputs required for the app to work, added ability to rename app for multiple apps
+ *   1.0.6 - enforced inputs required for the app to work, added ability to rename app for multiple instances
  *   1.0.5 - added additional AppWatchDogv2 support
  *   1.0.4 - added AppWatchDogv2 support
  *   1.0.3 - fixed logic for mailbox left open notification
