@@ -42,6 +42,6 @@
   "YouGotMailChild4RawCode": "",
   "YouGotMailDriverRawCode": "",
   "YouGotMailDiscussion": "https://community.hubitat.com/t/release-you-got-mail/17946",
-  "YouGotMailUpdateNote": "1.0.6 - enforced inputs required for the app to work, added ability to rename app for multiple apps",
+  "YouGotMailUpdateNote": "1.0.6 - enforced inputs required for the app to work, added ability to rename app for multiple instacnes",
   
  }
