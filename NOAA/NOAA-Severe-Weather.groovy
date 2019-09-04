@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.4.1 - fixed default settings not initializing correctly
  *   2.4.0 - added new AppWatchDog2 code enhancements
  *   2.3.9 - fixed TTS repeat intro for talkNow routine
  *   2.3.8 - added repeat intros to TTS notifications to distinguish a new notification over an existing, added AppWatchdogv2 support
@@ -93,7 +94,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "NOAAWeatherAlertsParentVersion"
-	state.version = "2.4.0"
+	state.version = "2.4.1"
     
     try {
         if(sendToAWSwitch && awDevice) {
@@ -169,7 +170,7 @@ def mainPage() {
 				input "repeatYes", "bool", title: "Repeat Alert?", require: false, defaultValue: false, submitOnChange: true
 				if(repeatYes) {
                     input name:"repeatTimes", type: "text", title: "Number of times to repeat the alert?", require: false, defaultValue: "1", submitOnChange:true
-                    input name:"repeatMinutes", type: "text", title: "Number of minutes between each repeating alert?", require: false, defaultValue: "30", submitOnChange:true }
+                    input name:"repeatMinutes", type: "text", title: "Number of minutes between each repeating alert?", require: false, defaultValue: "15", submitOnChange:true }
 				input name: "useCustomCords", type: "bool", title: "Use Custom Coordinates?", require: false, defaultValue: false, submitOnChange: true
 				if(useCustomCords) {
 					paragraph "Below coordinates are acquired from your Hubitat Hub.  Enter your custom coordinates:"
@@ -279,10 +280,7 @@ def mainPage() {
 					if (logEnable) log.debug "Initiating a test alert."
 					state.alertmsg=buildTestAlert()
                     alertNow(state.alertmsg, false)
-                    if(repeatYes==true) {
-                        state.num=repeatTimes.toInteger()
-                        repeatNow()
-                    }
+                    if(repeatYes==true) repeatNow()
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true 
@@ -341,13 +339,6 @@ def initialize() {
     if(awDevice) schedule("0 0 3 ? * * *", setVersion)
 	}
 
-def checkState() {
-    state.num = repeatTimes.toInteger()
-    state.frequency = repeatMinutes.toInteger() * 60
-    state.count = 1
-    state.repeat = false
-}
-
 def installCheck(){         
     state.appInstalled = app.getInstallationState() 
     if(state.appInstalled != 'COMPLETE'){
@@ -394,7 +385,6 @@ def refresh() {
 				    log.info "Sending alert: ${state.alertmsg}"
                     alertNow(state.alertmsg, false)
                     if(repeatYes==true) {
-                        state.num=repeatTimes.toInteger()
                         repeatNow()
                     }
 				    // set the pastalert to the current alertsent timestamp
@@ -403,6 +393,22 @@ def refresh() {
 			} 
 	}
     else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+}
+
+def checkState() {
+    if(repeatTime==null || repeatMintues==null) {
+        if(repeatTime==null) { state.num = 1 
+                             } else { state.num = repeatTime.toInteger() }
+        if(repeatMinutes==null) { state.frequency = 15
+                                } else { state.frequency = repeatMinutes.toInteger() * 60 }
+        if(logEnable) log.debug "Not all/any Global variables have not been saved yet.  frequency:${state.frequency} - Minutes:${state.frequency}"
+    } else {
+        state.num = repeatTimes.toInteger()
+        state.frequency = repeatMinutes.toInteger() * 60
+        if(logEnable) log.debug "Global variables are set.  frequency:${state.frequency} - Minutes:${state.frequency}"
+    }
+    state.count = 1
+    state.repeat = false
 }
 
 
@@ -527,8 +533,6 @@ def buildAlertMsg() {
 					if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
 				} 
 
-
-
 def buildTestAlert() {
 					alertmsg = alertCustomMsg
 					try {alertmsg = alertmsg.replace("{alertarea}","Springfield County.") }
@@ -651,9 +655,8 @@ def tileNow(alertmsg, resetAlert) {
 	}
 }
 
-
 def repeatNow(){
-    if(state.frequency==null) { checkState() }
+    if(repeatTime==null || repeatMintues==null) checkState()
     if(logEnable) log.debug "Repeating alert in ${repeatMinutes} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s)."
     if(state.repeat) {
         alertNow(state.alertmsg, true)
