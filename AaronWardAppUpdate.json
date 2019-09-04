@@ -5,7 +5,7 @@
   "Apps": "NOAA Weather Alerts, You Got Mail",
    
   "NOAAWeatherAlertsType": "App",
-  "NOAAWeatherAlertsParentVersion": "2.4.0",
+  "NOAAWeatherAlertsParentVersion": "2.4.1",
   "NOAAWeatherAlertsChild1Version": "",
   "NOAAWeatherAlertsChild1Name": "",
   "NOAAWeatherAlertsChild2Version": "",
@@ -14,7 +14,7 @@
   "NOAAWeatherAlertsChild3Name": "",
   "NOAAWeatherAlertsChild4Version": "",
   "NOAAWeatherAlertsChild4Name": "",
-  "NOAAWeatherAlertsDriverVersion": "1.2.0",
+  "NOAAWeatherAlertsDriverVersion": "1.2.1",
   "NOAAWeatherAlertsParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
   "NOAAWeatherAlertsChild1RawCode": "",
   "NOAAWeatherAlertsChild2RawCode": "",
@@ -22,7 +22,7 @@
   "NOAAWeatherAlertsChild4RawCode": "",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": "2.4.0 - added new AppWatchDog2 code enhancements",
+  "NOAAWeatherAlertsUpdateNote": "2.4.1 - fixed default settings not initializing correctly",
 
   "YouGotMailType": "App",
   "YouGotMailParentVersion": "1.0.6",
