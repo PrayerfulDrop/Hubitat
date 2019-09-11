@@ -25,7 +25,7 @@
  *
  *  Changes:
  *
- * 1.0.3 - added retained and QOS support
+ *  1.0.3 - added retained and QOS support
  *  1.0.2 - added support for AppWatchDogv2
  *  1.0.1 - added importURL and updated to new MQTT client methods
  *  1.0.0 - Initial release
