@@ -25,6 +25,7 @@
  *
  *  Changes:
  *
+ * 1.0.3 - added retained and QOS support
  *  1.0.2 - added support for AppWatchDogv2
  *  1.0.1 - added importURL and updated to new MQTT client methods
  *  1.0.0 - Initial release
@@ -46,6 +47,8 @@ metadata {
 		input name: "password", type: "password", title: "MQTT Password:", description: "(blank if none)", required: false, displayDuringSetup: true
 		input name: "topicSub", type: "text", title: "Topic to Subscribe:", description: "Example Topic (topic/device/#)", required: false, displayDuringSetup: true
 		input name: "topicPub", type: "text", title: "Topic to Publish:", description: "Topic Value (topic/device/value)", required: false, displayDuringSetup: true
+        input name: "QOS", type: "text", title: "QOS Value:", required: false, defaultValue: "1", displayDuringSetup: true
+        input name: "retained", type: "bool", title: "Retain message:", required: false, defaultValue: false, displayDuringSetup: true
 	    input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
     }
 
@@ -58,7 +61,7 @@ def installed() {
 
 def setVersion(){
     appName = "MQTTGenericDriver"
-	version = "1.0.2" 
+	version = "1.0.3" 
     dwInfo = "${appName}:${version}"
     sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
 }
@@ -84,8 +87,8 @@ def parse(String description) {
 }
 
 def publishMsg(String s) {
-	if (logEnable) log.debug "Sent this: ${s} to ${settings?.topicPub}"
-    interfaces.mqtt.publish(settings?.topicPub, s)
+    if (logEnable) log.debug "Sent this: ${s} to ${settings?.topicPub} - QOS Value: ${settings?.QOS.toInteger()} - Retained: ${settings?.retained}"
+    interfaces.mqtt.publish(settings?.topicPub, s, settings?.QOS.toInteger(), settings?.retained)
 }
 
 def updated() {
@@ -102,6 +105,8 @@ def uninstalled() {
 def initialize() {
 	if (logEnable) runIn(900,logsOff)
 	try {
+        if(settings?.retained==null) settings?.retained=false
+        if(settings?.QOS==null) setting?.QOS="1"
         //open connection
 		mqttbroker = "tcp://" + settings?.MQTTBroker + ":1883"
         interfaces.mqtt.connect(mqttbroker, "hubitat", settings?.username,settings?.password)
