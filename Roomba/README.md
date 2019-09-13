@@ -58,8 +58,7 @@ WantedBy=multi-user.target
 <ul>
   <li>Roomba Application install:
     <ul>
-      <li>Open two tabs.  Tab #1 - Hubitat Administration Console; Tab #2 - https://github.com/PrayerfulDrop/Hubitat/tree/master/Roomba</li>
-      <li>Copy Roomba-app.groovy RAW URL (not the code)</li>
+      <li>Copy Roomba-app.groovy RAW URL: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy
       <li>In your Hubitat Administrative Console select Apps Code</li>
       <li>Click New App in upper right corner</li>
       <li>Click Import</li>
@@ -69,8 +68,7 @@ WantedBy=multi-user.target
   </li>
   <li>Roomba Device install:
     <ul>
-      <li>Open two tabs.  Tab #1 - Hubitat Administration Console; Tab #2 - https://github.com/PrayerfulDrop/Hubitat/tree/master/Roomba</li>
-      <li>Copy Roomba-driver.groovy RAW URL (not the code)</li>
+      <li>Copy Roomba-driver.groovy RAW URL: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy
       <li>In your Hubitat Administrative Console select Drivers Code</li>
       <li>Click New Driver in upper right corner</li>
       <li>Click Import</li>
