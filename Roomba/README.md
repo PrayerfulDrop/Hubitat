@@ -3,7 +3,7 @@
 support for all WiFi enabled Roomba devices.</p>
 <br>
 <h2>Prerequisites and installation:</h2>
-<p>Roomba for Hubitat uses <a href="https://github.com/koalazak/dorita980">Dorita980</a> for Roomba control and <a href="https://github.com/koalazak/rest980">Rest980</a> for API control and connectivity into Hubitat using a Rapsberry Pi.  These directions will be how to install both on a RPi currently running Node.JS and GIT installed.  I would recommend using a /share directory for this installation.</p>
+<p>Roomba for Hubitat uses <a href="https://github.com/koalazak/dorita980">Dorita980</a> for Roomba control and <a href="https://github.com/koalazak/rest980">Rest980</a> for API control and connectivity into Hubitat using a Rapsberry Pi.  These directions will be how to install both on a RPi currently running Node.JS and GIT installed.  I would recommend using a /share directory for this installation.</p><br>
 <b>Dorita980 and Rest980 Installation process:</b>
 <p>
 <ol>
@@ -14,7 +14,7 @@ support for all WiFi enabled Roomba devices.</p>
     <li>cd rest980</li>
     <li>npm install</li></ul></li>
 </ol>
-</p>
+</p><br>
 <b>Rest980 Configuration (recommended to have two SSH windows open):</b>
 <ul>
   <li>[SSH Window #1] Edit ../rest980/config/default.json</li>
@@ -31,7 +31,7 @@ support for all WiFi enabled Roomba devices.</p>
       <li>Type the following: DEBUG=rest980:* npm start</li>
       <li>In a new browser tab navigate to http://YOUR_RASPBERRY_PI:3000</li>
       <li>Response should be similar to: {"documentation":"https://github.com/koalazak/rest980","pong":"2019-09-13T12:13:36.408Z"}</li>       <li>CTRL-C to exit Rest980 app</li></ul>
-</ul>
+</ul><br>
     <b>Setting up Rest980 to run as a service:</b>
     <ul><li>sudo nano /etc/systemd/system/roomba.service</li>
       <li>Enter the following changing your WorkingDirectory to where yours is:<br><p>
@@ -52,7 +52,7 @@ WantedBy=multi-user.target
 <li>sudo systemctl start roomba.service</li>
 <li>Test connectivity in browser tab: http://YOUR_RASPBERRY_PI:3000</li>
 <li>Response should be similar to: {"documentation":"https://github.com/koalazak/rest980","pong":"2019-09-13T12:13:36.408Z"}</li>       
-  </ul>
+  </ul><br>
   
 <b>Install Hubitat App and Driver:</b>
 <ul>
@@ -76,6 +76,9 @@ WantedBy=multi-user.target
       <li>Click Save</li>
     </ul>
   </li>
-</ul>
+</ul><br>
+
+<b>Roomba for Hubitat Configuration:</b>
+WORK IN PROGRESS AS APPLICATION IS BUILT
 
     
