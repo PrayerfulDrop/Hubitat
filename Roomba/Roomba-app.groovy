@@ -1,9 +1,41 @@
 /**
- *  Roomba Integration
  *
- *  Copyright 2019 Dominick Meglio
+ * Hubitat Import URL: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy
  *
- */
+ *  ****************  Roomba Scheduler App  ****************
+ *
+ *  Design Usage:
+ *  This app is designed to integrate any WiFi enabled Roomba devices to have direct local connectivity and integration into Hubitat.  This applicatin will create a Roomba device based on the 
+ *  the name you gave your Roomba device in the cloud app.  With this app you can schedule multiple cleaning times, automate cleaning when presence is away, receive notifications about status
+ *  of the Roomba (stuck, cleaning, died, etc) and also setup continous cleaning mode for non-900 series WiFi Roomba devices.
+ *
+ *  Copyright 2019 Aaron Ward
+ *
+ *  Special thanks to Dominick Meglio for creating the initial integration and giving me permission to use his code to create this application.
+ *  
+ *  This App is free and was designed for my needs originally but has grown for most needs too.
+ *
+ *-------------------------------------------------------------------------------------------------------------------
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ *
+ * ------------------------------------------------------------------------------------------------------------------------------
+ *              Donations are always appreciated: https://www.paypal.me/aaronmward
+ * ------------------------------------------------------------------------------------------------------------------------------
+ *
+ *  Changes:
+ *       
+ *   1.0.2 - 
+ *   1.0.1 - added ability for all WiFi enabled Roomba devices to be added and controlled
+ *   1.0.0 - Inital concept from Dominick Meglio
+**/
 
 definition(
     name: "Roomba Integration",
@@ -63,8 +95,8 @@ def createChildDevices() {
 
 	if (result && result.data)
     {
-        if (!getChildDevice("roomba:"+result.data.hwPartsRev.navSerialNo))
-            addChildDevice("roomba", "Roomba", "roomba:" + result.data.hwPartsRev.navSerialNo, 1234, ["name": result.data.name, isComponent: false])
+        if (!getChildDevice("roomba:"+result.data.name))
+            addChildDevice("roomba", "Roomba", "roomba:" + result.data.name, 1234, ["name": result.data.name, isComponent: false])
     }
 }
 
@@ -75,7 +107,7 @@ def cleanupChildDevices()
 	{
 		def deviceId = device.deviceNetworkId.replace("roomba:","")
 		
-        if (result.data.hwPartsRev.navSerialNo != deviceId)
+        if (result.data.name != deviceId)
             deleteChildDevice(device.deviceNetworkId)
 	}
 }
@@ -85,7 +117,7 @@ def updateDevices() {
     
     if (result && result.data)
     {
-        def device = getChildDevice("roomba:" + result.data.hwPartsRev.navSerialNo)
+        def device = getChildDevice("roomba:" + result.data.name)
         
         device.sendEvent(name: "battery", value: result.data.batPct)
         if (!result.data.bin.present)
