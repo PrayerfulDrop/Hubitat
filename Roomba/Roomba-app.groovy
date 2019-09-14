@@ -218,9 +218,7 @@ def uninstalled() {
 def RoombaSchedule() {
     daysofweek = schedDay.join(",")
     for(i=0; i < timeperday.toInteger(); i++) {
-        //daytime=app?.getSetting("day${i}")
-        //log.debug "${daytime}"
-        hours = Date.parse("yyyy-MM-dd'T'HH:mm:ss", day0).format('HH mm')
+        hours = Date.parse("yyyy-MM-dd'T'HH:mm:ss", day0.format('HH mm'))
         if(logEnable) log.debug "Scheduling job at ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", day0).format('hh:mma')} for the following days of the week: ${daysofweek}"
         log.debug "schedule(0 ${hours} * * ${daysofweek}, device.start())"
     }
