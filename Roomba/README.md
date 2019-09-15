@@ -3,7 +3,7 @@
 support for all WiFi enabled Roomba devices.</p>
 <br>
 <h2>Prerequisites and installation:</h2>
-<p>Roomba for Hubitat uses <a href="https://github.com/koalazak/dorita980">Dorita980</a> for Roomba control and <a href="https://github.com/koalazak/rest980">Rest980</a> for API control and connectivity into Hubitat using a Rapsberry Pi.  These directions will be how to install both on a RPi currently running Node.JS and GIT installed.  I would recommend using a /share directory for this installation.</p><br>
+<p>Roomba for Hubitat uses <a href="https://github.com/koalazak/dorita980">Dorita980</a> for Roomba control and <a href="https://github.com/koalazak/rest980">Rest980</a> for API control and connectivity into Hubitat using a Rapsberry Pi.  It is <b><u>highly</u></b> recommended that both your Raspberry Pi and Roomba have reserved IP addresses within your router.  These directions will be how to install both on a RPi currently running Node.JS and GIT installed.  I would recommend using a /share directory for this installation.</p><br>
 <b>Dorita980 and Rest980 Installation process:</b>
 <p>
 <ol>
