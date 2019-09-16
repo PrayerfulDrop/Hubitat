@@ -2,7 +2,7 @@
  *
  * Hubitat Import URL: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy
  *
- *  ****************  Roomba Driver  ****************
+ *  ****************  Roomba Device  ****************
  *
  *  Design Usage:
  *  This driver supports the Roomba Scheduler App which is designed to integrate any WiFi enabled Roomba devices to have direct local connectivity and integration into Hubitat.  This applicatin will create a Roomba device based on the 
@@ -36,7 +36,7 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 metadata {
-    definition (name: "Roomba", namespace: "aaronward", author: "Aaron Ward") {
+    definition (name: "Roomba", namespace: "aaronward", author: "Aaron Ward", importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy") {
 		capability "Battery"
         capability "Consumable"
 		capability "Actuator"
