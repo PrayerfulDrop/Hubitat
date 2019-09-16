@@ -439,7 +439,7 @@ def presenceHandler(evt) {
         if(roombaPresence.findAll { it?.currentPresence == "present"}) { presence = true }
     
         if(presence) {
-            if(result.data.cleanMissionStatus.phase.contains("run")) {
+            if(result.data.cleanMissionStatus.phase.contains("run") && roombaPresenceDock) {
                    device.stop()
                    device.dock()
             }
