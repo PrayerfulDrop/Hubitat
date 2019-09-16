@@ -31,7 +31,8 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *       
+ *
+ *   1.0.3 - changed frequency polling based on Roomba event.  Also fixed Pushover notifications to occur no matter how Roomba events are changed
  *   1.0.2 - add ability for advanced scheduling multiple times per day
  *   1.0.1 - added ability for all WiFi enabled Roomba devices to be added and controlled
  *   1.0.0 - Inital concept from Dominick Meglio
@@ -42,7 +43,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.0.2"
+	state.version = "1.0.3"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -162,7 +163,7 @@ def mainPage() {
         section() {
              	input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
-               // input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
+                input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
             if(init) {
                 try {
                     initialize()
@@ -179,6 +180,7 @@ def mainPage() {
 def initialize() {
 	if(logEnable) log.debug "Initializing $app.label...unscheduling current jobs."
     unschedule()
+    state.notified = false
     cleanupChildDevices()
 	createChildDevices()
     getRoombaSchedule()
@@ -366,53 +368,59 @@ def updateDevices() {
             device.sendEvent(name: "bin", value: "good")
         
 		def status = ""
+        def msg = null
 		switch (result.data.cleanMissionStatus.phase)
 		{
 			case "hmMidMsn":
 			case "hmPostMsn":
 			case "hmUsrDock":
 				status = "homing"
+                if(logEnable) log.debug "${device}'s homing.  Checking status in 30 seconds"
+                schedule("0 0/1 * * * ? *", updateDevices)
 				break
 			case "charge":
 				status = "charging"
+                if(logEnable) log.debug "${device}'s charging. Checking status in 2 minutes"
+                msg="${device} is stopped cleaning and is currently docked and charging."
+                schedule("0 0/2 * * * ? *", updateDevices)
 				break
 			case "run":
 				status = "cleaning"
+                if(logEnable) log.debug "${device}'s cleaning.  Checking status in 30 seconds"
+                msg="${device} has started cleaning"
+                schedule("0/30 * * * * ? *", updateDevices)
 				break
 			case "stop":
-				status = idle
+				status = "idle"
+                if(logEnable) log.debug "${device}'s stopped cleaning.  Checking status in 1 minute"
+                msg="${device} has stopped cleaning."
+                schedule("0 0/1 * * * ? *", updateDevices)
 				break		
 		}
+        state.cleaning = status
         device.sendEvent(name: "cleanStatus", value: status)
+        
+        log.debug "state.cleaning : ${state.cleaning} - state.prevcleaning: ${state.prevcleaning} - state.notified: ${state.notified}"
+        
+        if(!state.cleaning.contains(state.prevcleaning) && !state.notifed) {
+            state.prevcleaning = state.cleaning
+            if(!state.notified && msg!=null) {
+                state.notified = true
+                pushNow(msg)
+            }
+        } else {
+            if(state.cleaning.contains(state.prevcleaning)) {
+            state.notified = false
+            }
+        }
     }
 }
 
-// Notifcations
-def pushNow(msg, type) {
-    log.debug "entered push now - ${msg}, ${type}, ${pushovertts}"
+def pushNow(msg) {
+    updateDevices()
 	if (pushovertts) {
-        fullMsg=null
-        switch(type) {
-            case "start":
-                if(pushoverStart) fullMsg = msg
-                break
-            case "stop":
-                if(pushoverStop) fullMsg = msg
-                break
-            case "resume":
-                if(pushoverResume) fullMsg = msg
-                break
-            case "pause":
-                if(pushoverPause) fullMsg = msg
-                break
-            case "dock":
-                if(pushoverDock) fullMsg = msg
-                break    
-        }
-        if(fullMsg!=null) {
             if (logEnable) log.debug "Sending Pushover message. ${msg}"
-            pushoverdevice.deviceNotification("${fullMsg}")
-        }
+            pushoverdevice.deviceNotification("${msg}")
 	}
 }
 
@@ -453,14 +461,13 @@ def handleDock(device, id)
 }
 
 def executeAction(path) {
-    if(doritaPort==null) def doritaPort="3000"
 	def params = [
         uri: "http://${doritaIP}:3000",
         path: "${path}",
 		contentType: "application/json"
 	]
 	def result = null
-	if(logEnable) log.debug "Querying current state: ${path}"
+	//if(logEnable) log.debug "Querying current state: ${path}"
 	try
 	{
 		httpGet(params) { resp ->
