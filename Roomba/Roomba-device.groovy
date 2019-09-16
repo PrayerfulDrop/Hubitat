@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.0.2 - modified how pushover works
  *   1.0.1 - added pushover notification capabilities
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
@@ -65,25 +66,25 @@ def updateVersion() {
 
 def start() {
     parent.handleStart(device, device.deviceNetworkId.split(":")[1])
-    parent.pushNow("${device} has started cleaning.", start)
+    parent.pushNow("${device} has started cleaning.")
 }
 
 def stop() {
     parent.handleStop(device, device.deviceNetworkId.split(":")[1])
-    parent.pushNow("${device} has stopped cleaning.", stop)
+    parent.pushNow("${device} has stopped cleaning.")
 }
 
 def pause() {
     parent.handlePause(device, device.deviceNetworkId.split(":")[1])
-    parent.pushNow("${device} has paused cleaning.", pause)
+    parent.pushNow("${device} has paused cleaning.")
 }
 
 def resume() {
     parent.handleResume(device, device.deviceNetworkId.split(":")[1])
-    parent.pushNow("${device} has resumed cleaning.", resume)
+    parent.pushNow("${device} has resumed cleaning.")
 }
 
 def dock() {
     parent.handleDock(device, device.deviceNetworkId.split(":")[1])
-    parent.pushNow("${device} has finished cleaning.", dock)
+    parent.pushNow("${device} has finished cleaning.")
 }
