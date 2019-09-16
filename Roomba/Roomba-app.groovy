@@ -73,13 +73,10 @@ def mainPage() {
         section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
 				paragraph "<div style='color:#1A77C9'>This application provides Roomba local integration and advanced scheduling.</div>"
 			}
-		section(getFormat("header-green", " General")) {
-       			label title: "Custom Application Name (for multiple instances of Roomba Scheduler):", required: false
-			}
-        
-		section(getFormat("header-green", " Rest980/Dorita980 Integration")){
+
+        section(getFormat("header-green", " Rest980/Dorita980 Integration")){
 			input "doritaIP", "text", title: "Rest980 Server IP Address:", description: "Rest980 Server IP Address:", required: true, submitOnChange: true
-			input "doritaPort", "number", title: "Dorita Port", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535"
+			//input "doritaPort", "number", title: "Dorita Port", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535"
 		}
         section(getFormat("header-green", " Notification Device(s)")) {
 		    // PushOver Devices
@@ -165,7 +162,7 @@ def mainPage() {
         section() {
              	input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
-                input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
+               // input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
             if(init) {
                 try {
                     initialize()
