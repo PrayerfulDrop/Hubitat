@@ -79,6 +79,14 @@ WantedBy=multi-user.target
 </ul><br>
 
 <b>Roomba for Hubitat Configuration:</b>
-WORK IN PROGRESS AS APPLICATION IS BUILT
-
+<ul>
+  <li>Rest980/Dorita980 Integration:<ul><li>Rest980 Server IP Address - IP Address running Rest980 and Dorita980</li></ul></li>
+  <li>Notification Device(s):<ul><li>Pushover Device - select one to many devices to send notification to and Roomba's start/stop/pause/resume and dock status</li></ul></li>
+  <li>Cleaning Schedule:<ul><li>Select days to schedule cleaning - Sunday - Saturday</li>
+    <li>Number of times per day to clean - this can be between 1-10 times to clean in a single day</li>
+    <li>First time - Tenth time - times when you want Roomba to clean (time does not have to be in order)</li></ul></li>
+  <li>Logging and Testing:<ul><li>AppWatchDog2 - this app is enabled to support App Watch Dog 2</li>
+  <li>Enable Debug Logging - set timeout for debug logs to continously log.  0=forever</li></ul></li>
+</ul>  
     
+      
