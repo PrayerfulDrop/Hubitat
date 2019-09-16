@@ -78,31 +78,33 @@ def mainPage() {
 			}
         
 		section(getFormat("header-green", " Rest980/Dorita980 Integration")){
-			input("doritaIP", "text", title: "Rest980 Server IP Address:", description: "Rest980 Server IP Address:", required: true)
-			//input("doritaPort", "number", title: "Dorita Port", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535")
+			input "doritaIP", "text", title: "Rest980 Server IP Address:", description: "Rest980 Server IP Address:", required: true, submitOnChange: true
+			input "doritaPort", "number", title: "Dorita Port", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535"
 		}
         section(getFormat("header-green", " Notification Device(s)")) {
 		    // PushOver Devices
 		     input "pushovertts", "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true 
              if(pushovertts == true) {
                 input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true
-                input "notifyStart", "bool", title: "Notifications when Roomba starts cleaning?", required: false, multiple:false, defaultValue:false
-                input "notifyDone", "bool", title: "Notifications when Roomba finishes cleaning?", required: false, multiple:false, defaultValue:false
-               // input "notifyStuck", "bool", title: "Notifications if stuck?", required: false, multiple:false, defaultValue:false
-               // input "notifyBin", "bool", title: "Notifications when Roomba needs maintenance?", required: false, multiple:false, defaultValue:false
+                input "pushoverStart", "bool", title: "Notifications when Roomba starts cleaning?", required: false, defaultValue:false, submitOnChange: true 
+                input "pushoverResume", "bool", title: "Notifications when Roomba resumes cleaning?", required: false, defaultValue:false, submitOnChange: true 
+                input "pushoverPause", "bool", title: "Notifications when Roomba pauses cleaning?", required: false, defaultValue:false, submitOnChange: true 
+                input "pushoverStop", "bool", title: "Notifications when Roomba stops cleaning?", required: false, defaultValue:false, submitOnChange: true 
+                input "pushoverDock", "bool", title: "Notifications when Roomba docks?", required: false, defaultValue:false, submitOnChange: true 
+
             }
         }
         section(getFormat("header-green", " Cleaning Schedule")) { 
             paragraph "<b>Note:</b> Roomba devices require at least 3 hours to have a full battery.  Consider this when scheduling multiple cleaning times in a day."
             input "schedDay", "enum", title: "Select which days to schedule cleaning:", required: true, multiple: true, submitOnChange: true,
                 options: [
-			        "SUN":	"Sunday",
-                    "MON":	"Monday",
-                    "TUE":	"Tuesday",
-                    "WED":	"Wednesday",
-                    "THU":	"Thursday",
-                    "FRI":	"Friday",
-                    "SAT":	"Saturday"
+			        "1":	"Sunday",
+                    "2":	"Monday",
+                    "3":	"Tuesday",
+                    "4":	"Wednesday",
+                    "5":	"Thursday",
+                    "6":	"Friday",
+                    "7":	"Saturday"
                 ] 
             input "timeperday", "text", title: "Number of times per day to clean:", required: true, defaultValue: "1", submitOnChange:true
             if(timeperday==null) timeperday="1"
@@ -163,7 +165,7 @@ def mainPage() {
         section() {
              	input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
-                input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true
+                input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
             if(init) {
                 try {
                     initialize()
@@ -177,22 +179,21 @@ def mainPage() {
 	}
 }
 
-def getImage(type) {
-    def loc = "<img src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/roomba.png'>"
+def initialize() {
+	if(logEnable) log.debug "Initializing $app.label...unscheduling current jobs."
+    unschedule()
+    cleanupChildDevices()
+	createChildDevices()
+    getRoombaSchedule()
+    RoombaScheduler()
+    schedule("0/30 * * * * ? *", updateDevices)
+    schedule("0 0 3 ? * * *", setVersion) 
+    if (logEnable && logMinutes.toInteger() != 0) {
+    if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
+        runIn((logMinutes.toInteger() * 60),logsOff)
+        } else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
+
 }
-
-def getFormat(type, myText=""){
-    if(type == "header-green") return "<div style='color:#ffffff;font-weight: bold;background-color:#1A7BC7;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
-    if(type == "line") return "\n<hr style='background-color:#1A77C9; height: 1px; border: 0;'></hr>"
-    if(type == "title") return "<h2 style='color:#1A77C9;font-weight: bold'>${myText}</h2>"
-}
-
-
-def logsOff(){
-    log.warn "Debug logging disabled."
-    app?.updateSetting("logEnable",[value:"false",type:"bool"])
-}
-
 
 def installed() {
 	if(logEnable) log.debug "Installed with settings: ${settings}"
@@ -215,30 +216,121 @@ def uninstalled() {
 	}	
 }
 
-def RoombaSchedule() {
-    daysofweek = schedDay.join(",")
-    for(i=0; i < timeperday.toInteger(); i++) {
-        hours = Date.parse("yyyy-MM-dd'T'HH:mm:ss", day0).format('HH mm')
-        if(logEnable) log.debug "Scheduling job at ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", day0).format('hh:mma')} for the following days of the week: ${daysofweek}"
-        log.debug "schedule(0 ${hours} * * ${daysofweek}, device.start())"
+def getRoombaSchedule() {
+    def roombaSchedule = []
+    for(i=0; i <timeperday.toInteger(); i++) {
+                switch (i) {
+            case 0:
+                temp = day0
+                break
+            case 1:
+                temp = day1
+                break   
+            case 2:
+                temp = day2
+                break
+            case 3:
+                temp = day3
+                break
+            case 4:
+                temp = day4
+                break
+            case 5:
+                temp = day5
+                break
+            case 6:
+                temp = day6
+                break
+            case 7:
+                temp = day7
+                break
+            case 8:
+                temp = day8
+                break
+            case 9:
+                temp = day9
+                break          
+        }
+    roombaSchedule.add(temp)    
     }
+    state.roombaSchedule = roombaSchedule.sort()
 }
 
-def initialize() {
-	if(logEnable) log.debug "Initializing $app.label...unscheduling current jobs."
-    unschedule()
-	cleanupChildDevices()
-	createChildDevices()
-    RoombaSchedule()
-    schedule("0/30 * * * * ? *", updateDevices)
-    schedule("0 0 3 ? * * *", setVersion) 
-    if (logEnable && logMinutes.toInteger() != 0) {
-    if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
-        runIn((logMinutes.toInteger() * 60),logsOff)
-        } else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
-
+def RoombaScheduler() {
+    def map=[
+           1:"Sunday",
+           2:"Monday",
+           3:"Tuesday",
+           4:"Wednesday",
+           5:"Thursday",
+           6:"Friday",
+           7:"Saturday"]
+    def date = new Date()
+    current = date.format("HH:mm")
+    Calendar calendar = Calendar.getInstance();
+    calendar.setTime(date);
+    def day = calendar.get(Calendar.DAY_OF_WEEK);
+    daysofweek = schedDay.join(",")
+    foundschedule=false
+    cleaningday = day
+    nextcleaning = state.roombaSchedule[0]
+    
+    // Check if we clean today
+    if(daysofweek.contains(day.toString())) { 
+        // Check when next scheduled cleaning time will be
+            for(it in state.roombaSchedule) {
+                temp = Date.parse("yyyy-MM-dd'T'HH:mm:ss", it).format('HH:mm')
+                if((temp > current) && !foundschedule) {
+                    nextcleaning = it
+                    foundschedule=true
+                }
+            }
+        if(!foundschedule) {
+             tempday = day
+             while(!foundschedule) {
+                 tempday = tempday + 1
+                 if(tempday>7) { tempday=1 }
+                 if(daysofweek.contains(tempday.toString())) { 
+                     foundschedule=true
+                     cleaningday = tempday
+                 }
+             }
+        }
+      } else { 
+        // Check when the next day we are cleaning
+        tempday = day
+         while(!foundschedule) {
+             tempday = tempday + 1
+             if(tempday>7) { tempday=1 }
+             if(daysofweek.contains(tempday.toString())) { 
+                 foundschedule=true
+                 cleaningday = tempday
+             }
+         }
+        }
+    if(logEnable) log.debug "Next scheduled cleaning: ${map[cleaningday]} ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}"       
+    schedule("0 ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('mm H')} ? * ${cleaningday} *", RoombaSchedStart) 
 }
 
+def RoombaSchedStart() {
+    def result = executeAction("/api/local/info/state")
+
+    if (result && result.data)
+    {
+        def device = getChildDevice("roomba:" + result.data.name)
+        if(result.data.cleanMissionStatus.phase.contains("run") || result.data.cleanMissionStatus.phase.contains("hmUsrDock") || result.data.batPct.toInteger()<75) {
+            log.warn "${device} is currently cleaning.  Scheduled times may be too close together." 
+        } else {
+            if(result.data.cleanMissionStatus.phase.contains("charge") && result.data.batPct.toInteger()>75) {
+                log.debug "Starting scheduled cleaning - Start send to ${device}"
+                device.start()
+            } else log.warn "${device} is currently not on the charging station.  Cannot start cleaning."
+        }
+    }
+     RoombaScheduler()
+}
+
+// Device creation and status updhandlers
 def createChildDevices() {
     def result = executeAction("/api/local/info/state")
 
@@ -270,11 +362,11 @@ def updateDevices() {
         
         device.sendEvent(name: "battery", value: result.data.batPct)
         if (!result.data.bin.present)
-            device.sendEvent(name: "consumableStatus", value: "missing")
+            device.sendEvent(name: "bin", value: "missing")
         else if (result.data.bin.full)
-            device.sendEvent(name: "consumableStatus", value: "maintenance_required")
+            device.sendEvent(name: "bin", value: "full")
         else
-            device.sendEvent(name: "consumableStatus", value: "good")
+            device.sendEvent(name: "bin", value: "good")
         
 		def status = ""
 		switch (result.data.cleanMissionStatus.phase)
@@ -298,6 +390,36 @@ def updateDevices() {
     }
 }
 
+// Notifcations
+def pushNow(msg, type) {
+    log.debug "entered push now - ${msg}, ${type}, ${pushovertts}"
+	if (pushovertts) {
+        fullMsg=null
+        switch(type) {
+            case "start":
+                if(pushoverStart) fullMsg = msg
+                break
+            case "stop":
+                if(pushoverStop) fullMsg = msg
+                break
+            case "resume":
+                if(pushoverResume) fullMsg = msg
+                break
+            case "pause":
+                if(pushoverPause) fullMsg = msg
+                break
+            case "dock":
+                if(pushoverDock) fullMsg = msg
+                break    
+        }
+        if(fullMsg!=null) {
+            if (logEnable) log.debug "Sending Pushover message. ${msg}"
+            pushoverdevice.deviceNotification("${fullMsg}")
+        }
+	}
+}
+
+// Handlers
 def handleStart(device, id) 
 {
     def result = executeAction("/api/local/action/start")
@@ -336,7 +458,7 @@ def handleDock(device, id)
 def executeAction(path) {
     if(doritaPort==null) def doritaPort="3000"
 	def params = [
-        uri: "http://${doritaIP}:${doritaPort}",
+        uri: "http://${doritaIP}:3000",
         path: "${path}",
 		contentType: "application/json"
 	]
@@ -350,8 +472,25 @@ def executeAction(path) {
 	}
 	catch (e) 
 	{
-		log.debug "HTTP Exception Received: $e"
+		log.error "Rest980 Server not available: $e"
 	}
 	return result
+}
+
+//Application Handlers
+def getImage(type) {
+    def loc = "<img src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/roomba.png'>"
+}
+
+def getFormat(type, myText=""){
+    if(type == "header-green") return "<div style='color:#ffffff;font-weight: bold;background-color:#1A7BC7;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
+    if(type == "line") return "\n<hr style='background-color:#1A77C9; height: 1px; border: 0;'></hr>"
+    if(type == "title") return "<h2 style='color:#1A77C9;font-weight: bold'>${myText}</h2>"
+}
+
+
+def logsOff(){
+    log.warn "Debug logging disabled."
+    app?.updateSetting("logEnable",[value:"false",type:"bool"])
 }
 
