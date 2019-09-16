@@ -45,7 +45,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "YouGotMailParentVersion"
-	state.version = "1.06"
+	state.version = "1.0.6"
     
     try {
         if(sendToAWSwitch && awDevice) {
