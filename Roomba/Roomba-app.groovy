@@ -400,8 +400,7 @@ def updateDevices() {
         state.cleaning = status
         device.sendEvent(name: "cleanStatus", value: status)
         
-        log.debug "state.cleaning : ${state.cleaning} - state.prevcleaning: ${state.prevcleaning} - state.notified: ${state.notified}"
-        
+               
         if(!state.cleaning.contains(state.prevcleaning) && !state.notifed) {
             state.prevcleaning = state.cleaning
             if(!state.notified && msg!=null) {
