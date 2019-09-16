@@ -32,6 +32,7 @@
  *
  *  Changes:
  *
+ *   1.0.4 - added presence to start/dock roomba
  *   1.0.3 - changed frequency polling based on Roomba event.  Also fixed Pushover notifications to occur no matter how Roomba events are changed
  *   1.0.2 - add ability for advanced scheduling multiple times per day
  *   1.0.1 - added ability for all WiFi enabled Roomba devices to be added and controlled
@@ -43,7 +44,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.0.3"
+	state.version = "1.0.4"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -93,7 +94,7 @@ def mainPage() {
             }
         }
         section(getFormat("header-green", " Cleaning Schedule")) { 
-            paragraph "<b>Note:</b> Roomba devices require at least 3 hours to have a full battery.  Consider this when scheduling multiple cleaning times in a day."
+            paragraph "Cleaning schedule must be set for at least <u>one day and one time</u>.<br><b>Note:</b> Roomba devices require at least 3 hours to have a full battery.  Consider this when scheduling multiple cleaning times in a day."
             input "schedDay", "enum", title: "Select which days to schedule cleaning:", required: true, multiple: true, submitOnChange: true,
                 options: [
 			        "1":	"Sunday",
@@ -143,7 +144,11 @@ def mainPage() {
                                                         input "day${i}", "time", title: "${proper} time:",required: true
                                                    }    
                                                 }
-        
+            input "usePresence", "bool", title: "Use presence to start/stop Roomba cleaning cycle?", defaultValue: false, submitOnChange: true
+            if(usePresence) {
+                input "roombaPresence", "capability.presenceSensor", title: "Choose presence device(s):", multiple: true, required: true, submitOnChange: true
+                 input "roombaPresenceDock", "bool", title: "Dock Roomba if any above presence devices arrives home?", defaultValue: false, submitonChange: true
+            }
         }
         section(getFormat("header-green", " Logging and Testing")) { }
             // ** App Watchdog Code **
@@ -163,7 +168,7 @@ def mainPage() {
         section() {
              	input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
-               // input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
+                //input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
             if(init) {
                 try {
                     initialize()
@@ -178,6 +183,7 @@ def mainPage() {
 }
 
 def initialize() {
+    if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
 	if(logEnable) log.debug "Initializing $app.label...unscheduling current jobs."
     unschedule()
     state.notified = false
@@ -185,7 +191,7 @@ def initialize() {
 	createChildDevices()
     getRoombaSchedule()
     RoombaScheduler()
-    schedule("0/30 * * * * ? *", updateDevices)
+    updateDevices()
     schedule("0 0 3 ? * * *", setVersion) 
     if (logEnable && logMinutes.toInteger() != 0) {
     if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
@@ -369,35 +375,35 @@ def updateDevices() {
         
 		def status = ""
         def msg = null
-		switch (result.data.cleanMissionStatus.phase)
-		{
+		switch (result.data.cleanMissionStatus.phase){
 			case "hmMidMsn":
 			case "hmPostMsn":
 			case "hmUsrDock":
-				status = "homing"
-                if(logEnable) log.debug "${device}'s homing.  Checking status in 30 seconds"
-                schedule("0 0/1 * * * ? *", updateDevices)
+				status = "docking"
+                if(logEnable) log.debug "${device}'s docking.  Checking status in 30 seconds"
+                runIn(30,updateDevices)
 				break
 			case "charge":
 				status = "charging"
                 if(logEnable) log.debug "${device}'s charging. Checking status in 2 minutes"
-                msg="${device} is stopped cleaning and is currently docked and charging."
-                schedule("0 0/2 * * * ? *", updateDevices)
+                msg="${device} is stopped cleaning and is currently docked and charging"
+                runIn(60*2,updateDevices)
 				break
 			case "run":
 				status = "cleaning"
                 if(logEnable) log.debug "${device}'s cleaning.  Checking status in 30 seconds"
                 msg="${device} has started cleaning"
-                schedule("0/30 * * * * ? *", updateDevices)
+                runIn(30,updateDevices)
 				break
 			case "stop":
 				status = "idle"
                 if(logEnable) log.debug "${device}'s stopped cleaning.  Checking status in 1 minute"
-                msg="${device} has stopped cleaning."
-                schedule("0 0/1 * * * ? *", updateDevices)
+                msg="${device} has stopped cleaning"
+                runin(60, updateDevices)
 				break		
 		}
         state.cleaning = status
+        
         device.sendEvent(name: "cleanStatus", value: status)
         
                
@@ -416,7 +422,6 @@ def updateDevices() {
 }
 
 def pushNow(msg) {
-    updateDevices()
 	if (pushovertts) {
             if (logEnable) log.debug "Sending Pushover message. ${msg}"
             pushoverdevice.deviceNotification("${msg}")
@@ -424,6 +429,30 @@ def pushNow(msg) {
 }
 
 // Handlers
+def presenceHandler(evt) {
+    def result = executeAction("/api/local/info/state")
+
+    if (result && result.data)
+    {
+        def device = getChildDevice("roomba:" + result.data.name)
+        def presence = false
+        if(roombaPresence.findAll { it?.currentPresence == "present"}) { presence = true }
+    
+        if(presence) {
+            if(result.data.cleanMissionStatus.phase.contains("run")) {
+                   device.stop()
+                   device.dock()
+            }
+        } else {
+            if(result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
+                device.stop()
+                device.start()
+            } else { device.start() }
+        }
+        updateDevices()
+    }
+}
+
 def handleStart(device, id) 
 {
     def result = executeAction("/api/local/action/start")
