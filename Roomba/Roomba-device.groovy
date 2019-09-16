@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.0.3 - moved all notifications back to app
  *   1.0.2 - modified how pushover works
  *   1.0.1 - added pushover notification capabilities
  *   1.0.0 - Inital concept from Dominick Meglio
@@ -54,7 +55,7 @@ metadata {
 
 def setVersion(){
     appName = "RoombaDriver"
-	version = "1.0.1" 
+	version = "1.0.3" 
     dwInfo = "${appName}:${version}"
     sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
 }
@@ -66,25 +67,20 @@ def updateVersion() {
 
 def start() {
     parent.handleStart(device, device.deviceNetworkId.split(":")[1])
-    parent.pushNow("${device} has started cleaning.")
 }
 
 def stop() {
     parent.handleStop(device, device.deviceNetworkId.split(":")[1])
-    parent.pushNow("${device} has stopped cleaning.")
 }
 
 def pause() {
     parent.handlePause(device, device.deviceNetworkId.split(":")[1])
-    parent.pushNow("${device} has paused cleaning.")
 }
 
 def resume() {
     parent.handleResume(device, device.deviceNetworkId.split(":")[1])
-    parent.pushNow("${device} has resumed cleaning.")
 }
 
 def dock() {
     parent.handleDock(device, device.deviceNetworkId.split(":")[1])
-    parent.pushNow("${device} has finished cleaning.")
 }
