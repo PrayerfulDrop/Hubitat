@@ -51,7 +51,7 @@ WantedBy=multi-user.target
 <li>sudo systemctl enable roomba.service</li>
 <li>sudo systemctl start roomba.service</li>
 <li>Test connectivity in browser tab: http://YOUR_RASPBERRY_PI:3000</li>
-<li>Response should be similar to: {"documentation":"https://github.com/koalazak/rest980","pong":"2019-09-13T12:13:36.408Z"}</li>       
+<li>Response should be similar to: <br>{"documentation":"htps://githubcom/koalazak/rest980","pong":"2019-09-13T12:13:36.408Z"}</li>       
   </ul><br>
   
 <b>Install Hubitat App and Driver:</b>
