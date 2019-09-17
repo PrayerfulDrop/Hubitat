@@ -88,33 +88,40 @@ def dock() {
     parent.handleDock(device, device.deviceNetworkId.split(":")[1])
 }
 
-def roombaTile(cleaning) {
+def roombaTile(cleaning, batterylevel) {
     def img = ""
     switch(cleaning) {
         case "cleaning":
             img = "roomba-clean.png"
+            msg=cleaning.capitalize()
             break
         case "stopped":
             img = "roomba-stop.png"
+            msg=cleaning.capitalize()
             break        
         case "charging":
             img = "roomba-charge.png"
+            msg=cleaning.capitalize()
             break        
         case "docking":
             img = "roombadock.png"
+            msg=cleaning.capitalize()
             break
         case "dead":
             img = "roomba-dead.png"
+            msg="Battery Died"
             break
         case "error":
             img = "roomba-error.png"
+            msg = cleaning.capitalize()
             break
         default:
             img = "roomba-stop.png"
+            msg=cleaning.capitalize()
             break
     }
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
-    roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${cleaning.capitalize()}</div>"
+    roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg} ${batterylevel}%</div>"
     sendEvent(name: "RoombaTile", value: roombaTile, displayed: true)
     log.debug "Roomba Cleaning Status displayed on dashboard"
 }
