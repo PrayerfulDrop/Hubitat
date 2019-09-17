@@ -30,6 +30,7 @@
  *
  *  Changes:
  *
+ *   1.0.6 - add all messages for dynamic dashboard tile
  *   1.0.5 - added bin full notifications, refined presence handler for additional cleaning scenarios, support for dynamic dashboard tile
  *   1.0.4 - added presence to start/dock roomba
  *   1.0.3 - changed frequency polling based on Roomba event.  Also fixed Pushover notifications to occur no matter how Roomba events are changed
@@ -43,7 +44,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.0.5"
+	state.version = "1.0.6"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -402,15 +403,27 @@ def updateDevices() {
                 runIn(30,updateDevices)
 				break
 			case "stop":
-				status = "stopped"
-                if(logEnable) log.debug "${device}'s stopped cleaning.  Checking status in 1 minute"
-                msg="${device} has stopped cleaning"
+                if(result.data.cleanMissionStatus.notReady.toInteger() == 0) {
+				    status = "idle"
+                    if(logEnable) log.debug "${device}'s stopped cleaning.  Checking status in 1 minute"
+                    msg="${device} has stopped cleaning"
+                } else if(result.data.cleanMissionStatus.notReady.toInteger() == 0 && result.data.batPct == 0) {
+                    status = "dead"
+                    if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
+                    msg="${device} has stopped cleaning because battery died"
+                } else {                
+                    status = "error"
+                    if(logEnable) log.debug "${device}'s stopped cleaning because it is stuck.  Checking status in 1 minute"
+                    msg="${device} has stopped cleaning because it is stuck"
+                }
                 runIn(60, updateDevices)
 				break		
 		}
         state.cleaning = status
         
         device.sendEvent(name: "cleanStatus", value: status)
+        if(logEnable) log.debug "Sending ${status} to ${device} dashboard tile"
+        device.roombaTile(state.cleaning)
         
         //if(logEnable) log.debug "BEFORE: state.cleaning = ${state.cleaning} : state.prevcleaning = ${state.prevcleaning} : state.notified=${state.notified}"  
         
@@ -418,8 +431,6 @@ def updateDevices() {
             state.prevcleaning = state.cleaning
             if(!state.notified && msg!=null) {
                 state.notified = true
-                if(logEnable) log.debug "Sending cleaning status to ${device} dashboard tile"
-                device.roombaTile(state.cleaning)
                 pushNow(msg)
 
             }
