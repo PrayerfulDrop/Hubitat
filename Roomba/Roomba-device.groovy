@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.0.4 - added dashboard tile updates
  *   1.0.3 - moved all notifications back to app
  *   1.0.2 - modified how pushover works
  *   1.0.1 - added pushover notification capabilities
@@ -44,6 +45,7 @@ metadata {
 		capability "Actuator"
         
         attribute "cleanStatus", "string"
+        attribute "RoombaTile", "string"
         
         command "start"
         command "stop"
@@ -83,4 +85,29 @@ def resume() {
 
 def dock() {
     parent.handleDock(device, device.deviceNetworkId.split(":")[1])
+}
+
+def roombaTile(cleaning) {
+    def img = ""
+    switch(cleaning) {
+        case "cleaning":
+            img = "roomba-clean.png"
+            break
+        case "stopped":
+            img = "roomba-stop.png"
+            break        
+        case "charging":
+            img = "roomba-charge.png"
+            break        
+        case "docking":
+            img = "roomba-clean.png"
+            break   
+        default:
+            img = "roomba-stop"
+            break
+    }
+    img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
+    roombaTile = "<center><img src=${img} border=0><br>${cleaning.capitalize()}</center>"
+    sendEvent(name: "RoombaTile", value: roombaTile, displayed: true)
+    log.debug "Roomba Cleaning Status displayed on dashboard"
 }
