@@ -12,8 +12,6 @@
  *  Copyright 2019 Aaron Ward
  *
  *  Special thanks to Dominick Meglio for creating the initial integration and giving me permission to use his code to create this application.
- *  
- *  This App is free and was designed for my needs originally but has grown for most needs too.
  *
  *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -22,7 +20,7 @@
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License
  *  for the specific language governing permissions and limitations under the License.
  *
  *
@@ -32,6 +30,7 @@
  *
  *  Changes:
  *
+ *   1.0.5 - added bin full notifications, refined presence handler for additional cleaning scenarios, support for dynamic dashboard tile
  *   1.0.4 - added presence to start/dock roomba
  *   1.0.3 - changed frequency polling based on Roomba event.  Also fixed Pushover notifications to occur no matter how Roomba events are changed
  *   1.0.2 - add ability for advanced scheduling multiple times per day
@@ -44,7 +43,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.0.4"
+	state.version = "1.0.5"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -90,6 +89,7 @@ def mainPage() {
                 input "pushoverPause", "bool", title: "Notifications when Roomba pauses cleaning?", required: false, defaultValue:false, submitOnChange: true 
                 input "pushoverStop", "bool", title: "Notifications when Roomba stops cleaning?", required: false, defaultValue:false, submitOnChange: true 
                 input "pushoverDock", "bool", title: "Notifications when Roomba docks?", required: false, defaultValue:false, submitOnChange: true 
+                input "pushoverBin", "bool", title: "Notifications when Roomba's bin is full?", required: false, defaultValue:false, submitOnChange: true 
 
             }
         }
@@ -147,7 +147,7 @@ def mainPage() {
             input "usePresence", "bool", title: "Use presence to start/stop Roomba cleaning cycle?", defaultValue: false, submitOnChange: true
             if(usePresence) {
                 input "roombaPresence", "capability.presenceSensor", title: "Choose presence device(s):", multiple: true, required: true, submitOnChange: true
-                 input "roombaPresenceDock", "bool", title: "Dock Roomba if any above presence devices arrives home?", defaultValue: false, submitonChange: true
+                 input "roombaPresenceDock", "bool", title: "Dock Roomba if someone arrives home?", defaultValue: false, submitonChange: true
             }
         }
         section(getFormat("header-green", " Logging and Testing")) { }
@@ -168,7 +168,7 @@ def mainPage() {
         section() {
              	input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
-                //input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
+                input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
             if(init) {
                 try {
                     initialize()
@@ -313,7 +313,7 @@ def RoombaScheduler() {
              }
          }
         }
-    if(logEnable) log.debug "Next scheduled cleaning: ${map[cleaningday]} ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}"       
+    log.debug "Next scheduled cleaning: ${map[cleaningday]} ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}"       
     schedule("0 ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('mm H')} ? * ${cleaningday} *", RoombaSchedStart) 
 }
 
@@ -368,10 +368,16 @@ def updateDevices() {
         device.sendEvent(name: "battery", value: result.data.batPct)
         if (!result.data.bin.present)
             device.sendEvent(name: "bin", value: "missing")
-        else if (result.data.bin.full)
+        else if (result.data.bin.full) {
             device.sendEvent(name: "bin", value: "full")
-        else
+            if(pushoverBin && state.bin) {
+                pushNow("Roomba's bin is full.")
+                state.bin = false
+            }
+        } else{
             device.sendEvent(name: "bin", value: "good")
+            state.bin = true
+        }
         
 		def status = ""
         def msg = null
@@ -396,34 +402,40 @@ def updateDevices() {
                 runIn(30,updateDevices)
 				break
 			case "stop":
-				status = "idle"
+				status = "stopped"
                 if(logEnable) log.debug "${device}'s stopped cleaning.  Checking status in 1 minute"
                 msg="${device} has stopped cleaning"
-                runin(60, updateDevices)
+                runIn(60, updateDevices)
 				break		
 		}
         state.cleaning = status
         
         device.sendEvent(name: "cleanStatus", value: status)
         
-               
+        //if(logEnable) log.debug "BEFORE: state.cleaning = ${state.cleaning} : state.prevcleaning = ${state.prevcleaning} : state.notified=${state.notified}"  
+        
         if(!state.cleaning.contains(state.prevcleaning) && !state.notifed) {
             state.prevcleaning = state.cleaning
             if(!state.notified && msg!=null) {
                 state.notified = true
+                if(logEnable) log.debug "Sending cleaning status to ${device} dashboard tile"
+                device.roombaTile(state.cleaning)
                 pushNow(msg)
+
             }
         } else {
             if(state.cleaning.contains(state.prevcleaning)) {
             state.notified = false
             }
         }
+        //if(logEnable) log.debug "AFTER: state.cleaning = ${state.cleaning} : state.prevcleaning = ${state.prevcleaning} : state.notified=${state.notified}"  
     }
 }
 
 def pushNow(msg) {
+    // If user selects Pushover notifications then send message
 	if (pushovertts) {
-            if (logEnable) log.debug "Sending Pushover message. ${msg}"
+            if (logEnable) log.debug "Sending Pushover message: ${msg}"
             pushoverdevice.deviceNotification("${msg}")
 	}
 }
@@ -439,16 +451,22 @@ def presenceHandler(evt) {
         if(roombaPresence.findAll { it?.currentPresence == "present"}) { presence = true }
     
         if(presence) {
+            // Presence is detected, Roomba is cleaning AND user chooses to have Roomba dock when someone is home
             if(result.data.cleanMissionStatus.phase.contains("run") && roombaPresenceDock) {
                    device.stop()
                    device.dock()
             }
         } else {
+            // Presence is away start cleaning schedule and variations
+            // Check if Roomba is docking, if so stop then start cleaning
             if(result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
                 device.stop()
                 device.start()
-            } else { device.start() }
+            }
+            // Check if Roomba is charging OR is stopped then start cleaning
+            if(result.data.cleanMissionStatus.phase.contains("charge") || result.data.cleanMissionStatus.phase.contains("stop")) device.start()
         }
+        //update status of Roomba
         updateDevices()
     }
 }
