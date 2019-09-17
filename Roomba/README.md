@@ -30,7 +30,7 @@ support for all WiFi enabled Roomba devices.</p>
       <li>Navigate back to ../rest980 root</li>
       <li>Type the following: DEBUG=rest980:* npm start</li>
       <li>In a new browser tab navigate to http://YOUR_RASPBERRY_PI:3000</li>
-      <li>Response should be similar to: {"documentation":"htps://github.c/koalazak/rest980","pong":"2019-09-13T12:13:36.408Z"}</li>       <li>CTRL-C to exit Rest980 app</li></ul>
+      <li>Response should be similar to: {"documentation":"htps://githubcom/koalazak/rest980","pong":"2019-09-13T12:13:36.408Z"}</li>       <li>CTRL-C to exit Rest980 app</li></ul>
 </ul><br>
     <b>Setting up Rest980 to run as a service:</b>
     <ul><li>sudo nano /etc/systemd/system/roomba.service</li>
