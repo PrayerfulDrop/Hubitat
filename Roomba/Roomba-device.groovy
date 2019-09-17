@@ -101,7 +101,7 @@ def roombaTile(cleaning) {
             img = "roomba-charge.png"
             break        
         case "docking":
-            img = "roomba-clean.png"
+            img = "roomba-dock.png"
             break
         case "dead":
             img = "roomba-dead.png"
