@@ -88,5 +88,14 @@ WantedBy=multi-user.target
   <li>Logging and Testing:<ul><li>AppWatchDog2 - this app is enabled to support App Watch Dog 2</li>
   <li>Enable Debug Logging - set timeout for debug logs to continously log.  0=forever</li></ul></li>
 </ul>  
+
+<b>Roomba Scheduler Dashboard Tile configuration:</b?
+  <b>note:</b> If your dashboards do not use all of your devices then you will need to go into your dashboard app and add your Roomba device.
+  <ul>
+  <li>Click "+" to add a new tile</li>
+  <li>Select your Roomba device</li>
+  <li>Template = attribute</li>
+  <li>Attribute = RoombaTile</li>
+  <ul>
     
       
