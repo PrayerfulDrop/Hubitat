@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.0.5 - added all possible tile outcomes (cleaning, docking, stopped, error, dead battery)
  *   1.0.4 - added dashboard tile updates
  *   1.0.3 - moved all notifications back to app
  *   1.0.2 - modified how pushover works
@@ -57,7 +58,7 @@ metadata {
 
 def setVersion(){
     appName = "RoombaDriver"
-	version = "1.0.3" 
+	version = "1.0.5" 
     dwInfo = "${appName}:${version}"
     sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
 }
@@ -101,13 +102,19 @@ def roombaTile(cleaning) {
             break        
         case "docking":
             img = "roomba-clean.png"
-            break   
+            break
+        case "dead":
+            img = "roomba-dead.png"
+            break
+        case "error":
+            img = "roomba-error.png"
+            break
         default:
-            img = "roomba-stop"
+            img = "roomba-stop.png"
             break
     }
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
-    roombaTile = "<center><img src=${img} border=0><br>${cleaning.capitalize()}</center>"
+    roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${cleaning.capitalize()}</div>"
     sendEvent(name: "RoombaTile", value: roombaTile, displayed: true)
     log.debug "Roomba Cleaning Status displayed on dashboard"
 }
