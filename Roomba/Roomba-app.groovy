@@ -423,7 +423,7 @@ def updateDevices() {
         
         device.sendEvent(name: "cleanStatus", value: status)
         if(logEnable) log.debug "Sending ${status} to ${device} dashboard tile"
-        device.roombaTile(state.cleaning)
+        device.roombaTile(state.cleaning, result.data.batPct)
         
         //if(logEnable) log.debug "BEFORE: state.cleaning = ${state.cleaning} : state.prevcleaning = ${state.prevcleaning} : state.notified=${state.notified}"  
         
