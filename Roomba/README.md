@@ -18,7 +18,7 @@ support for all WiFi enabled Roomba devices.</p>
 <b>Rest980 Configuration (recommended to have two SSH windows open):</b>
 <ul>
   <li>[SSH Window #1] Edit ../rest980/config/default.json</li>
-  <li>[SSH Window #2]get-roomba-password <YOUR_ROOMBA_IP_ADDRESS>
+  <li>[SSH Window #2]get-roomba-password YOUR_ROOMBA_IP_ADDRESS
   <ul><li>On your Roomba device that is on the Home Base and powered on, press and hold your Roomba's Home button for at least two seconds until you hear a beep or a series of tones</li>
   <li>Press and key in the SSH Windows #2 to continue</li></ul>
   <li>Copy "blid" and past into [SSH Window #1] for <b>blid</b></li>
