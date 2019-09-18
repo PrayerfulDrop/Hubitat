@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.0.6 - cleaning duration
  *   1.0.5 - added all possible tile outcomes (cleaning, docking, stopped, error, dead battery)
  *   1.0.4 - added dashboard tile updates
  *   1.0.3 - moved all notifications back to app
@@ -88,7 +89,7 @@ def dock() {
     parent.handleDock(device, device.deviceNetworkId.split(":")[1])
 }
 
-def roombaTile(cleaning, batterylevel) {
+def roombaTile(cleaning, batterylevel, cleaningTime) {
     def img = ""
     switch(cleaning) {
         case "cleaning":
@@ -121,7 +122,8 @@ def roombaTile(cleaning, batterylevel) {
             break
     }
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
-    roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg}<br>Battery: ${batterylevel}%</div>"
+    if(cleaningTime.toInteger()>0) roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg} - ${cleaningTime}min<br>Battery: ${batterylevel}%</div>"
+    else roombaTile = "<div style=font-size:11px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg}<br>Battery: ${batterylevel}%</div>"
     sendEvent(name: "RoombaTile", value: roombaTile, displayed: true)
     log.debug "Roomba Cleaning Status displayed on dashboard"
 }
