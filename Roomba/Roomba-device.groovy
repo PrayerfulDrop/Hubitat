@@ -121,7 +121,7 @@ def roombaTile(cleaning, batterylevel) {
             break
     }
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
-    roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg} ${batterylevel}%</div>"
+    roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg}<br>Battery: ${batterylevel}%</div>"
     sendEvent(name: "RoombaTile", value: roombaTile, displayed: true)
     log.debug "Roomba Cleaning Status displayed on dashboard"
 }
