@@ -393,7 +393,7 @@ def updateDevices() {
 			case "charge":
 				status = "charging"
                 if(logEnable) log.debug "${device}'s charging. Checking status in 2 minutes"
-                msg="${device} is stopped cleaning and is currently docked and charging"
+                msg="${device} has stopped cleaning and is docked and charging"
                 runIn(60*2,updateDevices)
 				break
 			case "run":
