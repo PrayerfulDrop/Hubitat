@@ -30,6 +30,7 @@
  *
  *  Changes:
  *
+ *   1.0.7 - add duration for dashboard tile, minor grammar fixes
  *   1.0.6 - add all messages for dynamic dashboard tile
  *   1.0.5 - added bin full notifications, refined presence handler for additional cleaning scenarios, support for dynamic dashboard tile
  *   1.0.4 - added presence to start/dock roomba
@@ -44,7 +45,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.0.6"
+	state.version = "1.0.7"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -372,7 +373,7 @@ def updateDevices() {
         else if (result.data.bin.full) {
             device.sendEvent(name: "bin", value: "full")
             if(pushoverBin && state.bin) {
-                pushNow("Roomba's bin is full.")
+                pushNow("${device}'s bin is full.")
                 state.bin = false
             }
         } else{
@@ -423,23 +424,19 @@ def updateDevices() {
         
         device.sendEvent(name: "cleanStatus", value: status)
         if(logEnable) log.debug "Sending ${status} to ${device} dashboard tile"
-        device.roombaTile(state.cleaning, result.data.batPct)
-        
-        //if(logEnable) log.debug "BEFORE: state.cleaning = ${state.cleaning} : state.prevcleaning = ${state.prevcleaning} : state.notified=${state.notified}"  
+        device.roombaTile(state.cleaning, result.data.batPct, result.data.cleanMissionStatus.mssnM)
         
         if(!state.cleaning.contains(state.prevcleaning) && !state.notifed) {
             state.prevcleaning = state.cleaning
             if(!state.notified && msg!=null) {
                 state.notified = true
                 pushNow(msg)
-
             }
         } else {
             if(state.cleaning.contains(state.prevcleaning)) {
             state.notified = false
             }
-        }
-        //if(logEnable) log.debug "AFTER: state.cleaning = ${state.cleaning} : state.prevcleaning = ${state.prevcleaning} : state.notified=${state.notified}"  
+        } 
     }
 }
 
