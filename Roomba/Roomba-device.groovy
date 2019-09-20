@@ -32,7 +32,7 @@
  *
  *  Changes:
  *       
- *   1.0.7 - added battery died ability
+ *   1.0.7 - added battery died notifcations
  *   1.0.6 - cleaning duration
  *   1.0.5 - added all possible tile outcomes (cleaning, docking, stopped, error, dead battery)
  *   1.0.4 - added dashboard tile updates
