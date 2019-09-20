@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.0.7 - added battery died ability
  *   1.0.6 - cleaning duration
  *   1.0.5 - added all possible tile outcomes (cleaning, docking, stopped, error, dead battery)
  *   1.0.4 - added dashboard tile updates
@@ -59,7 +60,7 @@ metadata {
 
 def setVersion(){
     appName = "RoombaDriver"
-	version = "1.0.5" 
+	version = "1.0.7" 
     dwInfo = "${appName}:${version}"
     sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
 }
@@ -123,7 +124,7 @@ def roombaTile(cleaning, batterylevel, cleaningTime) {
     }
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
     if(cleaning.contains("docking") || cleaning.contains("cleaning")) roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg} - ${cleaningTime}min<br>Battery: ${batterylevel}%</div>"
-    else roombaTile = "<div style=font-size:11px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg}<br>Battery: ${batterylevel}%</div>"
+    else roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg}<br>Battery: ${batterylevel}%</div>"
     sendEvent(name: "RoombaTile", value: roombaTile, displayed: true)
     log.debug "Roomba Cleaning Status displayed on dashboard"
 }
