@@ -189,8 +189,8 @@ def initialize() {
     if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
 	if(logEnable) log.debug "Initializing $app.label...unscheduling current jobs."
     unschedule()
-    if(state.notified==null) state.notified = false
-    if(state.batterydead==null) state.batterydead = false
+    state.notified = false
+    state.batterydead = false
     cleanupChildDevices()
 	createChildDevices()
     getRoombaSchedule()
