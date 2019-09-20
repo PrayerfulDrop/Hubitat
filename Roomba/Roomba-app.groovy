@@ -30,6 +30,7 @@
  *
  *  Changes:
  *
+ *   1.0.8 - determine if Roomba battery has died during docking
  *   1.0.7 - add duration for dashboard tile, minor grammar fixes
  *   1.0.6 - add all messages for dynamic dashboard tile
  *   1.0.5 - added bin full notifications, refined presence handler for additional cleaning scenarios, support for dynamic dashboard tile
@@ -45,7 +46,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.0.7"
+	state.version = "1.0.8"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -188,7 +189,8 @@ def initialize() {
     if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
 	if(logEnable) log.debug "Initializing $app.label...unscheduling current jobs."
     unschedule()
-    state.notified = false
+    if(state.notified==null) state.notified = false
+    if(state.batterydead==null) state.batterydead = false
     cleanupChildDevices()
 	createChildDevices()
     getRoombaSchedule()
@@ -387,9 +389,26 @@ def updateDevices() {
 			case "hmMidMsn":
 			case "hmPostMsn":
 			case "hmUsrDock":
-				status = "docking"
-                if(logEnable) log.debug "${device}'s docking.  Checking status in 30 seconds"
-                runIn(30,updateDevices)
+                if(result.data.cleanMissionStatus.notReady.toInteger() == 0 && result.data.batPct == 0 && !state.batterydead) {
+                    state.batterydead = true
+                    status = "dead"
+                    if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
+                    msg="${device} has stopped cleaning because battery has died"
+                    pushNow(msg)
+                    runIn(60,updateDevices)
+                } else { 
+                    if(result.data.cleanMissionStatus.notReady.toInteger() == 0 && result.data.batPct == 0) {
+                        status = "dead"
+                        if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
+                        msg="${device} has stopped cleaning because battery has died"
+                        runIn(60,updateDevices)
+                    } else {                    
+                        state.batterydead = false 
+				        status = "docking"                        
+                        if(logEnable) log.debug "${device}'s docking.  Checking status in 30 seconds"
+                        runIn(30,updateDevices)
+                }
+                }
 				break
 			case "charge":
 				status = "charging"
@@ -408,10 +427,6 @@ def updateDevices() {
 				    status = "idle"
                     if(logEnable) log.debug "${device}'s stopped cleaning.  Checking status in 1 minute"
                     msg="${device} has stopped cleaning"
-                } else if(result.data.cleanMissionStatus.notReady.toInteger() == 0 && result.data.batPct == 0) {
-                    status = "dead"
-                    if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
-                    msg="${device} has stopped cleaning because battery died"
                 } else {                
                     status = "error"
                     if(logEnable) log.debug "${device}'s stopped cleaning because it is stuck.  Checking status in 1 minute"
@@ -551,4 +566,3 @@ def logsOff(){
     log.warn "Debug logging disabled."
     app?.updateSetting("logEnable",[value:"false",type:"bool"])
 }
-
