@@ -401,7 +401,7 @@ def updateDevices() {
                         status = "dead"
                         if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
                         msg="${device} has stopped cleaning because battery has died"
-                        state.batterydead = false 
+                        state.batterydead = true 
                         runIn(60,updateDevices)
                     } else {                    
                         state.batterydead = false 
@@ -415,6 +415,7 @@ def updateDevices() {
 				status = "charging"
                 if(logEnable) log.debug "${device}'s charging. Checking status in 2 minutes"
                 msg="${device} has stopped cleaning and is docked and charging"
+                state.batterydead = false 
                 runIn(60*2,updateDevices)
 				break
 			case "run":
