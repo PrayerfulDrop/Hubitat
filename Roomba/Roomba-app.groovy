@@ -30,6 +30,7 @@
  *
  *  Changes:
  *
+ *   1.0.9 - ability to set Roomba 900+ device settings, advanced docking options for non-900+ devices
  *   1.0.8 - determine if Roomba battery has died during docking
  *   1.0.7 - add duration for dashboard tile, minor grammar fixes
  *   1.0.6 - add all messages for dynamic dashboard tile
@@ -46,7 +47,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.0.8"
+	state.version = "1.0.9"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -151,6 +152,31 @@ def mainPage() {
             if(usePresence) {
                 input "roombaPresence", "capability.presenceSensor", title: "Choose presence device(s):", multiple: true, required: true, submitOnChange: true
                  input "roombaPresenceDock", "bool", title: "Dock Roomba if someone arrives home?", defaultValue: false, submitonChange: true
+            }
+        }
+        section(getFormat("header-green", " Advanced Options")) {
+            paragraph "Roomba models below 900 series do not have the ability to find docking station prior to battery dying.  Options below enable similar functionality."
+            input "useTime", "bool", title: "Limit Roomba's cleaning time?", defaultValue: false, submitOnChange: true
+            if(useTime) input "roombaLimitTime", "text", title: "How many minutes to run?", defaultValue: "60", required: false, submitOnChange: true
+            input "useBattery", "bool", title: "Have Roomba dock based on battery percentage?", defaultValue: false, submitOnChange: true
+            if(useBattery) input "roombaBattery", "text", title: "What percent to have Roomba begin docking?", defaultValue: "20", required: false, submitOnChange: true
+            paragraph "<hr><u>Settings for Roomba 900+ series devices - See <a href=http://${doritaIP}:3000/map target=_blank>Roomba Cleaning Map</a></u>"
+            input "roomba900", "bool", title: "Configure 900+ options?", defaultValue: false, submitOnChange: true
+            if(roomba900){
+                input "roombacarpetBoost", "enum", title: "Select Carpet Boost option:", required: false, multiple: false, defaultValue: "auto", submitOnChange: true,
+                options: [
+			        "auto":	"Auto",
+                    "performance":	"Performance",
+                    "eco":	"Eco"
+                ] 
+                input "roombaedgeClean", "bool", title: "Set Edge Cleaning (On/Off):", defaultValue: false, submitOnChange: true
+                input "roombacleaningPasses", "enum", title: "Select Cleaning Passes option:", required: false, multiple: false, defaultValue: "auto", submitOnChange: true,
+                options: [
+			        "auto":	"Auto",
+                    "one":	"Pass Once",
+                    "two":	"Pass Twice"
+                ]                 
+                input "roombaalwaysFinish", "bool", title: "Set Always Finish Option (On/Off):", defaultValue: false, submitOnChange: true                
             }
         }
         section(getFormat("header-green", " Logging and Testing")) { }
@@ -423,6 +449,15 @@ def updateDevices() {
                 if(logEnable) log.debug "${device}'s cleaning.  Checking status in 30 seconds"
                 msg="${device} has started cleaning"
                 runIn(30,updateDevices)
+                //control Roomba docking based on Time or Battery %
+                if(useTime && roombaTime.toInteger() >= result.data.cleanMissionStatus.mssnM.toInteger()) {
+                        device.stop()
+                        device.dock()
+                }
+                if(useBattery && roombaBattery.toInteger() <= result.data.batPct.toInteger()) {
+                        device.stop()
+                        device.dock()
+                }                    
 				break
 			case "stop":
                 if(result.data.cleanMissionStatus.notReady.toInteger() == 0) {
@@ -498,6 +533,18 @@ def presenceHandler(evt) {
 
 def handleStart(device, id) 
 {
+    if(roomba900) {
+        def aresult = executeAction("/api/local/config/carpetBoost/${roombacarpetBoost}")
+                
+        if(roombaedgeClean) aresult = executeAction("/api/local/config/edgeClean/on")
+        else aresult = executeAction("/api/local/config/edgeClean/off")
+        
+        aresult = executeAction("/api/local/config/cleaningPasses/${roombacleaningPasses}")
+        
+        if(roombaalwaysFinish) aresult = executeAction("/api/local/config/alwaysFinish/on")
+        else aresult = executeAction("/api/local/config/alwaysFinish/off")
+        
+    }
     def result = executeAction("/api/local/action/start")
     if (result.data.success == "null")
         device.sendEvent(name: "cleanStatus", value: "cleaning")
@@ -547,7 +594,11 @@ def executeAction(path) {
 	}
 	catch (e) 
 	{
-		log.error "Rest980 Server not available: $e"
+        if(path.contains("carpetBoost")) log.warn "Roomba device does not support Carpet Boost options" 
+        else if(path.contains("edgeClean")) log.warn "Roomba device does not support Edge Clean options" 
+        else if(path.contains("cleaningPasses")) log.warn "Roomba device does not support Cleaning Passes options" 
+        else if(path.contains("alwaysFinish")) log.warn "Roomba device does not support Always Finish options" 
+        else if(path.contains("state")) log.error "Rest980 Server not available: $e"
 	}
 	return result
 }
