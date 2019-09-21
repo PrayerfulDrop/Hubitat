@@ -32,7 +32,8 @@
  *
  *  Changes:
  *       
- *   1.0.7 - added battery died notifcations
+ *   1.0.8 - added logging option
+ *   1.0.7 - added battery died notifications
  *   1.0.6 - cleaning duration
  *   1.0.5 - added all possible tile outcomes (cleaning, docking, stopped, error, dead battery)
  *   1.0.4 - added dashboard tile updates
@@ -56,11 +57,14 @@ metadata {
         command "resume"
         command "dock"
     }
+    preferences() {
+        input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
+    }
 }
 
 def setVersion(){
     appName = "RoombaDriver"
-	version = "1.0.7" 
+	version = "1.0.8" 
     dwInfo = "${appName}:${version}"
     sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
 }
@@ -72,22 +76,27 @@ def updateVersion() {
 
 def start() {
     parent.handleStart(device, device.deviceNetworkId.split(":")[1])
+    if(logEnable) log.debug "Roomba is being started through driver"
 }
 
 def stop() {
     parent.handleStop(device, device.deviceNetworkId.split(":")[1])
+    if(logEnable) log.debug "Roomba is being stopped through driver"
 }
 
 def pause() {
     parent.handlePause(device, device.deviceNetworkId.split(":")[1])
+    if(logEnable) log.debug "Roomba is being paused through driver"
 }
 
 def resume() {
     parent.handleResume(device, device.deviceNetworkId.split(":")[1])
+    if(logEnable) log.debug "Roomba is resuming through driver"
 }
 
 def dock() {
     parent.handleDock(device, device.deviceNetworkId.split(":")[1])
+    if(logEnable) log.debug "Roomba is being docked through driver"
 }
 
 def roombaTile(cleaning, batterylevel, cleaningTime) {
@@ -126,5 +135,5 @@ def roombaTile(cleaning, batterylevel, cleaningTime) {
     if(cleaning.contains("docking") || cleaning.contains("cleaning")) roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg} - ${cleaningTime}min<br>Battery: ${batterylevel}%</div>"
     else roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg}<br>Battery: ${batterylevel}%</div>"
     sendEvent(name: "RoombaTile", value: roombaTile, displayed: true)
-    log.debug "Roomba Cleaning Status displayed on dashboard"
+    if(logEnable) log.debug "Roomba Status of '${msg}' sent to dashboard"
 }
