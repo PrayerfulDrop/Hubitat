@@ -454,7 +454,7 @@ def updateDevices() {
                         device.stop()
                         device.dock()
                 }
-                if(useBattery && roombaBattery.toInteger() <= result.data.batPct.toInteger()) {
+                if(useBattery && roombaBattery.toInteger() >= result.data.batPct.toInteger()) {
                         device.stop()
                         device.dock()
                 }                    
