@@ -30,6 +30,7 @@
  *
  *  Changes:
  *
+ *   1.1.0 - fixed global variables not being set
  *   1.0.9 - ability to set Roomba 900+ device settings, advanced docking options for non-900+ devices
  *   1.0.8 - determine if Roomba battery has died during docking
  *   1.0.7 - add duration for dashboard tile, minor grammar fixes
@@ -47,7 +48,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.0.9"
+	state.version = "1.1.0"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -197,7 +198,7 @@ def mainPage() {
         section() {
              	input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
-               // input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
+            //    input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
             if(init) {
                 try {
                     initialize()
@@ -215,8 +216,6 @@ def initialize() {
     if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
 	if(logEnable) log.debug "Initializing $app.label...unscheduling current jobs."
     unschedule()
-    if(state.notified==null) state.notified = false
-    if(state.batterydead==null) state.batterydead = false
     cleanupChildDevices()
 	createChildDevices()
     getRoombaSchedule()
@@ -389,6 +388,11 @@ def cleanupChildDevices()
 }
 
 def updateDevices() {
+    // Ensure variables are set
+    if(state.prevcleaning==null) state.prevcleaning = "settings"
+    if(state.notified==null) state.notified = false
+    if(state.batterydead==null) state.batterydead = false
+    
     def result = executeAction("/api/local/info/state")
     
     if (result && result.data)
@@ -421,19 +425,19 @@ def updateDevices() {
                     if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
                     msg="${device} has stopped cleaning because battery has died"
                     pushNow(msg)
-                    runIn(60,updateDevices)
+                    checktime = 60
                 } else { 
                     if(result.data.cleanMissionStatus.notReady.toInteger() == 0 && result.data.batPct == 0) {
                         status = "dead"
                         if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
                         msg="${device} has stopped cleaning because battery has died"
                         state.batterydead = true 
-                        runIn(60,updateDevices)
+                        checktime = 60
                     } else {                    
                         state.batterydead = false 
 				        status = "docking"                        
                         if(logEnable) log.debug "${device}'s docking.  Checking status in 30 seconds"
-                        runIn(30,updateDevices)
+                        checktime = 30
                 }
                 }
 				break
@@ -442,13 +446,13 @@ def updateDevices() {
                 if(logEnable) log.debug "${device}'s charging. Checking status in 2 minutes"
                 msg="${device} has stopped cleaning and is docked and charging"
                 state.batterydead = false 
-                runIn(60*2,updateDevices)
+                checktime = 120
 				break
 			case "run":
 				status = "cleaning"
                 if(logEnable) log.debug "${device}'s cleaning.  Checking status in 30 seconds"
                 msg="${device} has started cleaning"
-                runIn(30,updateDevices)
+                state.batterydead = false
                 //control Roomba docking based on Time or Battery %
                 if(useTime && roombaTime.toInteger() >= result.data.cleanMissionStatus.mssnM.toInteger()) {
                         device.stop()
@@ -457,7 +461,8 @@ def updateDevices() {
                 if(useBattery && roombaBattery.toInteger() >= result.data.batPct.toInteger()) {
                         device.stop()
                         device.dock()
-                }                    
+                }     
+                checktime = 30
 				break
 			case "stop":
                 if(result.data.cleanMissionStatus.notReady.toInteger() == 0) {
@@ -467,16 +472,19 @@ def updateDevices() {
                 } else {                
                     status = "error"
                     if(logEnable) log.debug "${device}'s stopped cleaning because it is stuck.  Checking status in 1 minute"
-                    msg="${device} has stopped cleaning because it is stuck"
+                    msg="${device} has stopped cleaning because of an error"
                 }
-                runIn(60, updateDevices)
+                checktime = 60
 				break		
 		}
+        runIn(checktime, updateDevices)
         state.cleaning = status
         
         device.sendEvent(name: "cleanStatus", value: status)
         if(logEnable) log.debug "Sending ${status} to ${device} dashboard tile"
         device.roombaTile(state.cleaning, result.data.batPct, result.data.cleanMissionStatus.mssnM)
+        
+        if(logEnable) log.trace "state.cleaning: ${state.cleaning} - state.prevcleaning: ${state.prevcleaning} - state.notified: ${state.notified}"
         
         if(!state.cleaning.contains(state.prevcleaning) && !state.notifed) {
             state.prevcleaning = state.cleaning
@@ -546,36 +554,36 @@ def handleStart(device, id)
         
     }
     def result = executeAction("/api/local/action/start")
-    if (result.data.success == "null")
-        device.sendEvent(name: "cleanStatus", value: "cleaning")
+    //if (result.data.success == "null")
+    //    device.sendEvent(name: "cleanStatus", value: "cleaning")
 }
 
 def handleStop(device, id) 
 {
     def result = executeAction("/api/local/action/stop")
-    if (result.data.success == "null")
-        device.sendEvent(name: "cleanStatus", value: "idle")
+    //if (result.data.success == "null")
+    //    device.sendEvent(name: "cleanStatus", value: "idle")
 }
 
 def handlePause(device, id) 
 {
     def result = executeAction("/api/local/action/pause")
-    if (result.data.success == "null")
-        device.sendEvent(name: "cleanStatus", value: "idle")
+   // if (result.data.success == "null")
+   //     device.sendEvent(name: "cleanStatus", value: "idle")
 }
 
 def handleResume(device, id) 
 {
     def result = executeAction("/api/local/action/resume")
-    if (result.data.success == "null")
-        device.sendEvent(name: "cleanStatus", value: "cleaning")
+    //if (result.data.success == "null")
+    //    device.sendEvent(name: "cleanStatus", value: "cleaning")
 }
 
 def handleDock(device, id) 
 {
     def result = executeAction("/api/local/action/dock")
-	if (result.data.success == "null")
-        device.sendEvent(name: "cleanStatus", value: "homing")
+	//if (result.data.success == "null")
+    //device.sendEvent(name: "cleanStatus", value: "homing")
 }
 
 def executeAction(path) {
