@@ -392,6 +392,7 @@ def updateDevices() {
     if(state.prevcleaning==null) state.prevcleaning = "settings"
     if(state.notified==null) state.notified = false
     if(state.batterydead==null) state.batterydead = false
+    if(state.bin==null) state.bin = true
     
     def result = executeAction("/api/local/info/state")
     
