@@ -29,7 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *
+ *   1.1.1 - fixed notification options to respect user choice for what is notified
  *   1.1.0 - fixed global variables not being set
  *   1.0.9 - ability to set Roomba 900+ device settings, advanced docking options for non-900+ devices
  *   1.0.8 - determine if Roomba battery has died during docking
@@ -48,7 +48,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.1.0"
+	state.version = "1.1.1"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -90,16 +90,17 @@ def mainPage() {
              if(pushovertts == true) {
                 input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true
                 input "pushoverStart", "bool", title: "Notifications when Roomba starts cleaning?", required: false, defaultValue:false, submitOnChange: true 
-                input "pushoverResume", "bool", title: "Notifications when Roomba resumes cleaning?", required: false, defaultValue:false, submitOnChange: true 
-                input "pushoverPause", "bool", title: "Notifications when Roomba pauses cleaning?", required: false, defaultValue:false, submitOnChange: true 
                 input "pushoverStop", "bool", title: "Notifications when Roomba stops cleaning?", required: false, defaultValue:false, submitOnChange: true 
-                input "pushoverDock", "bool", title: "Notifications when Roomba docks?", required: false, defaultValue:false, submitOnChange: true 
+                input "pushoverDock", "bool", title: "Notifications when Roomba docks and is charging?", required: false, defaultValue:false, submitOnChange: true 
+                paragraph "<hr>"
                 input "pushoverBin", "bool", title: "Notifications when Roomba's bin is full?", required: false, defaultValue:false, submitOnChange: true 
+                input "pushoverError", "bool", title: "Notifications when Roomba has an error?", required: false, defaultValue:false, submitOnChange: true 
+                input "pushoverDead", "bool", title: "Notifications when Roomba's Battery dies?", required: false, defaultValue:false, submitOnChange: true 
 
             }
         }
         section(getFormat("header-green", " Cleaning Schedule")) { 
-            paragraph "Cleaning schedule must be set for at least <u>one day and one time</u>.<br><b>Note:</b> Roomba devices require at least 3 hours to have a full battery.  Consider this when scheduling multiple cleaning times in a day."
+            paragraph "Cleaning schedule must be set for at least <u>one day and one time</u>.<br><b>Note:</b> Roomba devices require at least 2 hours to have a full battery.  Consider this when scheduling multiple cleaning times in a day."
             input "schedDay", "enum", title: "Select which days to schedule cleaning:", required: true, multiple: true, submitOnChange: true,
                 options: [
 			        "1":	"Sunday",
@@ -156,7 +157,7 @@ def mainPage() {
             }
         }
         section(getFormat("header-green", " Advanced Options")) {
-            paragraph "Roomba models below 900 series do not have the ability to find docking station prior to battery dying.  Options below enable similar functionality."
+            paragraph "Roomba models below 900+ series do not have the ability to find a docking station prior to the battery dying.  Options below provide similar functionality or at least a better chance for Roomba to dock before dying."
             input "useTime", "bool", title: "Limit Roomba's cleaning time?", defaultValue: false, submitOnChange: true
             if(useTime) input "roombaLimitTime", "text", title: "How many minutes to run?", defaultValue: "60", required: false, submitOnChange: true
             input "useBattery", "bool", title: "Have Roomba dock based on battery percentage?", defaultValue: false, submitOnChange: true
@@ -421,23 +422,25 @@ def updateDevices() {
 			case "hmPostMsn":
 			case "hmUsrDock":
                 if(result.data.cleanMissionStatus.notReady.toInteger() == 0 && result.data.batPct == 0 && !state.batterydead) {
-                    state.batterydead = true
                     status = "dead"
                     if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
-                    msg="${device} has stopped cleaning because battery has died"
-                    pushNow(msg)
+                    if(pushoverDead) {
+                        msg="${device} has stopped cleaning because battery has died"
+                        pushNow(msg)
+                    }
+                    state.batterydead = true
                     checktime = 60
                 } else { 
                     if(result.data.cleanMissionStatus.notReady.toInteger() == 0 && result.data.batPct == 0) {
                         status = "dead"
                         if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
-                        msg="${device} has stopped cleaning because battery has died"
+                        if(pushoverDead) msg="${device} has stopped cleaning because battery has died"
                         state.batterydead = true 
                         checktime = 60
                     } else {                    
-                        state.batterydead = false 
 				        status = "docking"                        
                         if(logEnable) log.debug "${device}'s docking.  Checking status in 30 seconds"
+                        state.batterydead = false 
                         checktime = 30
                 }
                 }
@@ -445,14 +448,14 @@ def updateDevices() {
 			case "charge":
 				status = "charging"
                 if(logEnable) log.debug "${device}'s charging. Checking status in 2 minutes"
-                msg="${device} has stopped cleaning and is docked and charging"
+                if(pushoverDock) msg="${device} has stopped cleaning and is docked and charging"
                 state.batterydead = false 
                 checktime = 120
 				break
 			case "run":
 				status = "cleaning"
                 if(logEnable) log.debug "${device}'s cleaning.  Checking status in 30 seconds"
-                msg="${device} has started cleaning"
+                if(pushoverStart) msg="${device} has started cleaning"
                 state.batterydead = false
                 //control Roomba docking based on Time or Battery %
                 if(useTime && roombaTime.toInteger() >= result.data.cleanMissionStatus.mssnM.toInteger()) {
@@ -469,11 +472,11 @@ def updateDevices() {
                 if(result.data.cleanMissionStatus.notReady.toInteger() == 0) {
 				    status = "idle"
                     if(logEnable) log.debug "${device}'s stopped cleaning.  Checking status in 1 minute"
-                    msg="${device} has stopped cleaning"
+                    if(pushoverStop) msg="${device} has stopped cleaning"
                 } else {                
                     status = "error"
                     if(logEnable) log.debug "${device}'s stopped cleaning because it is stuck.  Checking status in 1 minute"
-                    msg="${device} has stopped cleaning because of an error"
+                    if(pushoverError) msg="${device} has stopped cleaning because of an error"
                 }
                 checktime = 60
 				break		
