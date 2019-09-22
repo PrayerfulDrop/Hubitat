@@ -65,7 +65,7 @@ metadata {
 
 def setVersion(){
     appName = "RoombaDriver"
-	version = "1.0.8" 
+	version = "1.0.9" 
     dwInfo = "${appName}:${version}"
     sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
 }
