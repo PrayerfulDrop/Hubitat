@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.0.9 - error in namespace preventing creation of adding device
  *   1.0.8 - added logging option
  *   1.0.7 - added battery died notifications
  *   1.0.6 - cleaning duration
@@ -43,7 +44,7 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 metadata {
-    definition (name: "Roomba", namespace: "aaronward", author: "Aaron Ward", importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy") {
+    definition (name: "Roomba", namespace: "roomba", author: "Aaron Ward", importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy") {
 		capability "Battery"
         capability "Consumable"
 		capability "Actuator"
