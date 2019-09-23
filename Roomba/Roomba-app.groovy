@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.2 - fixed dead battery logic, added Roomba information page, added specific error codes to notifications, setup and config error checking
  *   1.1.1 - fixed notification options to respect user choice for what is notified
  *   1.1.0 - fixed global variables not being set
  *   1.0.9 - ability to set Roomba 900+ device settings, advanced docking options for non-900+ devices
@@ -48,7 +49,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.1.1"
+	state.version = "1.1.2"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -72,6 +73,7 @@ definition(
 
 preferences {
 	page name: "mainPage", title: "", install: true, uninstall: true
+    page name: "pageroombaInfo", title: "", install: false, uninstall: false, nextPage: "mainPage"
 }
 
 def mainPage() {
@@ -80,11 +82,12 @@ def mainPage() {
 				paragraph "<div style='color:#1A77C9'>This application provides Roomba local integration and advanced scheduling.</div>"
 			}
 
-        section(getFormat("header-green", " Rest980/Dorita980 Integration")){
+        section(getFormat("header-green", " Rest980/Dorita980 Integration:")){
 			input "doritaIP", "text", title: "Rest980 Server IP Address:", description: "Rest980 Server IP Address:", required: true, submitOnChange: true
 			//input "doritaPort", "number", title: "Dorita Port", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535"
+            if(state.roombaName!=null && state.roombaName.length() > 0) { href "pageroombaInfo", title: "Information about Roomba: ${state.roombaName}" }
 		}
-        section(getFormat("header-green", " Notification Device(s)")) {
+        section(getFormat("header-green", " Notification Device(s):")) {
 		    // PushOver Devices
 		     input "pushovertts", "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true 
              if(pushovertts == true) {
@@ -99,7 +102,7 @@ def mainPage() {
 
             }
         }
-        section(getFormat("header-green", " Cleaning Schedule")) { 
+        section(getFormat("header-green", " Cleaning Schedule:")) { 
             paragraph "Cleaning schedule must be set for at least <u>one day and one time</u>.<br><b>Note:</b> Roomba devices require at least 2 hours to have a full battery.  Consider this when scheduling multiple cleaning times in a day."
             input "schedDay", "enum", title: "Select which days to schedule cleaning:", required: true, multiple: true, submitOnChange: true,
                 options: [
@@ -113,7 +116,7 @@ def mainPage() {
                 ] 
             input "timeperday", "text", title: "Number of times per day to clean:", required: true, defaultValue: "1", submitOnChange:true
             if(timeperday==null) timeperday="1"
-            if(timeperday.toInteger()<1 || timeperday.toInteger()>10) { paragraph "<b>Please enter a value between 1 and 10</b><br>"
+            if(timeperday.toInteger()<1 || timeperday.toInteger()>10) { paragraph "<b><font color=red>Please enter a value between 1 and 10</b></font><br>"
                                           } else {    for(i=0; i < timeperday.toInteger(); i++) {
                                                         switch (i) {
                                                             case 0:
@@ -156,12 +159,23 @@ def mainPage() {
                  input "roombaPresenceDock", "bool", title: "Dock Roomba if someone arrives home?", defaultValue: false, submitonChange: true
             }
         }
-        section(getFormat("header-green", " Advanced Options")) {
+        section(getFormat("header-green", " Advanced Options:")) {
             paragraph "Roomba models below 900+ series do not have the ability to find a docking station prior to the battery dying.  Options below provide similar functionality or at least a better chance for Roomba to dock before dying."
             input "useTime", "bool", title: "Limit Roomba's cleaning time?", defaultValue: false, submitOnChange: true
-            if(useTime) input "roombaLimitTime", "text", title: "How many minutes to run?", defaultValue: "60", required: false, submitOnChange: true
+            if(useTime) {
+                input "roombaLimitTime", "text", title: "How many minutes to run (minimum 20)?", defaultValue: "60", required: true, submitOnChange: true
+                if(roombaLimitTime==null) roombaLimitTime="20"
+                if(roombaLimitTime.toInteger() < 20) { paragraph "<b><font color=red>Please enter a greater than 20</b></font><br>"
+                            app?.updateSetting("roombaLimitTime",[value:"60",type:"text"])                                     
+                }
+            }
             input "useBattery", "bool", title: "Have Roomba dock based on battery percentage?", defaultValue: false, submitOnChange: true
-            if(useBattery) input "roombaBattery", "text", title: "What percent to have Roomba begin docking?", defaultValue: "20", required: false, submitOnChange: true
+            if(useBattery) input "roombaBattery", "enum", title: "What percent to have Roomba begin docking?", defaultValue: "30", required: false, multiple: false, submitOnChange: true,
+            options: [
+                "40": "40%",
+                "30": "30%",
+                "20": "20%" ]
+            
             paragraph "<hr><u>Settings for Roomba 900+ series devices - See <a href=http://${doritaIP}:3000/map target=_blank>Roomba Cleaning Map</a></u>"
             input "roomba900", "bool", title: "Configure 900+ options?", defaultValue: false, submitOnChange: true
             if(roomba900){
@@ -181,7 +195,7 @@ def mainPage() {
                 input "roombaalwaysFinish", "bool", title: "Set Always Finish Option (On/Off):", defaultValue: false, submitOnChange: true                
             }
         }
-        section(getFormat("header-green", " Logging and Testing")) { }
+        section(getFormat("header-green", " Logging and Testing:")) { }
             // ** App Watchdog Code **
         section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
 				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
@@ -212,6 +226,67 @@ def mainPage() {
 			}
 	}
 }
+
+def pageroombaInfo() {
+    def result = executeAction("/api/local/info/state")
+    def result2 = executeAction("/api/local/config/preferences")
+    def cleantime=false
+    switch(state.cleaning) {
+        case "cleaning":
+            img = "roomba-clean.png"
+            cleantime = true
+            msg = state.cleaning.capitalize()
+            break
+        case "stopped":
+            img = "roomba-stop.png"
+            msg = state.cleaning.capitalize()
+            break        
+        case "charging":
+            img = "roomba-charge.png"
+            msg = state.cleaning.capitalize()
+            break        
+        case "docking":
+            img = "roombadock.png"
+            cleantime = true
+            msg = state.cleaning.capitalize()
+            break
+        case "dead":
+            img = "roomba-dead.png"
+            msg = "Battery Died"
+            break
+        case "error":
+            img = "roomba-error.png"
+            msg = state.cleaning.capitalize()
+            break
+        case "idle":
+            img = "roomba-stop.png"
+            msg = state.cleaning.capitalize()
+            break
+		}
+    if(result.data.bin.full) bin="Full"
+    else bin="Empty"
+    img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
+    temp = "<div><h2><img max-width=100% height=auto src=${img} border=0>&nbsp;&nbsp;${state.roombaName}</h2>"
+    temp += "<p style=font-size:20px><b>Roomba SKU:</b> ${result2.data.sku}</p>"
+    temp += "<p style=font-size:20px><b>Roomba MAC:</b> ${result.data.mac}</p>"
+    temp += "<p style=font-size:20px><b>Software Version:</b> ${result2.data.softwareVer}</p>"
+    temp += "<p style=font-size:20px><b>Current State:</b> ${msg}</p>"
+    if(cleantime) temp += "<p style=font-size:20px><b>Elapsed Time:</b> ${result.data.cleanMissionStatus.mssnM} minutes</p>"
+    temp += "<p style=font-size:20px><b>Battery Status:</b> ${result.data.batPct}%"
+    temp += "<p style=font-size:20px><b>Bin Status:</b> ${bin}"
+    temp += "<p style=font-size:20px><b># of cleaning jobs:</b> ${String.format("%,d",result.data.cleanMissionStatus.nMssn)}</p>"
+    temp += "<p style=font-size:20px><b>Total Time Cleaning:</b> ${String.format("%,d",result.data.bbrun.hr)} hours and ${result.data.bbrun.min} minutes</p></div>"
+
+	dynamicPage(name: "pageroombaInfo", title: "", nextPage: "mainPage", install: false, uninstall: false) {
+        section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {}
+        section(getFormat("header-green", " Device Information:")) {
+            paragraph temp
+            paragraph getFormat("line")
+		    paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${state.version}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
+        }
+    }
+}
+
 
 def initialize() {
     if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
@@ -357,7 +432,7 @@ def RoombaSchedStart() {
             log.warn "${device} is currently cleaning.  Scheduled times may be too close together." 
         } else {
             if(result.data.cleanMissionStatus.phase.contains("charge") && result.data.batPct.toInteger()>75) {
-                log.debug "Starting scheduled cleaning - Start send to ${device}"
+                log.info "Starting scheduled cleaning - Start send to ${device}"
                 device.start()
             } else log.warn "${device} is currently not on the charging station.  Cannot start cleaning."
         }
@@ -390,7 +465,7 @@ def cleanupChildDevices()
 
 def updateDevices() {
     // Ensure variables are set
-    if(state.prevcleaning==null) state.prevcleaning = "settings"
+    if(state.prevcleaning==null || state.prevcleaning=="") state.prevcleaning = "settings"
     if(state.notified==null) state.notified = false
     if(state.batterydead==null) state.batterydead = false
     if(state.bin==null) state.bin = true
@@ -400,6 +475,7 @@ def updateDevices() {
     if (result && result.data)
     {
         def device = getChildDevice("roomba:" + result.data.name)
+        state.roombaName = result.data.name
         
         device.sendEvent(name: "battery", value: result.data.batPct)
         if (!result.data.bin.present)
@@ -420,30 +496,42 @@ def updateDevices() {
 		switch (result.data.cleanMissionStatus.phase){
 			case "hmMidMsn":
 			case "hmPostMsn":
-			case "hmUsrDock":
-                if(result.data.cleanMissionStatus.notReady.toInteger() == 0 && result.data.batPct == 0 && !state.batterydead) {
-                    status = "dead"
-                    if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
-                    if(pushoverDead) {
-                        msg="${device} has stopped cleaning because battery has died"
-                        pushNow(msg)
-                    }
-                    state.batterydead = true
-                    checktime = 60
-                } else { 
-                    if(result.data.cleanMissionStatus.notReady.toInteger() == 0 && result.data.batPct == 0) {
-                        status = "dead"
-                        if(logEnable) log.debug "${device}'s stopped cleaning due to battery died.  Checking status in 1 minute"
-                        if(pushoverDead) msg="${device} has stopped cleaning because battery has died"
-                        state.batterydead = true 
-                        checktime = 60
-                    } else {                    
-				        status = "docking"                        
+			case "hmUsrDock":  
+                    if(result.data.batPct == 0) {
+                        if(state.batterydead==false) {
+   		                        def now = new Date()
+                                long temp = now.getTime()
+                                state.starttime = temp
+                                state.batterydead = true
+                                checktime = 60
+                                status = "docking"
+                        } else {
+                            	long timeDiff
+   		                        def now = new Date()
+    	                        long unxNow = now.getTime()
+    	                        unxPrev = state.starttime
+    	                        unxNow = unxNow/1000
+    	                        unxPrev = unxPrev/1000
+    	                        timeDiff = Math.abs(unxNow-unxPrev)
+    	                        timeDiff = Math.round(timeDiff/60)
+                                if(logEnable) log.debug "Checking how long since battery was at 0%.  Time difference is currently: ${timeDiff.toString()} minute(s)"
+                                if(timeDiff > 10) {
+                                    status = "dead"
+                                    if(logEnable) log.debug "${device}'s battery has died.  Checking status in 1 minute"
+                                    if(pushoverDead) msg="${device} did not dock because battery died"
+                                    checktime = 60
+                                } else {
+                                    status = "docking"                        
+                                    if(logEnable) log.debug "${device}'s docking but battery is 0%.  Checking status in 30 seconds"
+                                    checktime = 30 
+                                }
+                        }
+                    } else {
+    	                status = "docking"                        
                         if(logEnable) log.debug "${device}'s docking.  Checking status in 30 seconds"
                         state.batterydead = false 
                         checktime = 30
-                }
-                }
+                }      
 				break
 			case "charge":
 				status = "charging"
@@ -469,14 +557,33 @@ def updateDevices() {
                 checktime = 30
 				break
 			case "stop":
-                if(result.data.cleanMissionStatus.notReady.toInteger() == 0) {
-				    status = "idle"
+                if(result.data.cleanMissionStatus.notReady.toInteger() > 0 && result.data.cleanMissionStatus.toInteger() > 0) {
+                    status = "error"
+                    temp = "${device} has stopped cleaning because "
+                    switch(result.data.cleanMissionStatus.notReady.toInteger()) {
+                        case 2:
+                            temp += "both wheels are stuck"
+                            break
+                        case 3:
+                            temp += "left wheel is stuck"
+                            break
+                        case 4:
+                            temp += "right wheel is stuck"
+                            break
+                        case 7:
+                            temp += "cleaning bin is missing"
+                            break
+                        case 16:
+                            temp += "stuck on an object"
+                            break
+                    }
+                    if(logEnable) log.debug "${device}'s stopped cleaning because of an error.  Checking status in 1 minute"
+                    if(pushoverError) msg=temp
+                } else {         
+                    status = "idle"
                     if(logEnable) log.debug "${device}'s stopped cleaning.  Checking status in 1 minute"
                     if(pushoverStop) msg="${device} has stopped cleaning"
-                } else {                
-                    status = "error"
-                    if(logEnable) log.debug "${device}'s stopped cleaning because it is stuck.  Checking status in 1 minute"
-                    if(pushoverError) msg="${device} has stopped cleaning because of an error"
+
                 }
                 checktime = 60
 				break		
@@ -631,3 +738,7 @@ def logsOff(){
     log.warn "Debug logging disabled."
     app?.updateSetting("logEnable",[value:"false",type:"bool"])
 }
+
+//imports
+import groovy.time.TimeCategory
+import hubitat.helper.RMUtils
