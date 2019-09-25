@@ -24,12 +24,13 @@ support for all WiFi enabled Roomba devices.</p>
   <li>Copy "blid" and past into [SSH Window #1] for <b>blid</b></li>
   <li>Copy the "password" revealed and past into [SSH Windows #1] for <b>password</b></li>
   <li>Enter Roomba IP Address into [SSH Windows #1] for <b>robotIP</b></li>
+  <li>Enter the Port you want Rest980 to listen on: <b>default is 3000</b></li>
   <li>Change "firmwareVersion" in [SSH Windows #1] to <b>1</b></li>
     <li>Logout of [SSH Window #2]</li>
     <li>Testing:<ul>
       <li>Navigate back to ../rest980 root</li>
       <li>Type the following: DEBUG=rest980:* npm start</li>
-      <li>In a new browser tab navigate to http://YOUR_RASPBERRY_PI:3000</li>
+      <li>In a new browser tab navigate to http://YOUR_RASPBERRY_PI:PORT (PORT usually is 3000)</li>
       <li>Response should be similar to: {"documentation":"htps://githubcom/koalazak/rest980","pong":"2019-09-13T12:13:36.408Z"}</li>       <li>CTRL-C to exit Rest980 app</li></ul>
 </ul><br>
     <b>Setting up Rest980 to run as a service:</b>
@@ -50,10 +51,10 @@ WantedBy=multi-user.target
 </p></li>
 <li>sudo systemctl enable roomba.service</li>
 <li>sudo systemctl start roomba.service</li>
-<li>Test connectivity in browser tab: http://YOUR_RASPBERRY_PI:3000</li>
+<li>Test connectivity in browser tab: http://YOUR_RASPBERRY_PI:PORT (usually PORT is 3000)</li>
 <li>Response should be similar to: <br>{"documentation":"htps://githubcom/koalazak/rest980","pong":"2019-09-13T12:13:36.408Z"}</li>       
   </ul><br>
-  
+<p><b>Note:</b> If you would like to control multiple Roomba devices from a single RPi then you just need to follow the above steps but create change the folder name Rest980 to Rest980-1 and change the PORT Rest980 listens on.</p>  
 <b>Install Hubitat App and Driver:</b>
 <ul>
   <li>Roomba Application install:
