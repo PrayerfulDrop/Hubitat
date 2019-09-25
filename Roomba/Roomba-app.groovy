@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.3 - reduced device handler complexity, added support for device switch.on/off and options for off
  *   1.1.2 - fixed dead battery logic, added Roomba information page, added specific error codes to notifications, setup and config error checking
  *   1.1.1 - fixed notification options to respect user choice for what is notified
  *   1.1.0 - fixed global variables not being set
@@ -49,7 +50,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.1.2"
+	state.version = "1.1.3"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -74,6 +75,7 @@ definition(
 preferences {
 	page name: "mainPage", title: "", install: true, uninstall: true
     page name: "pageroombaInfo", title: "", install: false, uninstall: false, nextPage: "mainPage"
+    page name: "pageroombaAdv", title: "", install: false, uninstall: false, nextPage: "mainPage"
 }
 
 def mainPage() {
@@ -83,6 +85,7 @@ def mainPage() {
 			}
 
         section(getFormat("header-green", " Rest980/Dorita980 Integration:")){
+            if(state.roombaName==null || state.error) paragraph "<b><font color=red>Rest980 Server cannot be reached - check IP Address</b></font>"
 			input "doritaIP", "text", title: "Rest980 Server IP Address:", description: "Rest980 Server IP Address:", required: true, submitOnChange: true
 			//input "doritaPort", "number", title: "Dorita Port", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535"
             if(state.roombaName!=null && state.roombaName.length() > 0) { href "pageroombaInfo", title: "Information about Roomba: ${state.roombaName}" }
@@ -174,11 +177,18 @@ def mainPage() {
             options: [
                 "40": "40%",
                 "30": "30%",
-                "20": "20%" ]
+                "20": "20%",
+                "10": "10%"]
+            input "roombaOff", "enum", title: "Do the following when Roomba's switch is turned 'Off'?", defaultValue: "dock", required: false, multiple: false, submitOnChange: true,
+            options: [
+                "dock": "Dock",
+                "stop": "Stop"
+                ]
             
-            paragraph "<hr><u>Settings for Roomba 900+ series devices - See <a href=http://${doritaIP}:3000/map target=_blank>Roomba Cleaning Map</a></u>"
+            paragraph "<hr><u>Settings for Roomba 900+ series devices:</u>"
             input "roomba900", "bool", title: "Configure 900+ options?", defaultValue: false, submitOnChange: true
             if(roomba900){
+                paragraph "See ${state.roombaName}'s <a href=http://${doritaIP}:3000/map target=_blank>Cleaning Map</a>"
                 input "roombacarpetBoost", "enum", title: "Select Carpet Boost option:", required: false, multiple: false, defaultValue: "auto", submitOnChange: true,
                 options: [
 			        "auto":	"Auto",
@@ -195,6 +205,9 @@ def mainPage() {
                 input "roombaalwaysFinish", "bool", title: "Set Always Finish Option (On/Off):", defaultValue: false, submitOnChange: true                
             }
         }
+//        section(getFormat("header-green", " Advanced Configuration:")) { 
+//            href "pageroombaAdv", title: "Advanced application and customization settings"
+//        }
         section(getFormat("header-green", " Logging and Testing:")) { }
             // ** App Watchdog Code **
         section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
@@ -213,7 +226,7 @@ def mainPage() {
         section() {
              	input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
-            //    input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
+             //   input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
             if(init) {
                 try {
                     initialize()
@@ -287,6 +300,13 @@ def pageroombaInfo() {
     }
 }
 
+def pageroombaAdv() {
+    dynamicPage(name: "pageroombaInfo", title: "", nextPage: "mainPage", install: false, uninstall: false) {
+        section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {}
+        section(getFormat("header-green", " Advanced Configuration:")) {
+        }
+    }
+}
 
 def initialize() {
     if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
@@ -307,6 +327,7 @@ def initialize() {
 
 def installed() {
 	if(logEnable) log.debug "Installed with settings: ${settings}"
+    state.error=false
 	initialize()
 }
 
@@ -503,7 +524,6 @@ def updateDevices() {
                                 long temp = now.getTime()
                                 state.starttime = temp
                                 state.batterydead = true
-                                checktime = 60
                                 status = "docking"
                         } else {
                             	long timeDiff
@@ -517,44 +537,32 @@ def updateDevices() {
                                 if(logEnable) log.debug "Checking how long since battery was at 0%.  Time difference is currently: ${timeDiff.toString()} minute(s)"
                                 if(timeDiff > 10) {
                                     status = "dead"
-                                    if(logEnable) log.debug "${device}'s battery has died.  Checking status in 1 minute"
                                     if(pushoverDead) msg="${device} did not dock because battery died"
-                                    checktime = 60
-                                } else {
+                                 } else {
                                     status = "docking"                        
-                                    if(logEnable) log.debug "${device}'s docking but battery is 0%.  Checking status in 30 seconds"
-                                    checktime = 30 
                                 }
                         }
                     } else {
     	                status = "docking"                        
-                        if(logEnable) log.debug "${device}'s docking.  Checking status in 30 seconds"
                         state.batterydead = false 
-                        checktime = 30
                 }      
 				break
 			case "charge":
 				status = "charging"
-                if(logEnable) log.debug "${device}'s charging. Checking status in 2 minutes"
                 if(pushoverDock) msg="${device} has stopped cleaning and is docked and charging"
                 state.batterydead = false 
-                checktime = 120
 				break
 			case "run":
 				status = "cleaning"
-                if(logEnable) log.debug "${device}'s cleaning.  Checking status in 30 seconds"
                 if(pushoverStart) msg="${device} has started cleaning"
                 state.batterydead = false
                 //control Roomba docking based on Time or Battery %
                 if(useTime && roombaTime.toInteger() >= result.data.cleanMissionStatus.mssnM.toInteger()) {
-                        device.stop()
                         device.dock()
                 }
                 if(useBattery && roombaBattery.toInteger() >= result.data.batPct.toInteger()) {
-                        device.stop()
                         device.dock()
                 }     
-                checktime = 30
 				break
 			case "stop":
                 if(result.data.cleanMissionStatus.notReady.toInteger() > 0 && result.data.cleanMissionStatus.toInteger() > 0) {
@@ -577,22 +585,20 @@ def updateDevices() {
                             temp += "stuck on an object"
                             break
                     }
-                    if(logEnable) log.debug "${device}'s stopped cleaning because of an error.  Checking status in 1 minute"
                     if(pushoverError) msg=temp
                 } else {         
                     status = "idle"
-                    if(logEnable) log.debug "${device}'s stopped cleaning.  Checking status in 1 minute"
                     if(pushoverStop) msg="${device} has stopped cleaning"
 
                 }
-                checktime = 60
 				break		
 		}
-        runIn(checktime, updateDevices)
+        runIn(30, updateDevices)
         state.cleaning = status
         
         device.sendEvent(name: "cleanStatus", value: status)
         if(logEnable) log.debug "Sending ${status} to ${device} dashboard tile"
+        
         device.roombaTile(state.cleaning, result.data.batPct, result.data.cleanMissionStatus.mssnM)
         
         if(logEnable) log.trace "state.cleaning: ${state.cleaning} - state.prevcleaning: ${state.prevcleaning} - state.notified: ${state.notified}"
@@ -632,14 +638,12 @@ def presenceHandler(evt) {
         if(presence) {
             // Presence is detected, Roomba is cleaning AND user chooses to have Roomba dock when someone is home
             if(result.data.cleanMissionStatus.phase.contains("run") && roombaPresenceDock) {
-                   device.stop()
                    device.dock()
             }
         } else {
             // Presence is away start cleaning schedule and variations
             // Check if Roomba is docking, if so stop then start cleaning
             if(result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
-                device.stop()
                 device.start()
             }
             // Check if Roomba is charging OR is stopped then start cleaning
@@ -650,51 +654,57 @@ def presenceHandler(evt) {
     }
 }
 
-def handleStart(device, id) 
-{
-    if(roomba900) {
-        def aresult = executeAction("/api/local/config/carpetBoost/${roombacarpetBoost}")
-                
-        if(roombaedgeClean) aresult = executeAction("/api/local/config/edgeClean/on")
-        else aresult = executeAction("/api/local/config/edgeClean/off")
+def handleDevice(device, id, evt) {
+    def device_result = executeAction("/api/local/info/state")
+    def result = ""
+    switch(evt) {
+        case "stop":
+            result = executeAction("/api/local/action/stop")
+            break
+        case "start":
+            if(roomba900) {
+                result = executeAction("/api/local/config/carpetBoost/${roombacarpetBoost}")
+                if(roombaedgeClean) result = executeAction("/api/local/config/edgeClean/on")
+                else result = executeAction("/api/local/config/edgeClean/off")
         
-        aresult = executeAction("/api/local/config/cleaningPasses/${roombacleaningPasses}")
+                result = executeAction("/api/local/config/cleaningPasses/${roombacleaningPasses}")
         
-        if(roombaalwaysFinish) aresult = executeAction("/api/local/config/alwaysFinish/on")
-        else aresult = executeAction("/api/local/config/alwaysFinish/off")
-        
+                if(roombaalwaysFinish) result = executeAction("/api/local/config/alwaysFinish/on")
+                else result = executeAction("/api/local/config/alwaysFinish/off")
+            }
+            if(!device_result.data.cleanMissionStatus.phase.contains("run") || !device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
+                    result = executeAction("/api/local/action/start")
+            } else {
+                    result = executeAction("/api/local/action/stop")
+                    result = executeAction("/api/local/action/start")
+            }
+            break
+        case "resume":
+            result = executeAction("/api/local/action/resume")
+            break
+        case "pause":
+            result = executeAction("/api/local/action/pause")
+            break
+        case "dock":
+            if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
+                    result = executeAction("/api/local/action/stop")
+                    result = executeAction("/api/local/action/dock")
+            } else {
+                    result = executeAction("/api/local/action/dock")
+            }               
+            break
+        case "off":
+            if(roombaOff=="dock") {
+                    if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
+                        result = executeAction("/api/local/action/stop")
+                        result = executeAction("/api/local/action/dock")
+                    } else {
+                        result = executeAction("/api/local/action/dock")
+                    }
+            } else result = executeAction("/api/local/action/stop")
+          break
     }
-    def result = executeAction("/api/local/action/start")
-    //if (result.data.success == "null")
-    //    device.sendEvent(name: "cleanStatus", value: "cleaning")
-}
-
-def handleStop(device, id) 
-{
-    def result = executeAction("/api/local/action/stop")
-    //if (result.data.success == "null")
-    //    device.sendEvent(name: "cleanStatus", value: "idle")
-}
-
-def handlePause(device, id) 
-{
-    def result = executeAction("/api/local/action/pause")
-   // if (result.data.success == "null")
-   //     device.sendEvent(name: "cleanStatus", value: "idle")
-}
-
-def handleResume(device, id) 
-{
-    def result = executeAction("/api/local/action/resume")
-    //if (result.data.success == "null")
-    //    device.sendEvent(name: "cleanStatus", value: "cleaning")
-}
-
-def handleDock(device, id) 
-{
-    def result = executeAction("/api/local/action/dock")
-	//if (result.data.success == "null")
-    //device.sendEvent(name: "cleanStatus", value: "homing")
+    //updateDevices()
 }
 
 def executeAction(path) {
@@ -704,12 +714,12 @@ def executeAction(path) {
 		contentType: "application/json"
 	]
 	def result = null
-	//if(logEnable) log.debug "Querying current state: ${path}"
 	try
 	{
 		httpGet(params) { resp ->
 			result = resp
 		}
+        state.error = false
 	}
 	catch (e) 
 	{
@@ -717,7 +727,10 @@ def executeAction(path) {
         else if(path.contains("edgeClean")) log.warn "Roomba device does not support Edge Clean options" 
         else if(path.contains("cleaningPasses")) log.warn "Roomba device does not support Cleaning Passes options" 
         else if(path.contains("alwaysFinish")) log.warn "Roomba device does not support Always Finish options" 
-        else if(path.contains("state")) log.error "Rest980 Server not available: $e"
+            else if(path.contains("state")) { 
+                log.error "Rest980 Server not available: $e"
+                state.error = true 
+            }
 	}
 	return result
 }
