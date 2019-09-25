@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.4 - added ability to have multiple Roomba Schedulers 
  *   1.1.3 - reduced device handler complexity, added support for device switch.on/off and options for off
  *   1.1.2 - fixed dead battery logic, added Roomba information page, added specific error codes to notifications, setup and config error checking
  *   1.1.1 - fixed notification options to respect user choice for what is notified
@@ -50,7 +51,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.1.3"
+	state.version = "1.1.4"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -87,7 +88,7 @@ def mainPage() {
         section(getFormat("header-green", " Rest980/Dorita980 Integration:")){
             if(state.roombaName==null || state.error) paragraph "<b><font color=red>Rest980 Server cannot be reached - check IP Address</b></font>"
 			input "doritaIP", "text", title: "Rest980 Server IP Address:", description: "Rest980 Server IP Address:", required: true, submitOnChange: true
-			//input "doritaPort", "number", title: "Dorita Port", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535"
+			input "doritaPort", "number", title: "Rest980 Server Port:", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535"
             if(state.roombaName!=null && state.roombaName.length() > 0) { href "pageroombaInfo", title: "Information about Roomba: ${state.roombaName}" }
 		}
         section(getFormat("header-green", " Notification Device(s):")) {
@@ -317,6 +318,7 @@ def initialize() {
     getRoombaSchedule()
     RoombaScheduler()
     updateDevices()
+    app.updateLabel("Roomba Scheduler - ${state.roombaName}")
     schedule("0 0 3 ? * * *", setVersion) 
     if (logEnable && logMinutes.toInteger() != 0) {
     if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
@@ -709,7 +711,7 @@ def handleDevice(device, id, evt) {
 
 def executeAction(path) {
 	def params = [
-        uri: "http://${doritaIP}:3000",
+        uri: "http://${doritaIP}:${doritaPort}",
         path: "${path}",
 		contentType: "application/json"
 	]
