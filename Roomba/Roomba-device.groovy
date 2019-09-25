@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.1.0 - support for switch control on/off, handler changes
  *   1.0.9 - error in namespace preventing creation of adding device
  *   1.0.8 - added logging option
  *   1.0.7 - added battery died notifications
@@ -46,8 +47,8 @@
 metadata {
     definition (name: "Roomba", namespace: "roomba", author: "Aaron Ward", importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy") {
 		capability "Battery"
-        capability "Consumable"
 		capability "Actuator"
+        capability "Switch"
         
         attribute "cleanStatus", "string"
         attribute "RoombaTile", "string"
@@ -76,28 +77,38 @@ def updateVersion() {
 }
 
 def start() {
-    parent.handleStart(device, device.deviceNetworkId.split(":")[1])
+    parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "start")
     if(logEnable) log.debug "Roomba is being started through driver"
 }
 
 def stop() {
-    parent.handleStop(device, device.deviceNetworkId.split(":")[1])
+    parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "stop")
     if(logEnable) log.debug "Roomba is being stopped through driver"
 }
 
 def pause() {
-    parent.handlePause(device, device.deviceNetworkId.split(":")[1])
+    parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "pause")
     if(logEnable) log.debug "Roomba is being paused through driver"
 }
 
 def resume() {
-    parent.handleResume(device, device.deviceNetworkId.split(":")[1])
+    parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "resume")
     if(logEnable) log.debug "Roomba is resuming through driver"
 }
 
 def dock() {
-    parent.handleDock(device, device.deviceNetworkId.split(":")[1])
+    parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "dock")
     if(logEnable) log.debug "Roomba is being docked through driver"
+}
+
+def on() {
+    parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "start")
+    if(logEnable) log.debug "Roomba is being started through driver"
+}
+
+def off() {
+    parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "off")
+    if(logEnable) log.debug "Roomba off initiated through driver"
 }
 
 def roombaTile(cleaning, batterylevel, cleaningTime) {
