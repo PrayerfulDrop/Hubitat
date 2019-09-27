@@ -23,6 +23,7 @@
  *
  *  Changes:
  *
+ *  1.0.2 - added switch to remove WATO requirements
  *  1.0.1 - added dynamic dashboard tile
  *  1.0.0 - Modified Generic MQTT Driver
  */
@@ -30,6 +31,7 @@
 metadata {
     definition (name: "Salt Tank Driver", namespace: "aaronward", author: "Aaron Ward", importURL: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/Salt%20Tank.groovy") {
         capability "Initialize"
+        capability "Switch"
         command "updateVersion"
 	command "publishMsg", ["String"]
 	attribute "delay", "number"
@@ -130,15 +132,23 @@ def logsOff(){
     device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
 
+def on() {sendEvent(name: "switch", value: "on", isStateChange: true)
+          runIn(1, off)}
+def off() {sendEvent(name: "switch", value: "off", isStateChange: true)}
 def tileNow(){ 
     if(salttank==null || salttank=="") salttank="4"
     int saltlevel = (salttank.toInteger() * 12) - state.distance.toInteger()
     if(saltlevel < 16 ) {img = "salt-low.png"
-                         msg="Low"}
+                         msg="Low"
+                         on()}
     if(saltlevel > 16 && salttank < (salttank.toInteger()/3*12*2)) {img = "salt-half.png"
-                                                                    msg="Half Full"}
+                                                                    msg="Half Full"
+                                                                    off()
+                                                                   }
     if(saltlevel > (salttank.toInteger()/2*12)) {img = "salt-full.png"
-                                                 msg = "Full"}
+                                                 msg = "Full"
+                                                 off()
+                                                }
     sendEvent(name: "Salt Level", value: saltlevel, displayed: true)
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/support/images/${img}"
     tile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>Salt Level: ${msg}</div>"
