@@ -720,7 +720,7 @@ def handleDevice(device, id, evt) {
 
 def setStateVariables() {
     // Ensure variables are set
-    def device = getChildDevice("roomba:" + result.data.name)
+    def result = executeAction("/api/local/info/state")
     try { state.roombaName = result.data.name}
         catch (e) {state.roombaName = "RoombaUnknown"}
     try {state.pushoverStartMsg = pushoverStartMsg.replace("%device%",state.roombaName)}
