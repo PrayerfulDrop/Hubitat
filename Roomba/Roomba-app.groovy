@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.5 - full customization of notification messages
  *   1.1.4 - added ability to have multiple Roomba Schedulers 
  *   1.1.3 - reduced device handler complexity, added support for device switch.on/off and options for off
  *   1.1.2 - fixed dead battery logic, added Roomba information page, added specific error codes to notifications, setup and config error checking
@@ -51,7 +52,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.1.4"
+	state.version = "1.1.5"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -76,7 +77,7 @@ definition(
 preferences {
 	page name: "mainPage", title: "", install: true, uninstall: true
     page name: "pageroombaInfo", title: "", install: false, uninstall: false, nextPage: "mainPage"
-    page name: "pageroombaAdv", title: "", install: false, uninstall: false, nextPage: "mainPage"
+    page name: "pageroombaNotify", title: "", install: false, uninstall: false, nextPage: "mainPage"
 }
 
 def mainPage() {
@@ -89,7 +90,7 @@ def mainPage() {
             if(state.roombaName==null || state.error) paragraph "<b><font color=red>Rest980 Server cannot be reached - check IP Address</b></font>"
 			input "doritaIP", "text", title: "Rest980 Server IP Address:", description: "Rest980 Server IP Address:", required: true, submitOnChange: true
 			input "doritaPort", "number", title: "Rest980 Server Port:", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535"
-            if(state.roombaName!=null && state.roombaName.length() > 0) { href "pageroombaInfo", title: "Information about Roomba: ${state.roombaName}" }
+            if(state.roombaName!=null && state.roombaName.length() > 0) { href "pageroombaInfo", title: "Information about Roomba: ${state.roombaName}", description:"" }
 		}
         section(getFormat("header-green", " Notification Device(s):")) {
 		    // PushOver Devices
@@ -103,7 +104,7 @@ def mainPage() {
                 input "pushoverBin", "bool", title: "Notifications when Roomba's bin is full?", required: false, defaultValue:false, submitOnChange: true 
                 input "pushoverError", "bool", title: "Notifications when Roomba has an error?", required: false, defaultValue:false, submitOnChange: true 
                 input "pushoverDead", "bool", title: "Notifications when Roomba's Battery dies?", required: false, defaultValue:false, submitOnChange: true 
-
+                href "pageroombaNotify", title: "Click to change default notification messages from ${state.roombaName}", description: ""
             }
         }
         section(getFormat("header-green", " Cleaning Schedule:")) { 
@@ -206,9 +207,7 @@ def mainPage() {
                 input "roombaalwaysFinish", "bool", title: "Set Always Finish Option (On/Off):", defaultValue: false, submitOnChange: true                
             }
         }
-//        section(getFormat("header-green", " Advanced Configuration:")) { 
-//            href "pageroombaAdv", title: "Advanced application and customization settings"
-//        }
+
         section(getFormat("header-green", " Logging and Testing:")) { }
             // ** App Watchdog Code **
         section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
@@ -301,10 +300,25 @@ def pageroombaInfo() {
     }
 }
 
-def pageroombaAdv() {
-    dynamicPage(name: "pageroombaInfo", title: "", nextPage: "mainPage", install: false, uninstall: false) {
+def pageroombaNotify() {
+    dynamicPage(name: "pageroombaNotify", title: "", nextPage: "mainPage", install: false, uninstall: false) {
         section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {}
-        section(getFormat("header-green", " Advanced Configuration:")) {
+        section(getFormat("header-green", " Notification Messages:")) {
+            paragraph "<b><u>Instructions to use variables:</u></b>"
+            paragraph "%device% = Roomba device's name<br><hr>"
+            //paragraph "%cleaningstatus% = Roomba device's current cleaning status<br><hr>"
+            input "pushoverStartMsg", "text", title: "Start Cleaning:", required: false, defaultValue:"%device% has started cleaning", submitOnChange: true 
+            input "pushoverStopMsg", "text", title: "Stop Cleaning:", required: false, defaultValue:"%device% has stopped cleaning", submitOnChange: true 
+            input "pushoverDockMsg", "text", title: "Docked and Charging::", required: false, defaultValue:"%device% is charging", submitOnChange: true 
+            input "pushoverBinMsg", "text", title: "Bin is Full:", required: false, defaultValue:"%device%'s bin is full", submitOnChange: true 
+            input "pushoverDeadMsg", "text", title: "Battery dies:", required: false, defaultValue:"%device% battery has died", submitOnChange: true 
+            input "pushoverErrorMsg", "text", title: "Error:", required: false, defaultValue:"%device% has stopped because", submitOnChange: true 
+            input "pushoverErrorMsg2", "text", title: "Error2 - Both wheels are stuck:", required: false, defaultValue:"both wheels are stuck", submitOnChange: true 
+            input "pushoverErrorMsg3", "text", title: "Error3 - Left wheel is stuck:", required: false, defaultValue:"left wheel is stuck", submitOnChange: true 
+            input "pushoverErrorMsg4", "text", title: "Error4 - Right wheel is stuck:", required: false, defaultValue:"right wheel is stuck", submitOnChange: true 
+            input "pushoverErrorMsg7", "text", title: "Error7 - Bin is missing:", required: false, defaultValue:"cleaning bin is missing", submitOnChange: true 
+            input "pushoverErrorMsg16", "text", title: "Error16 - Stuck on object:", required: false, defaultValue:"stuck on an object", submitOnChange: true 
+            
         }
     }
 }
@@ -312,6 +326,7 @@ def pageroombaAdv() {
 def initialize() {
     if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
 	if(logEnable) log.debug "Initializing $app.label...unscheduling current jobs."
+    setStateVariables()
     unschedule()
     cleanupChildDevices()
 	createChildDevices()
@@ -487,18 +502,12 @@ def cleanupChildDevices()
 }
 
 def updateDevices() {
-    // Ensure variables are set
-    if(state.prevcleaning==null || state.prevcleaning=="") state.prevcleaning = "settings"
-    if(state.notified==null) state.notified = false
-    if(state.batterydead==null) state.batterydead = false
-    if(state.bin==null) state.bin = true
     
     def result = executeAction("/api/local/info/state")
     
     if (result && result.data)
     {
         def device = getChildDevice("roomba:" + result.data.name)
-        state.roombaName = result.data.name
         
         device.sendEvent(name: "battery", value: result.data.batPct)
         if (!result.data.bin.present)
@@ -506,7 +515,7 @@ def updateDevices() {
         else if (result.data.bin.full) {
             device.sendEvent(name: "bin", value: "full")
             if(pushoverBin && state.bin) {
-                pushNow("${device}'s bin is full.")
+                pushNow(state.pushoverBinMsg)
                 state.bin = false
             }
         } else{
@@ -539,7 +548,7 @@ def updateDevices() {
                                 if(logEnable) log.debug "Checking how long since battery was at 0%.  Time difference is currently: ${timeDiff.toString()} minute(s)"
                                 if(timeDiff > 10) {
                                     status = "dead"
-                                    if(pushoverDead) msg="${device} did not dock because battery died"
+                                    if(pushoverDead) msg=state.pushoverDeadMsg
                                  } else {
                                     status = "docking"                        
                                 }
@@ -551,12 +560,12 @@ def updateDevices() {
 				break
 			case "charge":
 				status = "charging"
-                if(pushoverDock) msg="${device} has stopped cleaning and is docked and charging"
+                if(pushoverDock) msg=state.pushoverDockMsg
                 state.batterydead = false 
 				break
 			case "run":
 				status = "cleaning"
-                if(pushoverStart) msg="${device} has started cleaning"
+                if(pushoverStart) msg=state.pushoverStartMsg
                 state.batterydead = false
                 //control Roomba docking based on Time or Battery %
                 if(useTime && roombaTime.toInteger() >= result.data.cleanMissionStatus.mssnM.toInteger()) {
@@ -569,28 +578,28 @@ def updateDevices() {
 			case "stop":
                 if(result.data.cleanMissionStatus.notReady.toInteger() > 0 && result.data.cleanMissionStatus.toInteger() > 0) {
                     status = "error"
-                    temp = "${device} has stopped cleaning because "
+                    temp = state.pushoverErrorMsg
                     switch(result.data.cleanMissionStatus.notReady.toInteger()) {
                         case 2:
-                            temp += "both wheels are stuck"
+                        temp += " ${state.pushoverError2Msg}"
                             break
                         case 3:
-                            temp += "left wheel is stuck"
+                            temp += " ${state.pushoverError3Msg}"
                             break
                         case 4:
-                            temp += "right wheel is stuck"
+                            temp += " ${state.pushoverError4Msg}"
                             break
                         case 7:
-                            temp += "cleaning bin is missing"
+                            temp += " ${state.pushoverError7Msg}"
                             break
                         case 16:
-                            temp += "stuck on an object"
+                            temp += " ${state.pushoverError16Msg}"
                             break
                     }
                     if(pushoverError) msg=temp
                 } else {         
                     status = "idle"
-                    if(pushoverStop) msg="${device} has stopped cleaning"
+                    if(pushoverStop) msg=pushoverStopMsg
 
                 }
 				break		
@@ -707,6 +716,39 @@ def handleDevice(device, id, evt) {
           break
     }
     //updateDevices()
+}
+
+def setStateVariables() {
+    // Ensure variables are set
+    def device = getChildDevice("roomba:" + result.data.name)
+    try { state.roombaName = result.data.name}
+        catch (e) {state.roombaName = "RoombaUnknown"}
+    try {state.pushoverStartMsg = pushoverStartMsg.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverStartMsg = pushoverStartMsg}
+    try {state.pushoverStopMsg = pushoverStopMsg.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverStopMsg = pushoverStopMsg}
+    try {state.pushoverDockMsg = pushoverDockMsg.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverDockMsg = pushoverDockMsg}
+    try {state.pushoverBinMsg = pushoverBinMsg.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverBinMsg = pushoverBinMsg}
+    try {state.pushoverDeadMsg = pushoverDeadMsg.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverDeadMsg = pushoverDeadMsg}
+    try {state.pushoverErrorMsg = pushoverErrorMsg.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverErrorMsg = pushoverErrorMsg}
+    try {state.pushoverErrorMsg2 = pushoverErrorMsg2.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverErrorMsg2 = pushoverErrorMsg2}
+    try {state.pushoverErrorMsg3 = pushoverErrorMsg3.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverErrorMsg3 = pushoverErrorMsg3}
+    try {state.pushoverErrorMsg4 = pushoverErrorMsg4.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverErrorMsg4 = pushoverErrorMsg4}
+    try {state.pushoverErrorMsg7 = pushoverErrorMsg7.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverErrorMsg7 = pushoverErrorMsg7}
+    try {state.pushoverErrorMsg16 = pushoverErrorMsg16.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverErrorMsg16 = pushoverErrorMsg16}
+    if(state.prevcleaning==null || state.prevcleaning=="") state.prevcleaning = "settings"
+    if(state.notified==null) state.notified = false
+    if(state.batterydead==null) state.batterydead = false
+    if(state.bin==null) state.bin = true
 }
 
 def executeAction(path) {
