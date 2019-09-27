@@ -133,7 +133,7 @@ def logsOff(){
 }
 
 def on() {sendEvent(name: "switch", value: "on", isStateChange: true)
-          runIn(1, off)}
+          runIn(5, off)}
 def off() {sendEvent(name: "switch", value: "off", isStateChange: true)}
 def tileNow(){ 
     if(salttank==null || salttank=="") salttank="4"
@@ -143,11 +143,9 @@ def tileNow(){
                          on()}
     if(saltlevel > 16 && salttank < (salttank.toInteger()/3*12*2)) {img = "salt-half.png"
                                                                     msg="Half Full"
-                                                                    off()
                                                                    }
     if(saltlevel > (salttank.toInteger()/2*12)) {img = "salt-full.png"
                                                  msg = "Full"
-                                                 off()
                                                 }
     sendEvent(name: "Salt Level", value: saltlevel, displayed: true)
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/support/images/${img}"
