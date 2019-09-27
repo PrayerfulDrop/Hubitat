@@ -8,7 +8,7 @@
  *  This app is designed to notify you of severe and extreme weather alerts to a specified TTS device.  This is only for US based users.  
  *  Willing to collaborate with others to create world-wide solution.
  *
- *  Copyright 2018 Aaron Ward
+ *  Copyright 2019 Aaron Ward
  *
  *  Special thanks to csteele for all his help and education of Groovy.  Another special thanks to contributions from bptworld!
  *  
@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.4.2 - fixed misspelling of variables causing infinite repeat
  *   2.4.1 - fixed default settings not initializing correctly
  *   2.4.0 - added new AppWatchDog2 code enhancements
  *   2.3.9 - fixed TTS repeat intro for talkNow routine
@@ -96,13 +97,15 @@ def setVersion(){
     state.appName = "NOAAWeatherAlertsParentVersion"
 	state.version = "2.4.1"
     
-    try {
-        if(sendToAWSwitch && awDevice) {
-            awInfo = "${state.appName}:${state.version}"
-		    awDevice.sendAWinfoMap(awInfo)
-            if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
-	    }
-    } catch (e) { log.error "In setVersion - ${e}" }
+    if(awDevice) {
+        try {
+            if(sendToAWSwitch && awDevice) {
+                awInfo = "${state.appName}:${state.version}"
+		        awDevice.sendAWinfoMap(awInfo)
+                if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
+	        }
+        } catch (e) { log.error "In setVersion - ${e}" }
+    }
 }
 
 import groovy.json.*
@@ -336,7 +339,7 @@ def updated() {
 def initialize() {
     checkState()
 	runIn(5, refresh)
-    if(awDevice) schedule("0 0 3 ? * * *", setVersion)
+    schedule("0 0 3 ? * * *", setVersion)
 	}
 
 def installCheck(){         
@@ -385,6 +388,7 @@ def refresh() {
 				    log.info "Sending alert: ${state.alertmsg}"
                     alertNow(state.alertmsg, false)
                     if(repeatYes==true) {
+                        if(logEnable) log.debug "Repeat alert is true."
                         repeatNow()
                     }
 				    // set the pastalert to the current alertsent timestamp
@@ -396,15 +400,15 @@ def refresh() {
 }
 
 def checkState() {
-    if(repeatTime==null || repeatMintues==null) {
-        if(repeatTime==null) { state.num = 1 
-                             } else { state.num = repeatTime.toInteger() }
+    if(repeatTimes==null || repeatMinutes==null) {
+        if(repeatTimes==null) { state.num = 1 
+                             } else { state.num = repeatTimes }
         if(repeatMinutes==null) { state.frequency = 15
-                                } else { state.frequency = repeatMinutes.toInteger() * 60 }
+                                } else { state.frequency = repeatMinutes }
         if(logEnable) log.debug "Not all/any Global variables have not been saved yet.  frequency:${state.frequency} - Minutes:${state.frequency}"
     } else {
-        state.num = repeatTimes.toInteger()
-        state.frequency = repeatMinutes.toInteger() * 60
+        state.num = repeatTimes
+        state.frequency = repeatMinutes
         if(logEnable) log.debug "Global variables are set.  frequency:${state.frequency} - Minutes:${state.frequency}"
     }
     state.count = 1
@@ -594,7 +598,8 @@ def talkNow(alertmsg, repeatCheck) {
             catch (any) { if (logEnable) log.debug "Speech speaker doesn't support volume level command" }
                 
 			if (logEnable) log.debug "Sending alert to Google and Speech Speaker(s)"
-            speechspeaker.speak(alertmsg.toLowerCase())
+            alertmsg = alertmsg.toLowerCase()
+            speechspeaker.speak(alertmsg)
             
             try {
 				if (speakervolRestore) {
@@ -656,16 +661,16 @@ def tileNow(alertmsg, resetAlert) {
 }
 
 def repeatNow(){
-    if(repeatTime==null || repeatMintues==null) checkState()
+    //if(repeatTime==null || repeatMintues==null) checkState()
     if(logEnable) log.debug "Repeating alert in ${repeatMinutes} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s)."
     if(state.repeat) {
         alertNow(state.alertmsg, true)
         state.count = state.count + 1
     }
     state.repeat = true
-	if(state.num > 0){
+	if(state.num.toInteger() > 0){
 	    state.num = state.num - 1
-        runIn(state.frequency,repeatNow)
+        runIn(state.frequency.toInteger()*60,repeatNow)
     } else { 
         if(logEnable) log.debug "Finished repeating alerts."
         state.count = 1
