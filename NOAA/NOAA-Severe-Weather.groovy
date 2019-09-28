@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.4.3 - fixed AppWatchDog2 setVersion
  *   2.4.2 - fixed misspelling of variables causing infinite repeat
  *   2.4.1 - fixed default settings not initializing correctly
  *   2.4.0 - added new AppWatchDog2 code enhancements
@@ -95,7 +96,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "NOAAWeatherAlertsParentVersion"
-	state.version = "2.4.1"
+	state.version = "2.4.3"
     
     if(awDevice) {
         try {
@@ -661,7 +662,7 @@ def tileNow(alertmsg, resetAlert) {
 }
 
 def repeatNow(){
-    //if(repeatTime==null || repeatMintues==null) checkState()
+    if(repeatTime==null || repeatMintues==null) checkState()
     if(logEnable) log.debug "Repeating alert in ${repeatMinutes} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s)."
     if(state.repeat) {
         alertNow(state.alertmsg, true)
