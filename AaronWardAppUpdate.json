@@ -54,7 +54,7 @@
   "RoombaSchedulerChild3Name": "",
   "RoombaSchedulerChild4Version": "",
   "RoombaSchedulerChild4Name": "",
-  "RoombaSchedulerDriverVersion": "1.1.0",
+  "RoombaSchedulerDriverVersion": "1.1.1",
   "RoombaSchedulerParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy",
   "RoombaSchedulerChild1RawCode": "",
   "RoombaSchedulerChild2RawCode": "",
