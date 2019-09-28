@@ -415,11 +415,11 @@ def checkState() {
                                       state.repeatTime = repeatTimes}
         if(repeatMinutes==null) { state.frequency = 15
                                 } else { state.frequency = repeatMinutes }
-        if(logEnable) log.debug "Not all/any Global variables have not been saved yet.  frequency:${state.frequency} - Minutes:${state.frequency}"
+        if(logEnable) log.debug "Not all/any Global variables have not been saved yet.  frequency:${state.num} - Minutes:${state.frequency}"
     } else {
         state.num = repeatTimes
         state.frequency = repeatMinutes
-        if(logEnable) log.debug "Global variables are set.  frequency:${state.frequency} - Minutes:${state.frequency}"
+        if(logEnable) log.debug "Global variables are set.  frequency:${state.num} - Minutes:${state.frequency}"
     }
     state.count = 1
     if(state.repeat==null || state.repeat=="") state.repeat = false
