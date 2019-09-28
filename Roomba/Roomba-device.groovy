@@ -146,7 +146,7 @@ def roombaTile(cleaning, batterylevel, cleaningTime) {
     }
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
     if(cleaning.contains("docking") || cleaning.contains("cleaning")) roombaTile = "<div style=font-size:15px;margin: 0 auto align=center><img max-width=100% height=auto src=${img} border=0>${msg} - ${cleaningTime}min<br>Battery: ${batterylevel}%</div>"
-    else roombaTile = "<div style=font-size:15px;margin: 0 auto align=center><img max-width=100% height=auto src=${img} border=0><br>${msg}Battery: ${batterylevel}%</div>"
+    else roombaTile = "<div style=font-size:15px;margin: 0 auto align=center><img max-width=100% height=auto src=${img} border=0>${msg}<br>Battery: ${batterylevel}%</div>"
     sendEvent(name: "RoombaTile", value: roombaTile, displayed: true)
     if(logEnable) log.debug "Roomba Status of '${msg}' sent to dashboard"
 }
