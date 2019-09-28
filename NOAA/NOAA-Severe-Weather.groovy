@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.4.5 - fixed "final" bug in repeat - forgot to convert to integers for calculations, complete reorganization of code
  *   2.4.4 - fixed missing reset for repeats, added restrictions to repeats, added options to Pushover if restricted option
  *   2.4.3 - fixed AppWatchDog2 setVersion
  *   2.4.2 - fixed misspelling of variables causing infinite repeat
@@ -97,7 +98,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "NOAAWeatherAlertsParentVersion"
-	state.version = "2.4.4"
+	state.version = "2.4.5"
     
     if(awDevice) {
         try {
@@ -352,30 +353,34 @@ def main() {
 		// play TTS and send PushOver
 		    buildAlertMsg()
             alertNow(state.alertmsg, false)
-            if(repeatYes==true) {
-                repeatNow()
-             }
-		    // set the pastalert to the current alertsent timestamp
-		    state.pastalert = state.alertsent
+            if(repeatYes==true) repeatNow()
+            else {
+            	if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
+			    runIn((60*noaaTileReset.toInteger()),tileReset)
+            }
+	    // set the pastalert to the current alertsent timestamp
+	    state.pastalert = state.alertsent
 		}
 	} 
 }
 
 def repeatNow(){
-        if(logEnable) log.debug "Repeating alert in ${frequency} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s)."
         if(state.repeat) {
             alertNow(state.alertmsg, true)
             state.count = state.count + 1
+            if(logEnable) log.debug "Repeating alert in ${state.frequency} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s). Repeat State: ${state.repeat}"
         }
         state.repeat = true
-	    if(state.num.toInteger() > 0){
+	    if(state.num > 0){
 	        state.num = state.num - 1
-            runIn(state.frequency.toInteger()*60,repeatNow)
+            runIn(state.frequency*60,repeatNow)
         } else { 
             if(logEnable) log.debug "Finished repeating alerts."
             state.count = 1
-            state.num = repeatTimes
+            state.num = repeatTimes.toInteger()
             state.repeat = false 
+			if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
+			runIn((60*noaaTileReset.toInteger()),tileReset)
         }
 }
 
@@ -404,6 +409,10 @@ def runtestAlert() {
     state.alertmsg=buildTestAlert()
     alertNow(state.alertmsg, false)
     if(repeatYes==true) repeatNow()
+     else {
+       	if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
+	    runIn((60*noaaTileReset.toInteger()),tileReset)
+     }
 }
 
 
@@ -411,18 +420,19 @@ def runtestAlert() {
 def checkState() {
     if(repeatTimes==null || repeatMinutes==null) {
         if(repeatTimes==null) { state.num = 1 
-                             } else { state.num = repeatTimes
-                                      state.repeatTime = repeatTimes}
+                             } else { state.num = repeatTimes.toInteger()
+                                      state.repeatTime = repeatTimes.toInteger()}
         if(repeatMinutes==null) { state.frequency = 15
-                                } else { state.frequency = repeatMinutes }
+                                } else { state.frequency = repeatMinutes.toInteger() }
         if(logEnable) log.debug "Not all/any Global variables have not been saved yet.  frequency:${state.num} - Minutes:${state.frequency}"
     } else {
-        state.num = repeatTimes
-        state.frequency = repeatMinutes
+        state.num = repeatTimes.toInteger()
+        state.frequency = repeatMinutes.toInteger()
         if(logEnable) log.debug "Global variables are set.  frequency:${state.num} - Minutes:${state.frequency}"
     }
     state.count = 1
-    if(state.repeat==null || state.repeat=="") state.repeat = false
+    state.repeat = false
+    state.resettileAlert = false
 }
 
 
@@ -665,10 +675,6 @@ def tileNow(alertmsg, resetAlert) {
 	if(noaaTileDevice) {
 		if(logEnable) log.debug "Sending to NOAA Tile - msg: ${alertmsg}"
 		noaaTileDevice.sendNoaaTile(alertmsg)
-		if(resetAlert == "true") {
-			if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
-			runIn((60*noaaTileReset.toInteger()),tileReset)
-		}
 	}
 }
 
