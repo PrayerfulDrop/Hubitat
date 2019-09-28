@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.4.4 - fixed missing reset for repeats, added restrictions to repeats, added options to Pushover if restricted option
  *   2.4.3 - fixed AppWatchDog2 setVersion
  *   2.4.2 - fixed misspelling of variables causing infinite repeat
  *   2.4.1 - fixed default settings not initializing correctly
@@ -96,7 +97,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "NOAAWeatherAlertsParentVersion"
-	state.version = "2.4.3"
+	state.version = "2.4.4"
     
     if(awDevice) {
         try {
@@ -109,10 +110,6 @@ def setVersion(){
     }
 }
 
-import groovy.json.*
-import java.util.regex.*
-import java.text.SimpleDateFormat
-	
 definition(
     name:"NOAA Weather Alerts",
     namespace: "aaronward",
@@ -130,15 +127,13 @@ preferences {
 
 def mainPage() {
     dynamicPage(name: "mainPage") {
-    	//installCheck()
-		//if(state.appInstalled == 'COMPLETE'){
 			section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
 				paragraph "<div style='color:#1A77C9'>This application provides customized Weather Alerts.</div>"
 			}
-			section(getFormat("header-green", " General")) {
+			section(getFormat("header-blue", " General")) {
        			label title: "Custom Application Name (for multiple instances of NOAA):", required: false
 			}
-			section(getFormat("header-green", " Notification Devices")) {
+			section(getFormat("header-blue", " Notification Devices")) {
 				// PushOver Devices
 			    input "pushovertts", "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true 
 			    if(pushovertts == true){ input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true}
@@ -163,7 +158,7 @@ def mainPage() {
 				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false, submitOnChange: true)
 
 			}
-			section(getFormat("header-green", " Configuration")) {
+			section(getFormat("header-blue", " Configuration")) {
 				input name: "whatAlertSeverity", type: "enum", title: "Weather Severity to monitor: ", 
 					options: [
 						"minor": "Minor",
@@ -199,7 +194,7 @@ def mainPage() {
 				    paragraph "<b>Example:</b>{alertseverity} weather alert. Certainty is {alertcertainty}. Urgency is {alerturgency}. {alertheadline}. {alertinstruction}. This is the end of the weather announcement."
 			    }
 
-			section(getFormat("header-green", " Dashboard Tile")) {}
+			section(getFormat("header-blue", " Dashboard Tile")) {}
 			section("Instructions for Dashboard Tile:", hideable: true, hidden: true) {
 				paragraph "<b>Instructions for adding NOAA Weather Alerts to Hubitat Dashboards:</b><br>"
 				paragraph " -Install NOAA Tile Device driver<br>- Create a new Virtual Device and use the NOAA Tile Driver  'NOAA Tile'<br>- Select the new Virtual Device Below<br><br>"
@@ -210,7 +205,7 @@ def mainPage() {
 			input(name: "noaaTileDevice", type: "capability.actuator", title: "NOAA Tile Device to send alerts to:", submitOnChange: true, required: false, multiple: false)
 			input name:"noaaTileReset", type: "text", title: "Reset NOAA Tile on dashboard after how many minutes?", require: false, defaultValue: "30", submitOnChange: true
 			}
-			section(getFormat("header-green", " Advanced Configuration")) {
+			section(getFormat("header-blue", " Advanced Configuration")) {
 			paragraph "Use with caution as below settings may cause undesired results.  Reference <a href='https://www.weather.gov/documentation/services-web-api?prevfmt=application%2Fcap%2Bxml/default/get_alerts#/default/get_alerts' target='_blank'>Weather.gov API</a> and use the API response test button below to determine your desired results."
 				input "myWeatherAlert", "enum", title: "Watch for a specific Weather event(s)?", required: false, multiple: true, submitOnChange: true,
                             options: [
@@ -254,16 +249,17 @@ def mainPage() {
 								"likely": "Likely",
 								"observed": "Observed"]
 			}
-			section(getFormat("header-green", " Restrictions")) {
+			section(getFormat("header-blue", " Restrictions")) {
 				input "modesYes", "bool", title: "Enable restriction of notifications by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
-				if(modesYes){	
+				if(pushovertts) input "pushoverttsalways ", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
+                if(modesYes){	
 				    input(name:"modes", type: "mode", title: "Restrict notifications when current mode is:", multiple: true, required: false, submitOnChange: true)
 				}
 				if(!modesYes){
 			          input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict notfications:", required: false, multiple: false, defaultValue: null, submitOnChange: true
 				}
 			}
-        section(getFormat("header-green", " Logging and Testing")) { }
+        section(getFormat("header-blue", " Logging and Testing")) { }
 // ** App Watchdog Code **
             section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
 				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
@@ -281,10 +277,7 @@ def mainPage() {
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
 				if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
-					if (logEnable) log.debug "Initiating a test alert."
-					state.alertmsg=buildTestAlert()
-                    alertNow(state.alertmsg, false)
-                    if(repeatYes==true) repeatNow()
+                    runtestAlert()
 				}
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true 
@@ -302,7 +295,39 @@ def mainPage() {
 				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${state.version}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
 			}       
 		}
+}
+
+// Application Startup Routines
+
+def initialize() {
+    setVersion()
+    unschedule()
+    if (logEnable && logMinutes.toInteger() != 0) {
+        if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
+        runIn((logMinutes.toInteger() * 60),logsOff)
+    }
+    else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
+    checkState()
+	schedule("0 0 3 ? * * *", setVersion)
+     switch (whatPoll.toInteger()) {
+		case 1: 
+			runEvery1Minute(main)
+			break
+		case 5: 
+			runEvery5Minutes(main)
+			break
+		case 10: 
+			runEvery10Minutes(main)
+			break
+		case 15: 
+			runEvery15Minutes(main)
+			break
+		default: 
+			runEvery5Minutes(main)
+			break
 	}
+    runIn(5, main)
+}
 
 def installed() {
     if (logEnable) log.debug "Installed with settings: ${settings}"
@@ -311,99 +336,83 @@ def installed() {
 
 def updated() {
     if (logEnable) log.debug "Updated with settings: ${settings}"
-    unsubscribe()
-    if (logEnable && logMinutes.toInteger() != 0) {
-        if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
-        runIn((logMinutes.toInteger() * 60),logsOff)
-    }
-    else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
     initialize()
-	switch (whatPoll.toInteger()) {
-		case 1: 
-			runEvery1Minute(refresh)
-			break
-		case 5: 
-			runEvery5Minutes(refresh)
-			break
-		case 10: 
-			runEvery10Minutes(refresh)
-			break
-		case 15: 
-			runEvery15Minutes(refresh)
-			break
-		default: 
-			runEvery5Minutes(refresh)
-			break
-	}
-}
-
-def initialize() {
-    checkState()
-	runIn(5, refresh)
-    schedule("0 0 3 ? * * *", setVersion)
-	}
-
-def installCheck(){         
-    state.appInstalled = app.getInstallationState() 
-    if(state.appInstalled != 'COMPLETE'){
-    	section{paragraph "Please hit 'Done' to install '${app.label}'"}
-    }
-    else{
-		if (logEnable) log.debug "${app.label} has been updated."
-    }
-}
-
-def getImage(type) {
-    def loc = "<img src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/Support/NOAA.png'>"
-}
-
-def getFormat(type, myText=""){
-    if(type == "header-green") return "<div style='color:#ffffff;font-weight: bold;background-color:#1A7BC7;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
-    if(type == "line") return "\n<hr style='background-color:#1A77C9; height: 1px; border: 0;'></hr>"
-    if(type == "title") return "<h2 style='color:#1A77C9;font-weight: bold'>${myText}</h2>"
 }
 
 
-def logsOff(){
-    log.warn "Debug logging disabled."
-    app?.updateSetting("logEnable",[value:"false",type:"bool"])
+// Main Application Routines
+def main() {
+    // Get the alert message
+	getAlertMsg()	
+	if (logEnable) log.debug "Polled weather API: Alert Sent Timestamp: '${state.alertsent}'   Past Alert Timestamp: '${state.pastalert}'"
+	if(state.alertsent.equals(state.pastalert)) { 
+		log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+	} else {
+		if(state.alertsent!=null){
+		// play TTS and send PushOver
+		    buildAlertMsg()
+            alertNow(state.alertmsg, false)
+            if(repeatYes==true) {
+                repeatNow()
+             }
+		    // set the pastalert to the current alertsent timestamp
+		    state.pastalert = state.alertsent
+		}
+	} 
 }
 
+def repeatNow(){
+        if(logEnable) log.debug "Repeating alert in ${frequency} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s)."
+        if(state.repeat) {
+            alertNow(state.alertmsg, true)
+            state.count = state.count + 1
+        }
+        state.repeat = true
+	    if(state.num.toInteger() > 0){
+	        state.num = state.num - 1
+            runIn(state.frequency.toInteger()*60,repeatNow)
+        } else { 
+            if(logEnable) log.debug "Finished repeating alerts."
+            state.count = 1
+            state.num = repeatTimes
+            state.repeat = false 
+        }
+}
 
-def refresh() {
+def alertNow(alertmsg, repeatCheck){
 	// check restrictions based on Modes and Switches
     def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
-    def result2 =    ( modesYes && modes            !=null && modes.contains(location.mode))                         ? true : false
-	if (logEnable) log.debug "Restrictions on?  Modes: $result2, Switch: $result"
-
-	if( ! (result || result2) ) {
-			// Get the alert message
-			getAlertMsg()	
-			if (logEnable) log.debug "Polled weather API: Alert Sent Timestamp: '${state.alertsent}'   Past Alert Timestamp: '${state.pastalert}'"
-			if(state.alertsent.equals(state.pastalert)) { 
-				log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
-			} else {
-				if(state.alertsent!=null){
-				// play TTS and send PushOver
-				    buildAlertMsg()
-				    log.info "Sending alert: ${state.alertmsg}"
-                    alertNow(state.alertmsg, false)
-                    if(repeatYes==true) {
-                        if(logEnable) log.debug "Repeat alert is true."
-                        repeatNow()
-                    }
-				    // set the pastalert to the current alertsent timestamp
-				    state.pastalert = state.alertsent
-				}
-			} 
-	}
-    else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+    def result2 =    ( modesYes && modes !=null && modes.contains(location.mode)) ? true : false
+    if (logEnable) log.debug "Restrictions on?  Modes: $result2, Switch: $result"
+   
+    if(!(result || result2) && !pushoverttsalways) {  
+        if(pushoverttsalways) {	
+            log.info "Restrictions are enabled but PushoverTTS enabled.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+            pushNow(alertmsg, repeatCheck) }
+        else {
+            log.info "Sending alert: ${state.alertmsg}"
+            pushNow(alertmsg, repeatCheck)
+		    if(alertSwitch) { alertSwitch.on() }
+		    talkNow(alertmsg, repeatCheck)  
+		    tileNow(alertmsg, "true") 
+        }
+     } else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 }
 
+def runtestAlert() {
+    if (logEnable) log.debug "Initiating a test alert."
+    state.alertmsg=buildTestAlert()
+    alertNow(state.alertmsg, false)
+    if(repeatYes==true) repeatNow()
+}
+
+
+// Main Application Supporting Routines/Handlers
 def checkState() {
     if(repeatTimes==null || repeatMinutes==null) {
         if(repeatTimes==null) { state.num = 1 
-                             } else { state.num = repeatTimes }
+                             } else { state.num = repeatTimes
+                                      state.repeatTime = repeatTimes}
         if(repeatMinutes==null) { state.frequency = 15
                                 } else { state.frequency = repeatMinutes }
         if(logEnable) log.debug "Not all/any Global variables have not been saved yet.  frequency:${state.frequency} - Minutes:${state.frequency}"
@@ -491,52 +500,7 @@ def getAlertMsg() {
 	}
 	catch (any) { log.warn "Weather.gov API did not respond to JSON request."}
 }
-			
-def buildAlertMsg() {
-		if (logEnable) log.debug "Building alert message."
-				// build the alertmsg
-					alertmsg = alertCustomMsg
-					try {alertmsg = alertmsg.replace("{alertarea}","${state.alertarea}") }
-						 catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertseverity}","${state.alertseverity}") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertcertainty}","${state.alertcertainty}") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alerturgency}","${state.alerturgency}") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertheadline}","${state.alertheadline}") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertdescription}","${state.alertdescription}") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertinstruction}","${state.alertinstruction}") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertevent}","${state.alertevent}") }
-						catch (any) {}					
-					try {alertmsg = alertmsg.replace(" CST","") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace(" CDT","") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace(" MDT","") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace(" MST","") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace(" PST","") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace(" PDT","") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace(" EST","") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace(" EDT","") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace(" NWS "," the National Weather Service ") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replaceAll("\n"," ") }
-						catch (any) {}
-                    try {alertmsg = alertmsg.trim().replaceAll("[ ]{2,}", ", ") }
-                        catch (any) {}
-					state.alertmsg = alertmsg
-					if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
-				} 
+
 
 def buildTestAlert() {
 					alertmsg = alertCustomMsg
@@ -559,6 +523,53 @@ def buildTestAlert() {
 					return alertmsg
 }
 
+def buildAlertMsg() {
+		if (logEnable) log.debug "Building alert message."
+		// build the alertmsg
+		alertmsg = alertCustomMsg
+		try {alertmsg = alertmsg.replace("{alertarea}","${state.alertarea}") }
+			 catch (any) {}
+		try {alertmsg = alertmsg.replace("{alertseverity}","${state.alertseverity}") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace("{alertcertainty}","${state.alertcertainty}") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace("{alerturgency}","${state.alerturgency}") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace("{alertheadline}","${state.alertheadline}") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace("{alertdescription}","${state.alertdescription}") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace("{alertinstruction}","${state.alertinstruction}") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace("{alertevent}","${state.alertevent}") }
+			catch (any) {}					
+		try {alertmsg = alertmsg.replace(" CST","") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace(" CDT","") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace(" MDT","") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace(" MST","") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace(" PST","") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace(" PDT","") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace(" EST","") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace(" EDT","") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replace(" NWS "," the National Weather Service ") }
+			catch (any) {}
+		try {alertmsg = alertmsg.replaceAll("\n"," ") }
+			catch (any) {}
+        try {alertmsg = alertmsg.trim().replaceAll("[ ]{2,}", ", ") }
+            catch (any) {}
+		state.alertmsg = alertmsg
+		if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
+} 
+
+// Common Notifcation Routines
 def talkNow(alertmsg, repeatCheck) {			
         if(repeatCheck) {
             if(useAlertIntro) { alertmsg = "Repeating previous alert,, ${AlertIntro}" + alertmsg
@@ -661,27 +672,26 @@ def tileNow(alertmsg, resetAlert) {
 	}
 }
 
-def repeatNow(){
-    if(repeatTime==null || repeatMintues==null) checkState()
-    if(logEnable) log.debug "Repeating alert in ${repeatMinutes} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s)."
-    if(state.repeat) {
-        alertNow(state.alertmsg, true)
-        state.count = state.count + 1
-    }
-    state.repeat = true
-	if(state.num.toInteger() > 0){
-	    state.num = state.num - 1
-        runIn(state.frequency.toInteger()*60,repeatNow)
-    } else { 
-        if(logEnable) log.debug "Finished repeating alerts."
-        state.count = 1
-        state.repeat = false 
-    }
+
+
+// Common Application Routines and Requirements
+import groovy.json.*
+import java.util.regex.*
+import java.text.SimpleDateFormat
+
+def getImage(type) {
+    def loc = "<img src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/Support/NOAA.png'>"
 }
 
-def alertNow(alertmsg, repeatCheck){
-		pushNow(alertmsg, repeatCheck)
-		if(alertSwitch) { alertSwitch.on() }
-		talkNow(alertmsg, repeatCheck)  
-		tileNow(alertmsg, "true") 
+def getFormat(type, myText=""){
+    if(type == "header-blue") return "<div style='color:#ffffff;font-weight: bold;background-color:#1A7BC7;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
+    if(type == "line") return "\n<hr style='background-color:#1A77C9; height: 1px; border: 0;'></hr>"
+    if(type == "title") return "<h2 style='color:#1A77C9;font-weight: bold'>${myText}</h2>"
 }
+
+
+def logsOff(){
+    log.warn "Debug logging disabled."
+    app?.updateSetting("logEnable",[value:"false",type:"bool"])
+}
+
