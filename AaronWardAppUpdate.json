@@ -5,7 +5,7 @@
   "Apps": "NOAA Weather Alerts, You Got Mail, Roomba Scheduler",
    
   "NOAAWeatherAlertsType": "App",
-  "NOAAWeatherAlertsParentVersion": "2.4.3",
+  "NOAAWeatherAlertsParentVersion": "2.4.4",
   "NOAAWeatherAlertsChild1Version": "",
   "NOAAWeatherAlertsChild1Name": "",
   "NOAAWeatherAlertsChild2Version": "",
@@ -22,7 +22,7 @@
   "NOAAWeatherAlertsChild4RawCode": "",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": "2.4.3 - fixed AppWatchDog2 setVersion",
+  "NOAAWeatherAlertsUpdateNote": "2.4.4 - fixed missing reset for repeats, added restrictions to repeats, added options to Pushover if restricted option",
 
   "YouGotMailType": "App",
   "YouGotMailParentVersion": "1.0.6",
