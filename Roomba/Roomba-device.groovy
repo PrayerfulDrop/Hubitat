@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.1.1 - fixed CSS for dashboard update
  *   1.1.0 - support for switch control on/off, handler changes
  *   1.0.9 - error in namespace preventing creation of adding device
  *   1.0.8 - added logging option
@@ -144,8 +145,8 @@ def roombaTile(cleaning, batterylevel, cleaningTime) {
             break
     }
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
-    if(cleaning.contains("docking") || cleaning.contains("cleaning")) roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg} - ${cleaningTime}min<br>Battery: ${batterylevel}%</div>"
-    else roombaTile = "<div style=font-size:15px align=center><img max-width=100% height=auto src=${img} border=0><br>${msg}<br>Battery: ${batterylevel}%</div>"
+    if(cleaning.contains("docking") || cleaning.contains("cleaning")) roombaTile = "<div style=font-size:15px;margin: 0 auto align=center><img max-width=100% height=auto src=${img} border=0>${msg} - ${cleaningTime}min<br>Battery: ${batterylevel}%</div>"
+    else roombaTile = "<div style=font-size:15px;margin: 0 auto align=center><img max-width=100% height=auto src=${img} border=0><br>${msg}Battery: ${batterylevel}%</div>"
     sendEvent(name: "RoombaTile", value: roombaTile, displayed: true)
     if(logEnable) log.debug "Roomba Status of '${msg}' sent to dashboard"
 }
