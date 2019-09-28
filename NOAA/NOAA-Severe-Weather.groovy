@@ -413,7 +413,7 @@ def checkState() {
         if(logEnable) log.debug "Global variables are set.  frequency:${state.frequency} - Minutes:${state.frequency}"
     }
     state.count = 1
-    state.repeat = false
+    if(state.repeat==null || state.repeat=="") state.repeat = false
 }
 
 
