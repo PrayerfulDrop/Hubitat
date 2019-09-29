@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.1.2 - additional CSS fixes to ensure of future dashboard changes won't affect tile
  *   1.1.1 - fixed CSS for dashboard update
  *   1.1.0 - support for switch control on/off, handler changes
  *   1.0.9 - error in namespace preventing creation of adding device
@@ -145,8 +146,11 @@ def roombaTile(cleaning, batterylevel, cleaningTime) {
             break
     }
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
-    if(cleaning.contains("docking") || cleaning.contains("cleaning")) roombaTile = "<div style=font-size:15px;margin: 0 auto align=center><img max-width=100% height=auto src=${img} border=0>${msg} - ${cleaningTime}min<br>Battery: ${batterylevel}%</div>"
-    else roombaTile = "<div style=font-size:15px;margin: 0 auto align=center><img max-width=100% height=auto src=${img} border=0>${msg}<br>Battery: ${batterylevel}%</div>"
-    sendEvent(name: "RoombaTile", value: roombaTile, displayed: true)
+    html = "<style>img.roombaImage { max-width:80%;height:auto;}div#roombaImgWrapper {width=100%}div#roombaWrapper {font-size:13px;margin: 25px auto; text-align:center;}</style><div id='roombaWrapper'>"
+    html += "<div id='roombaImgWrapper'><center><img src='${img}' class='roombaImage'></center></div>"
+        if(cleaning.contains("docking") || cleaning.contains("cleaning")) html +="${msg} - ${cleaningTime}min<br>Battery: ${batterylevel}%"
+        else html+="${msg}<br>Battery: ${batterylevel}%"
+    html += "</div>"
+    sendEvent(name: "RoombaTile", value: html, displayed: true)
     if(logEnable) log.debug "Roomba Status of '${msg}' sent to dashboard"
 }
