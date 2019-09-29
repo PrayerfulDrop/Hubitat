@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.6 - support for dashboard changes in CSS
  *   1.1.5 - full customization of notification messages
  *   1.1.4 - added ability to have multiple Roomba Schedulers 
  *   1.1.3 - reduced device handler complexity, added support for device switch.on/off and options for off
@@ -52,7 +53,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.1.5"
+	state.version = "1.1.6"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -472,6 +473,7 @@ def RoombaSchedStart() {
             if(result.data.cleanMissionStatus.phase.contains("charge") && result.data.batPct.toInteger()>75) {
                 log.info "Starting scheduled cleaning - Start send to ${device}"
                 device.start()
+                updateDevices()
             } else log.warn "${device} is currently not on the charging station.  Cannot start cleaning."
         }
     }
