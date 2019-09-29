@@ -63,7 +63,7 @@ def installed() {
 
 def setVersion(){
     appName = "SaltTankDriver"
-	version = "1.0.1" 
+	version = "1.0.3" 
     dwInfo = "${appName}:${version}"
     sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
 }
