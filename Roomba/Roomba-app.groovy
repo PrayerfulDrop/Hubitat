@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.8 - added more error traps, error8 - bin issue attempt to restart cleaning, advanced presence options
  *   1.1.7 - fixed bug if unknown error occurs to continue monitoring
  *   1.1.6 - support for dashboard changes in CSS
  *   1.1.5 - full customization of notification messages
@@ -54,7 +55,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.1.7"
+	state.version = "1.1.8"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -88,13 +89,13 @@ def mainPage() {
 				paragraph "<div style='color:#1A77C9'>This application provides Roomba local integration and advanced scheduling.</div>"
 			}
 
-        section(getFormat("header-green", " Rest980/Dorita980 Integration:")){
+        section(getFormat("header-blue", " Rest980/Dorita980 Integration:")){
             if(state.roombaName==null || state.error) paragraph "<b><font color=red>Rest980 Server cannot be reached - check IP Address</b></font>"
 			input "doritaIP", "text", title: "Rest980 Server IP Address:", description: "Rest980 Server IP Address:", required: true, submitOnChange: true
 			input "doritaPort", "number", title: "Rest980 Server Port:", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535"
             if(state.roombaName!=null && state.roombaName.length() > 0) { href "pageroombaInfo", title: "Information about Roomba: ${state.roombaName}", description:"" }
 		}
-        section(getFormat("header-green", " Notification Device(s):")) {
+        section(getFormat("header-blue", " Notification Device(s):")) {
 		    // PushOver Devices
 		     input "pushovertts", "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true 
              if(pushovertts == true) {
@@ -109,7 +110,7 @@ def mainPage() {
                 href "pageroombaNotify", title: "Click to change default notification messages from ${state.roombaName}", description: ""
             }
         }
-        section(getFormat("header-green", " Cleaning Schedule:")) { 
+        section(getFormat("header-blue", " Cleaning Schedule:")) { 
             paragraph "Cleaning schedule must be set for at least <u>one day and one time</u>.<br><b>Note:</b> Roomba devices require at least 2 hours to have a full battery.  Consider this when scheduling multiple cleaning times in a day."
             input "schedDay", "enum", title: "Select which days to schedule cleaning:", required: true, multiple: true, submitOnChange: true,
                 options: [
@@ -160,13 +161,18 @@ def mainPage() {
                                                         input "day${i}", "time", title: "${proper} time:",required: true
                                                    }    
                                                 }
-            input "usePresence", "bool", title: "Use presence to start/stop Roomba cleaning cycle?", defaultValue: false, submitOnChange: true
+        }
+        section(getFormat("header-blue", " Presence Options:")) {
+            input "usePresence", "bool", title: "Use presence?", defaultValue: false, submitOnChange: true
             if(usePresence) {
                 input "roombaPresence", "capability.presenceSensor", title: "Choose presence device(s):", multiple: true, required: true, submitOnChange: true
-                 input "roombaPresenceDock", "bool", title: "Dock Roomba if someone arrives home?", defaultValue: false, submitonChange: true
+                input "roombaPresenceClean", "bool", title: "Immediately start cleaning if everyone leaves (outside of normal schedule)?", defaultValue: false, submitOnChange: true
+                input "roombaPresenceDelay", "bool", title: "Delay cleaning schedule if someone is present in home?", defaultValue: false, submitOnChange: true
+                if(roombaPresenceDelay) input "roombaPresenceDelayTime", "text", title: "Minutes to enforce cleaning schedule even if people present?", defaultValue: "90", submitOnChange: true
+                input "roombaPresenceDock", "bool", title: "Dock Roomba if someone arrives home?", defaultValue: false, submitonChange: true
             }
         }
-        section(getFormat("header-green", " Advanced Options:")) {
+        section(getFormat("header-blue", " Advanced Options:")) {
             paragraph "Roomba models below 900+ series do not have the ability to find a docking station prior to the battery dying.  Options below provide similar functionality or at least a better chance for Roomba to dock before dying."
             input "useTime", "bool", title: "Limit Roomba's cleaning time?", defaultValue: false, submitOnChange: true
             if(useTime) {
@@ -210,7 +216,7 @@ def mainPage() {
             }
         }
 
-        section(getFormat("header-green", " Logging and Testing:")) { }
+        section(getFormat("header-blue", " Logging and Testing:")) { }
             // ** App Watchdog Code **
         section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
 				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
@@ -458,31 +464,60 @@ def RoombaScheduler() {
              }
          }
         }
-    log.info "Next scheduled cleaning: ${map[cleaningday]} ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}"       
+    log.info "Next scheduled cleaning: ${map[cleaningday]} ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}" 
     schedule("0 ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('mm H')} ? * ${cleaningday} *", RoombaSchedStart) 
 }
 
 def RoombaSchedStart() {
     def result = executeAction("/api/local/info/state")
-
-    if (result && result.data)
-    {
-        def device = getChildDevice("roomba:" + result.data.name)
-        if(result.data.cleanMissionStatus.phase.contains("run") || result.data.cleanMissionStatus.phase.contains("hmUsrDock") || result.data.batPct.toInteger()<75) {
-            log.warn "${device} is currently cleaning.  Scheduled times may be too close together." 
+    def device = getChildDevice("roomba:" + result.data.name)
+    def presence = getPresence()
+    
+    // If Delay cleaning is selected
+    if(roombaPresenceDelay) {
+        if(!state.schedDelay && presence) {
+            log.info "Roomba Schedule was initiated but presence is detected.  Waiting ${roombaPresenceDelayTime.toInteger()} minutes before starting."
+            def now = new Date()
+            long temp = now.getTime()
+            state.startDelayTime = temp
+            state.schedDelay = true
+            runIn(60,RoombaDelay)
+            RoombaScheduler()
         } else {
-            if(result.data.cleanMissionStatus.phase.contains("charge") && result.data.batPct.toInteger()>75) {
-                log.info "Starting scheduled cleaning - Start send to ${device}"
+            long timeDiff
+   		    def now = new Date()
+    	    long unxNow = now.getTime()
+    	    unxPrev = state.startDelayTime
+    	    unxNow = unxNow/1000
+    	    unxPrev = unxPrev/1000
+    	    timeDiff = Math.abs(unxNow-unxPrev)
+    	    timeDiff = Math.round(timeDiff/60)
+            if(logEnable) log.debug "Time delay difference is currently: ${timeDiff.toString()} minute(s)"
+            if(timeDiff < roombaPresenceDelayTime.toInteger()) {
+                runIn(60,RoombaDelay)
+            } else {
+                log.info "Delay time has expired.  Starting expired cleaning schedule."
                 device.start()
                 updateDevices()
-            } else log.warn "${device} is currently not on the charging station.  Cannot start cleaning."
+                RoombaScheduler()
+                state.schedDelay = false
+            }
         }
-    }
-     RoombaScheduler()
+    } 
+    // Delay cleaning is not selected
+    else { device.start()
+           updateDevices() 
+           RoombaScheduler()}
 }
 
+def RoombaDelay() {
+    RoombaSchedStart()
+}
+                   
+                   
 // Device creation and status updhandlers
 def createChildDevices() {
+    try {
     def result = executeAction("/api/local/info/state")
 
 	if (result && result.data)
@@ -490,10 +525,13 @@ def createChildDevices() {
         if (!getChildDevice("roomba:"+result.data.name))
             addChildDevice("roomba", "Roomba", "roomba:" + result.data.name, 1234, ["name": result.data.name, isComponent: false])
     }
+    }
+    catch (e) {log.error "Couldn't create child device due to connection issue." }
 }
 
 def cleanupChildDevices()
 {
+    try {
     def result = executeAction("/api/local/info/state")
 	for (device in getChildDevices())
 	{
@@ -502,10 +540,12 @@ def cleanupChildDevices()
         if (result.data.name != deviceId)
             deleteChildDevice(device.deviceNetworkId)
 	}
+    }
+    catch (e) { log.error "Couldn't clean up child devices due to connection issue."}
 }
 
 def updateDevices() {
-    
+    try {
     def result = executeAction("/api/local/info/state")
     
     if (result && result.data)
@@ -596,6 +636,12 @@ def updateDevices() {
                         case 7:
                             temp += " ${state.pushoverError7Msg}"
                             break
+                        case 8:
+                            temp += " has a bin error.  Attempting to restart cleaning."
+                            device.resume
+                            pauseExecution(5000)
+                            device.resume
+                            break
                         case 16:
                             temp += " ${state.pushoverError16Msg}"
                             break
@@ -611,7 +657,6 @@ def updateDevices() {
                       temp = state.pushoverErrorMsg}
 				break		
 		}
-        runIn(30, updateDevices)
         state.cleaning = status
         
         device.sendEvent(name: "cleanStatus", value: status)
@@ -633,25 +678,37 @@ def updateDevices() {
             }
         } 
     }
+    }
+    catch (e) { if(logEnable) log.error "iRobot cloud error.  Retrying updating devices in 30 seconds." }                   
+    runIn(30, updateDevices)
 }
 
 def pushNow(msg) {
     // If user selects Pushover notifications then send message
 	if (pushovertts) {
             if (logEnable) log.debug "Sending Pushover message: ${msg}"
-            pushoverdevice.deviceNotification("${msg}")
+        try {pushoverdevice.deviceNotification("${msg}")}
+        catch (e) {log.error "Pushover device is not selected."}
 	}
 }
 
 // Handlers
+
+def getPresence() {
+    def presence = false
+    if(roombaPresence.findAll { it?.currentPresence == "present"}) { presence = true }
+    return presence
+}
+
+
 def presenceHandler(evt) {
+    try {
     def result = executeAction("/api/local/info/state")
 
     if (result && result.data)
     {
         def device = getChildDevice("roomba:" + result.data.name)
-        def presence = false
-        if(roombaPresence.findAll { it?.currentPresence == "present"}) { presence = true }
+        def presence = getPresence()
     
         if(presence) {
             // Presence is detected, Roomba is cleaning AND user chooses to have Roomba dock when someone is home
@@ -661,18 +718,25 @@ def presenceHandler(evt) {
         } else {
             // Presence is away start cleaning schedule and variations
             // Check if Roomba is docking, if so stop then start cleaning
-            if(result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
+            if(result.data.cleanMissionStatus.phase.contains("hmUsrDock") && roombaPresenceClean) {
                 device.start()
             }
             // Check if Roomba is charging OR is stopped then start cleaning
-            if(result.data.cleanMissionStatus.phase.contains("charge") || result.data.cleanMissionStatus.phase.contains("stop")) device.start()
+            if((result.data.cleanMissionStatus.phase.contains("charge") || result.data.cleanMissionStatus.phase.contains("stop")) && roombaPresenceClean) device.start()
+            if(roombaPresenceDelay && state.schedDelay) {
+                state.schedDelay = false
+                device.start
+            }
         }
         //update status of Roomba
         updateDevices()
     }
+    } 
+    catch (e) { log.error "iRobot Cloud communication error." }
 }
 
 def handleDevice(device, id, evt) {
+    try {
     def device_result = executeAction("/api/local/info/state")
     def result = ""
     switch(evt) {
@@ -680,21 +744,25 @@ def handleDevice(device, id, evt) {
             result = executeAction("/api/local/action/stop")
             break
         case "start":
-            if(roomba900) {
-                result = executeAction("/api/local/config/carpetBoost/${roombacarpetBoost}")
-                if(roombaedgeClean) result = executeAction("/api/local/config/edgeClean/on")
-                else result = executeAction("/api/local/config/edgeClean/off")
-        
-                result = executeAction("/api/local/config/cleaningPasses/${roombacleaningPasses}")
-        
-                if(roombaalwaysFinish) result = executeAction("/api/local/config/alwaysFinish/on")
-                else result = executeAction("/api/local/config/alwaysFinish/off")
-            }
-            if(!device_result.data.cleanMissionStatus.phase.contains("run") || !device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
-                    result = executeAction("/api/local/action/start")
-            } else {
-                    result = executeAction("/api/local/action/stop")
-                    result = executeAction("/api/local/action/start")
+            if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock") || device_result.data.batPct.toInteger()<75) 
+                { log.warn "${device} is currently cleaning.  Scheduled times may be too close together." }
+            else {
+                if(device_result.data.cleanMissionStatus.phase.contains("charge") && device_result.data.batPct.toInteger()>40) {
+                    if(roomba900) {
+                        result = executeAction("/api/local/config/carpetBoost/${roombacarpetBoost}")
+                        if(roombaedgeClean) result = executeAction("/api/local/config/edgeClean/on")
+                            else result = executeAction("/api/local/config/edgeClean/off")
+                        result = executeAction("/api/local/config/cleaningPasses/${roombacleaningPasses}")
+                        if(roombaalwaysFinish) result = executeAction("/api/local/config/alwaysFinish/on")
+                            else result = executeAction("/api/local/config/alwaysFinish/off")
+                    }
+                    if(!device_result.data.cleanMissionStatus.phase.contains("run") || !device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
+                        result = executeAction("/api/local/action/start")
+                    } else {
+                        result = executeAction("/api/local/action/stop")
+                        result = executeAction("/api/local/action/start")
+                    }
+                } else log.warn "${device} is currently not on the charging station.  Cannot start cleaning."
             }
             break
         case "resume":
@@ -722,7 +790,8 @@ def handleDevice(device, id, evt) {
             } else result = executeAction("/api/local/action/stop")
           break
     }
-    //updateDevices()
+    } 
+    catch (e) { log.error "iRobot error.  Cannot start action. ${e}" }
 }
 
 def setStateVariables() {
@@ -756,6 +825,8 @@ def setStateVariables() {
     if(state.notified==null) state.notified = false
     if(state.batterydead==null) state.batterydead = false
     if(state.bin==null) state.bin = true
+    if(state.schedDelay==null) state.schedDelay = false
+    state.schedDelay = false
 }
 
 def executeAction(path) {
@@ -792,7 +863,7 @@ def getImage(type) {
 }
 
 def getFormat(type, myText=""){
-    if(type == "header-green") return "<div style='color:#ffffff;font-weight: bold;background-color:#1A7BC7;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
+    if(type == "header-blue") return "<div style='color:#ffffff;font-weight: bold;background-color:#1A7BC7;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
     if(type == "line") return "\n<hr style='background-color:#1A77C9; height: 1px; border: 0;'></hr>"
     if(type == "title") return "<h2 style='color:#1A77C9;font-weight: bold'>${myText}</h2>"
 }
