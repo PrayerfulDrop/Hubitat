@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.7 - fixed bug if unknown error occurs to continue monitoring
  *   1.1.6 - support for dashboard changes in CSS
  *   1.1.5 - full customization of notification messages
  *   1.1.4 - added ability to have multiple Roomba Schedulers 
@@ -53,7 +54,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.1.6"
+	state.version = "1.1.7"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -578,6 +579,7 @@ def updateDevices() {
                 }     
 				break
 			case "stop":
+            try {
                 if(result.data.cleanMissionStatus.notReady.toInteger() > 0 && result.data.cleanMissionStatus.toInteger() > 0) {
                     status = "error"
                     temp = state.pushoverErrorMsg
@@ -604,6 +606,9 @@ def updateDevices() {
                     if(pushoverStop) msg=pushoverStopMsg
 
                 }
+                }
+            catch (e) { status = "error"
+                      temp = state.pushoverErrorMsg}
 				break		
 		}
         runIn(30, updateDevices)
