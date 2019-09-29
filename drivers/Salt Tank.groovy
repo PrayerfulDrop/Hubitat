@@ -136,8 +136,10 @@ def logsOff(){
 def on() {sendEvent(name: "switch", value: "on", isStateChange: true)
           runIn(5, off)}
 def off() {sendEvent(name: "switch", value: "off", isStateChange: true)}
+
 def tileNow(){ 
     if(salttank==null || salttank=="") salttank="4"
+    if(state.distance==null || state.distance=="") state.distance=0
     int saltlevel = (salttank.toInteger() * 12) - state.distance.toInteger()
     float tank = salttank.toInteger() * 12
     float perc = saltlevel/tank*100
