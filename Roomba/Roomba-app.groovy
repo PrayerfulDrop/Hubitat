@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.1.9 - fixed notifcations for unknown error codes, couple additional bugs discovered in logic 
  *   1.1.8 - added more error traps, error8 - bin issue attempt to restart cleaning, advanced presence options
  *   1.1.7 - fixed bug if unknown error occurs to continue monitoring
  *   1.1.6 - support for dashboard changes in CSS
@@ -55,7 +56,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.1.8"
+	state.version = "1.1.9"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -619,44 +620,43 @@ def updateDevices() {
                 }     
 				break
 			case "stop":
-            try {
-                if(result.data.cleanMissionStatus.notReady.toInteger() > 0 && result.data.cleanMissionStatus.toInteger() > 0) {
+                if(result.data.cleanMissionStatus.notReady.toInteger() > 0) {
                     status = "error"
+                    //log.warn "Roomba notReady code: ${result.data.cleanMissionStatus.notReady}"
                     temp = state.pushoverErrorMsg
-                    switch(result.data.cleanMissionStatus.notReady.toInteger()) {
-                        case 2:
-                        temp += " ${state.pushoverError2Msg}"
+                    switch(result.data.cleanMissionStatus.notReady) {
+                        case "2":
+                            temp += " ${state.pushoverErrorMsg2}"
                             break
-                        case 3:
-                            temp += " ${state.pushoverError3Msg}"
+                        case "3":
+                            temp += " ${state.pushoverErrorMsg3}"
                             break
-                        case 4:
-                            temp += " ${state.pushoverError4Msg}"
+                        case "4":
+                            temp += " ${state.pushoverErrorMsg4}"
                             break
-                        case 7:
-                            temp += " ${state.pushoverError7Msg}"
+                        case "7":
+                            temp += " ${state.pushoverErrorMsg7}"
                             break
-                        case 8:
+                        case "8":
                             temp += " has a bin error.  Attempting to restart cleaning."
                             device.resume
                             pauseExecution(5000)
                             device.resume
                             break
-                        case 16:
-                            temp += " ${state.pushoverError16Msg}"
+                        case "16":
+                            temp += " ${state.pushoverErrorMsg16}"
                             break
+                        default:
+                            temp = "${state.roombaName} has an unknown error notReady:${result.data.cleanMissionStatus.notReady}"
                     }
                     if(pushoverError) msg=temp
                 } else {         
                     status = "idle"
-                    if(pushoverStop) msg=pushoverStopMsg
-
+                    if(pushoverStop) msg=state.pushoverStopMsg
                 }
-                }
-            catch (e) { status = "error"
-                      temp = state.pushoverErrorMsg}
 				break		
 		}
+        
         state.cleaning = status
         
         device.sendEvent(name: "cleanStatus", value: status)
