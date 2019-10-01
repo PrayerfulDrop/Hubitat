@@ -430,11 +430,8 @@ def RoombaScheduler() {
     foundschedule=false
     def cleaningday = day
     nextcleaning = state.roombaSchedule[0]
-    log.debug "!!Start!! Day: ${day} - nextcleaning: ${nextcleaning} - daysofweek: ${daysofweek}"
-    log.debug "daysofweek.contains = ${daysofweek.contains(day.toString())}"
     // Check if we clean today
     if(daysofweek.contains(day.toString())) { 
-        log.debug "Cleaning today"
         // Check when next scheduled cleaning time will be
             for(it in state.roombaSchedule) {
                 temp = Date.parse("yyyy-MM-dd'T'HH:mm:ss", it).format('HH:mm')
@@ -456,7 +453,6 @@ def RoombaScheduler() {
         }
       } else { 
         // Check when the next day we are cleaning
-        log.debug "No cleaning today - checking future day"
         tempday = day
          while(!foundschedule) {
              tempday = tempday + 1
@@ -467,7 +463,6 @@ def RoombaScheduler() {
              }
          }
         }
-    log.debug "!!End!! Day: ${day} - nextcleaning: ${nextcleaning} - daysofweek: ${daysofweek}"
     log.info "Next scheduled cleaning: ${map[cleaningday]} ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}" 
     schedule("0 ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('mm H')} ? * ${cleaningday} *", RoombaSchedStart) 
 }
