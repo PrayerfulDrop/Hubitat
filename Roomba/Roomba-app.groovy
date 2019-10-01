@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.2.0 - fixed scheduling bug
  *   1.1.9 - fixed notifcations for unknown error codes, couple additional bugs discovered in logic 
  *   1.1.8 - added more error traps, error8 - bin issue attempt to restart cleaning, advanced presence options
  *   1.1.7 - fixed bug if unknown error occurs to continue monitoring
@@ -56,7 +57,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.1.9"
+	state.version = "1.2.0"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -115,13 +116,13 @@ def mainPage() {
             paragraph "Cleaning schedule must be set for at least <u>one day and one time</u>.<br><b>Note:</b> Roomba devices require at least 2 hours to have a full battery.  Consider this when scheduling multiple cleaning times in a day."
             input "schedDay", "enum", title: "Select which days to schedule cleaning:", required: true, multiple: true, submitOnChange: true,
                 options: [
-			        "1":	"Sunday",
-                    "2":	"Monday",
-                    "3":	"Tuesday",
-                    "4":	"Wednesday",
-                    "5":	"Thursday",
-                    "6":	"Friday",
-                    "7":	"Saturday"
+			        "0":	"Sunday",
+                    "1":	"Monday",
+                    "2":	"Tuesday",
+                    "3":	"Wednesday",
+                    "4":	"Thursday",
+                    "5":	"Friday",
+                    "6":	"Saturday"
                 ] 
             input "timeperday", "text", title: "Number of times per day to clean:", required: true, defaultValue: "1", submitOnChange:true
             if(timeperday==null) timeperday="1"
@@ -415,25 +416,25 @@ def getRoombaSchedule() {
 
 def RoombaScheduler() {
     def map=[
-           1:"Sunday",
-           2:"Monday",
-           3:"Tuesday",
-           4:"Wednesday",
-           5:"Thursday",
-           6:"Friday",
-           7:"Saturday"]
+           0:"Sunday",
+           1:"Monday",
+           2:"Tuesday",
+           3:"Wednesday",
+           4:"Thursday",
+           5:"Friday",
+           6:"Saturday"]
     def date = new Date()
     current = date.format("HH:mm")
-    Calendar calendar = Calendar.getInstance();
-    calendar.setTime(date);
-    def day = calendar.get(Calendar.DAY_OF_WEEK);
+    def day = date.getDay()
     daysofweek = schedDay.join(",")
     foundschedule=false
-    cleaningday = day
+    def cleaningday = day
     nextcleaning = state.roombaSchedule[0]
-    
+    log.debug "!!Start!! Day: ${day} - nextcleaning: ${nextcleaning} - daysofweek: ${daysofweek}"
+    log.debug "daysofweek.contains = ${daysofweek.contains(day.toString())}"
     // Check if we clean today
     if(daysofweek.contains(day.toString())) { 
+        log.debug "Cleaning today"
         // Check when next scheduled cleaning time will be
             for(it in state.roombaSchedule) {
                 temp = Date.parse("yyyy-MM-dd'T'HH:mm:ss", it).format('HH:mm')
@@ -455,6 +456,7 @@ def RoombaScheduler() {
         }
       } else { 
         // Check when the next day we are cleaning
+        log.debug "No cleaning today - checking future day"
         tempday = day
          while(!foundschedule) {
              tempday = tempday + 1
@@ -465,6 +467,7 @@ def RoombaScheduler() {
              }
          }
         }
+    log.debug "!!End!! Day: ${day} - nextcleaning: ${nextcleaning} - daysofweek: ${daysofweek}"
     log.info "Next scheduled cleaning: ${map[cleaningday]} ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}" 
     schedule("0 ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('mm H')} ? * ${cleaningday} *", RoombaSchedStart) 
 }
