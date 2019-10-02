@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.2.2 - added additional notification options for errors, add time-delay for notification of errors
  *   1.2.1 - fixed current day scheduling bug, minor tweaks and fixes
  *   1.2.0 - fixed scheduling bug
  *   1.1.9 - fixed notifcations for unknown error codes, couple additional bugs discovered in logic 
@@ -58,7 +59,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.2.1"
+	state.version = "1.2.2"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -87,6 +88,7 @@ preferences {
 }
 
 def mainPage() {
+    debug=false
 	dynamicPage(name: "mainPage") {
         section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
 				paragraph "<div style='color:#1A77C9'>This application provides Roomba local integration and advanced scheduling.</div>"
@@ -108,8 +110,8 @@ def mainPage() {
                 input "pushoverDock", "bool", title: "Notifications when Roomba docks and is charging?", required: false, defaultValue:false, submitOnChange: true 
                 paragraph "<hr>"
                 input "pushoverBin", "bool", title: "Notifications when Roomba's bin is full?", required: false, defaultValue:false, submitOnChange: true 
-                input "pushoverError", "bool", title: "Notifications when Roomba has an error?", required: false, defaultValue:false, submitOnChange: true 
                 input "pushoverDead", "bool", title: "Notifications when Roomba's Battery dies?", required: false, defaultValue:false, submitOnChange: true 
+                input "pushoverError", "bool", title: "Notifications when Roomba has an error?", required: false, defaultValue:false, submitOnChange: true 
                 href "pageroombaNotify", title: "Click to change default notification messages from ${state.roombaName}", description: ""
             }
         }
@@ -237,7 +239,7 @@ def mainPage() {
         section() {
              	input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
-             //   input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
+                if(debug) input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
             if(init) {
                 try {
                     initialize()
@@ -327,6 +329,7 @@ def pageroombaNotify() {
             input "pushoverErrorMsg2", "text", title: "Error2 - Both wheels are stuck:", required: false, defaultValue:"both wheels are stuck", submitOnChange: true 
             input "pushoverErrorMsg3", "text", title: "Error3 - Left wheel is stuck:", required: false, defaultValue:"left wheel is stuck", submitOnChange: true 
             input "pushoverErrorMsg4", "text", title: "Error4 - Right wheel is stuck:", required: false, defaultValue:"right wheel is stuck", submitOnChange: true 
+            input "pushoverErrorMsg5", "text", title: "Error5 - Roomba is wedged under something:", required: false, defaultValue: "it is wedged under something", submitOnChange: true
             input "pushoverErrorMsg7", "text", title: "Error7 - Bin is missing:", required: false, defaultValue:"cleaning bin is missing", submitOnChange: true 
             input "pushoverErrorMsg16", "text", title: "Error16 - Stuck on object:", required: false, defaultValue:"stuck on an object", submitOnChange: true 
             
@@ -578,7 +581,7 @@ def updateDevices() {
             state.bin = true
         }
         
-		def status = ""
+		def status = state.prevcleaning
         def msg = null
 		switch (result.data.cleanMissionStatus.phase){
 			case "hmMidMsn":
@@ -610,13 +613,15 @@ def updateDevices() {
                         }
                     } else {
     	                status = "docking"                        
-                        state.batterydead = false 
+                        state.batterydead = false
+                        state.errors = false
                 }      
 				break
 			case "charge":
 				status = "charging"
                 if(pushoverDock) msg=state.pushoverDockMsg
                 state.batterydead = false 
+                state.errors = false
 				break
 			case "run":
 				status = "cleaning"
@@ -629,68 +634,90 @@ def updateDevices() {
                 if(useBattery && roombaBattery.toInteger() >= result.data.batPct.toInteger()) {
                         device.dock()
                 }     
+                state.errors = false
 				break
 			case "stop":
+                status = state.prevcleaning
                 if(result.data.cleanMissionStatus.notReady.toInteger() > 0) {
-                    status = "error"
-                    //log.warn "Roomba notReady code: ${result.data.cleanMissionStatus.notReady}"
-                    temp = state.pushoverErrorMsg
-                    switch(result.data.cleanMissionStatus.notReady) {
-                        case "2":
-                            temp += " ${state.pushoverErrorMsg2}"
-                            break
-                        case "3":
-                            temp += " ${state.pushoverErrorMsg3}"
-                            break
-                        case "4":
-                            temp += " ${state.pushoverErrorMsg4}"
-                            break
-                        case "7":
-                            temp += " ${state.pushoverErrorMsg7}"
-                            break
-                        case "8":
-                            temp += " has a bin error.  Attempting to restart cleaning."
-                            device.resume
-                            pauseExecution(5000)
-                            device.resume
-                            break
-                        case "16":
-                            temp += " ${state.pushoverErrorMsg16}"
-                            break
-                        default:
-                            temp = "${state.roombaName} has an unknown error notReady:${result.data.cleanMissionStatus.notReady}"
+                    if(state.errors==false && state.notified==false) {
+   		                        def errornow = new Date()
+                                long errortemp = errornow.getTime()
+                                state.errorstarttime = errortemp
+                                state.errors = true
+                        if(logEnable) log.warn "Detected possible cleaning error with ${state.roombaName}"
+                        } else {
+                            if(!state.cleaning.contains("error") && state.errors) {
+                            	long errortimeDiff = 0
+   		                        def errornow = new Date()
+    	                        long errorunxNow = errornow.getTime()
+    	                        errorunxPrev = state.errorstarttime
+    	                        errorunxNow = errorunxNow/1000
+    	                        errorunxPrev = errorunxPrev/1000
+    	                        errortimeDiff = Math.abs(errorunxNow-errorunxPrev)
+    	                        errortimeDiff = Math.round(errortimeDiff/60)
+                                if(logEnable) log.warn "Checking how long since error detected.  Time difference is currently: ${errortimeDiff.toString()} minute(s)"
+                                if(errortimeDiff > 5) status = "error"
+                            }
+                   }
+                   if(status.contains("error")) {
+                       temp = state.pushoverErrorMsg
+                       switch(result.data.cleanMissionStatus.notReady) {
+                           case "2":
+                               temp += " ${state.pushoverErrorMsg2}"
+                               break
+                           case "3":
+                               temp += " ${state.pushoverErrorMsg3}"
+                               break
+                           case "4":
+                               temp += " ${state.pushoverErrorMsg4}"
+                               break
+                           case "5":
+                               temp += "${stat.pushoverErrorMsg5}"
+                               break
+                           case "7":
+                               temp += " ${state.pushoverErrorMsg7}"
+                               break
+                           case "8":
+                               temp += " has a bin error.  Attempting to restart cleaning."
+                               device.resume
+                               pauseExecution(5000)
+                               device.resume
+                               break
+                           case "16":
+                               temp += " ${state.pushoverErrorMsg16}"
+                               break
+                          default:
+                                temp = "${state.roombaName} has an unknown error notReady:${result.data.cleanMissionStatus.notReady}"
+                                break
+                       }
+                       if(pushoverError) msg = temp
+                       status = "error"
                     }
-                    if(pushoverError) msg=temp
                 } else {         
                     status = "idle"
+                    state.errors = false
                     if(pushoverStop) msg=state.pushoverStopMsg
                 }
 				break		
 		}
-        
+        if(debug) log.trace "Before: state.cleaning: '${state.cleaning}'  state.prevcleaning: '${state.prevcleaning}'  state.notified: '${state.notified}'"
         state.cleaning = status
-        
+
         device.sendEvent(name: "cleanStatus", value: status)
-        if(logEnable) log.debug "Sending ${status} to ${device} dashboard tile"
-        
+        if(logEnable) log.debug "Sending '${status}' to ${device} dashboard tile"
         device.roombaTile(state.cleaning, result.data.batPct, result.data.cleanMissionStatus.mssnM)
-        
-        if(logEnable) log.trace "state.cleaning: ${state.cleaning} - state.prevcleaning: ${state.prevcleaning} - state.notified: ${state.notified}"
-        
-        if(!state.cleaning.contains(state.prevcleaning) && !state.notifed) {
-            state.prevcleaning = state.cleaning
-            if(!state.notified && msg!=null) {
+ 
+        if(!state.notified && !state.cleaning.contains(state.prevcleaning)) {
+            if(msg!=null) {
                 state.notified = true
                 pushNow(msg)
             }
-        } else {
-            if(state.cleaning.contains(state.prevcleaning)) {
-            state.notified = false
-            }
-        } 
+            state.prevcleaning = state.cleaning
+        } else state.notified = false
     }
     }
-    catch (e) { if(logEnable) log.error "iRobot cloud error.  Retrying updating devices in 30 seconds." }                   
+    catch (e) { if(logEnable) log.error "iRobot cloud error.  ${e} "
+                if(logEnable) log.warn "Retrying updating devices in 30 seconds." }                   
     runIn(30, updateDevices)
 }
 
@@ -828,16 +855,18 @@ def setStateVariables() {
         catch (e) {state.pushoverErrorMsg3 = pushoverErrorMsg3}
     try {state.pushoverErrorMsg4 = pushoverErrorMsg4.replace("%device%",state.roombaName)}
         catch (e) {state.pushoverErrorMsg4 = pushoverErrorMsg4}
+    try {state.pushoverErrorMsg4 = pushoverErrorMsg5.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverErrorMsg4 = pushoverErrorMsg5}    
     try {state.pushoverErrorMsg7 = pushoverErrorMsg7.replace("%device%",state.roombaName)}
         catch (e) {state.pushoverErrorMsg7 = pushoverErrorMsg7}
     try {state.pushoverErrorMsg16 = pushoverErrorMsg16.replace("%device%",state.roombaName)}
         catch (e) {state.pushoverErrorMsg16 = pushoverErrorMsg16}
-    if(state.prevcleaning==null || state.prevcleaning=="") state.prevcleaning = "settings"
-    if(state.notified==null) state.notified = false
+    if(state.prevcleaning==null || state.prevcleaning=="") state.prevcleaning = "idle"
+    state.notified = false
     if(state.batterydead==null) state.batterydead = false
     if(state.bin==null) state.bin = true
     if(state.schedDelay==null) state.schedDelay = false
-    state.schedDelay = false
+    state.errors = false
 }
 
 def executeAction(path) {
