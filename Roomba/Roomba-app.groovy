@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.2.1 - fixed current day scheduling bug, minor tweaks and fixes
  *   1.2.0 - fixed scheduling bug
  *   1.1.9 - fixed notifcations for unknown error codes, couple additional bugs discovered in logic 
  *   1.1.8 - added more error traps, error8 - bin issue attempt to restart cleaning, advanced presence options
@@ -423,6 +424,14 @@ def RoombaScheduler() {
            4:"Thursday",
            5:"Friday",
            6:"Saturday"]
+        def map2=[
+           0:"SUN",
+           1:"MON",
+           2:"TUE",
+           3:"WED",
+           4:"THU",
+           5:"FRI",
+           6:"SAT"]
     def date = new Date()
     current = date.format("HH:mm")
     def day = date.getDay()
@@ -437,6 +446,8 @@ def RoombaScheduler() {
                 temp = Date.parse("yyyy-MM-dd'T'HH:mm:ss", it).format('HH:mm')
                 if((temp > current) && !foundschedule) {
                     nextcleaning = it
+                    cleaningday = "*"
+                    weekday = map[day]
                     foundschedule=true
                 }
             }
@@ -447,7 +458,8 @@ def RoombaScheduler() {
                  if(tempday>7) { tempday=1 }
                  if(daysofweek.contains(tempday.toString())) { 
                      foundschedule=true
-                     cleaningday = tempday
+                     cleaningday = map2[tempday]
+                     weekday = map[tempday]
                  }
              }
         }
@@ -459,11 +471,12 @@ def RoombaScheduler() {
              if(tempday>7) { tempday=1 }
              if(daysofweek.contains(tempday.toString())) { 
                  foundschedule=true
-                 cleaningday = tempday
+                 cleaningday = map2[tempday]
+                 weekday = map[tempday]
              }
          }
         }
-    log.info "Next scheduled cleaning: ${map[cleaningday]} ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}" 
+    log.info "Next scheduled cleaning: ${weekday} ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}" 
     schedule("0 ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('mm H')} ? * ${cleaningday} *", RoombaSchedStart) 
 }
 
