@@ -58,7 +58,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.2.0"
+	state.version = "1.2.1"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -459,7 +459,7 @@ def RoombaScheduler() {
                  if(daysofweek.contains(tempday.toString())) { 
                      foundschedule=true
                      cleaningday = map2[tempday]
-                     weekday = map[tempday]
+                     weekday = "Today: ${map[tempday]}"
                  }
              }
         }
