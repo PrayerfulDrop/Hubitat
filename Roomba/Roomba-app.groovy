@@ -447,7 +447,7 @@ def RoombaScheduler() {
                 if((temp > current) && !foundschedule) {
                     nextcleaning = it
                     cleaningday = "*"
-                    weekday = map[day]
+                    weekday = "Today: ${map[day]}"
                     foundschedule=true
                 }
             }
@@ -459,7 +459,7 @@ def RoombaScheduler() {
                  if(daysofweek.contains(tempday.toString())) { 
                      foundschedule=true
                      cleaningday = map2[tempday]
-                     weekday = "Today: ${map[tempday]}"
+                     weekday = map[tempday]
                  }
              }
         }
