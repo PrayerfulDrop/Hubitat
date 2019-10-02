@@ -447,7 +447,7 @@ def RoombaScheduler() {
                 if((temp > current) && !foundschedule) {
                     nextcleaning = it
                     cleaningday = "*"
-                    weekday = "Today: ${map[day]}"
+                    weekday = "Today"
                     foundschedule=true
                 }
             }
@@ -476,7 +476,7 @@ def RoombaScheduler() {
              }
          }
         }
-    log.info "Next scheduled cleaning: ${weekday} ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}" 
+    log.info "Next scheduled cleaning: ${weekday} at ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}" 
     schedule("0 ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('mm H')} ? * ${cleaningday} *", RoombaSchedStart) 
 }
 
