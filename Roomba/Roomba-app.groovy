@@ -29,7 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   1.2.3 - added ability to restrict cleaning based on switch, turn off resticted switch if presence away options
+ *   1.2.3 - added ability to restrict cleaning based on switch, turn off restricted switch if presence away options
  *   1.2.2 - added additional notification options for errors, add time-delay for notification of errors
  *   1.2.1 - fixed current day scheduling bug, minor tweaks and fixes
  *   1.2.0 - fixed scheduling bug
