@@ -25,7 +25,7 @@ support for all WiFi enabled Roomba devices.</p>
   <li>Copy the "password" revealed and past into [SSH Windows #1] for <b>password</b></li>
   <li>Enter Roomba IP Address into [SSH Windows #1] for <b>robotIP</b></li>
   <li>Enter the Port you want Rest980 to listen on: <b>default is 3000</b></li>
-  <li>Change "firmwareVersion" in [SSH Windows #1] to <b>1</b></li>
+  <li>Change "firmwareVersion" in [SSH Windows #1] to <b>2</b></li>
     <li>Logout of [SSH Window #2]</li>
     <li>Testing:<ul>
       <li>Navigate back to ../rest980 root</li>
