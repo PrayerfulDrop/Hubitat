@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.2.3 - added ability to restrict cleaning based on switch, turn off resticted switch if presence away options
  *   1.2.2 - added additional notification options for errors, add time-delay for notification of errors
  *   1.2.1 - fixed current day scheduling bug, minor tweaks and fixes
  *   1.2.0 - fixed scheduling bug
@@ -59,7 +60,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.2.2"
+	state.version = "1.2.3"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -221,7 +222,7 @@ def mainPage() {
             }
         }
 
-        section(getFormat("header-blue", " Logging and Testing:")) { }
+        section(getFormat("header-blue", " Logging and Restrictions:")) { }
             // ** App Watchdog Code **
         section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
 				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
@@ -236,17 +237,20 @@ def mainPage() {
             }
             // ** End App Watchdog Code **
     
-        section() {
+            section() {
+                input "modesYes", "bool", title: "Enable restrictions of cleaning schedule?", required: true, defaultValue: false, submitOnChange: true
+				if(modesYes) input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict cleaning schedule:", required: false, multiple: false, defaultValue: null, submitOnChange: true
+                if(modesYes && usePresence) input "turnoffSwitch", "bool", title: "Turn off restrictions if presence away?", required: false, multiple: false, defaultValue: false, submitOnChange: true
              	input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
                 if(debug) input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
-            if(init) {
-                try {
-                    initialize()
+                if(init) {
+                    try {
+                        initialize()
+                    }
+                    catch (any) { log.error "${any}" }
+                    app?.updateSetting("init",[value:"false",type:"bool"])
                 }
-                catch (any) { log.error "${any}" }
-                app?.updateSetting("init",[value:"false",type:"bool"])
-            }
 				paragraph getFormat("line")
 				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${state.version}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
 			}
@@ -339,6 +343,7 @@ def pageroombaNotify() {
 
 def initialize() {
     if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
+    if(modesYes) subscribe(restrictbySwitch, "switch", switchHandler)
 	if(logEnable) log.debug "Initializing $app.label...unscheduling current jobs."
     setStateVariables()
     unschedule()
@@ -738,8 +743,20 @@ def getPresence() {
     return presence
 }
 
+def switchHandler(evt) {
+    if(evt.value == "on") {
+        def result = executeAction("/api/local/info/state")
+        def device = getChildDevice("roomba:" + result.data.name)
+        device.dock()
+    }
+}
 
 def presenceHandler(evt) {
+    if(turnoffSwitch) {
+        log.info "Restrcition switch '${restrictbySwitch.displayName} is ${restrictbySwitch.value}.  Presence away, turning off ${restrictbySwitch.displayName}"
+        restrictbySwitch.off
+    }
+    
     try {
     def result = executeAction("/api/local/info/state")
 
@@ -775,6 +792,7 @@ def presenceHandler(evt) {
 
 def handleDevice(device, id, evt) {
     try {
+    def restrict = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false        
     def device_result = executeAction("/api/local/info/state")
     def result = ""
     switch(evt) {
@@ -782,25 +800,33 @@ def handleDevice(device, id, evt) {
             result = executeAction("/api/local/action/stop")
             break
         case "start":
-            if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock") || device_result.data.batPct.toInteger()<75) 
-                { log.warn "${device} is currently cleaning.  Scheduled times may be too close together." }
-            else {
-                if(device_result.data.cleanMissionStatus.phase.contains("charge") && device_result.data.batPct.toInteger()>40) {
-                    if(roomba900) {
-                        result = executeAction("/api/local/config/carpetBoost/${roombacarpetBoost}")
-                        if(roombaedgeClean) result = executeAction("/api/local/config/edgeClean/on")
-                            else result = executeAction("/api/local/config/edgeClean/off")
-                        result = executeAction("/api/local/config/cleaningPasses/${roombacleaningPasses}")
-                        if(roombaalwaysFinish) result = executeAction("/api/local/config/alwaysFinish/on")
-                            else result = executeAction("/api/local/config/alwaysFinish/off")
-                    }
-                    if(!device_result.data.cleanMissionStatus.phase.contains("run") || !device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
-                        result = executeAction("/api/local/action/start")
-                    } else {
-                        result = executeAction("/api/local/action/stop")
-                        result = executeAction("/api/local/action/start")
-                    }
-                } else log.warn "${device} is currently not on the charging station.  Cannot start cleaning."
+            if(!restrict) {
+                if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock") || device_result.data.batPct.toInteger()<75) 
+                    { log.warn "${device} is currently cleaning.  Scheduled times may be too close together." }
+                else {
+                    if(device_result.data.cleanMissionStatus.phase.contains("charge") && device_result.data.batPct.toInteger()>40) {
+                        if(roomba900) {
+                            result = executeAction("/api/local/config/carpetBoost/${roombacarpetBoost}")
+                            if(roombaedgeClean) result = executeAction("/api/local/config/edgeClean/on")
+                                else result = executeAction("/api/local/config/edgeClean/off")
+                            result = executeAction("/api/local/config/cleaningPasses/${roombacleaningPasses}")
+                            if(roombaalwaysFinish) result = executeAction("/api/local/config/alwaysFinish/on")
+                                else result = executeAction("/api/local/config/alwaysFinish/off")
+                        }
+                        if(!device_result.data.cleanMissionStatus.phase.contains("run") || !device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
+                            result = executeAction("/api/local/action/start")
+                        } else {
+                            result = executeAction("/api/local/action/stop")
+                            result = executeAction("/api/local/action/start")
+                        }
+                    } else log.warn "${device} is currently not on the charging station.  Cannot start cleaning."
+                }
+            } else { if(device_result.data.cleanMissionStatus.phase.contains("run")) {
+                         log.warn "Cleaning schedule for ${state.roombaName} is currently restricted.  Turn off '${restrictbySwitch.displayName}'"
+                         pushNow("Cleaning schedule for ${state.roombaName} is currently restricted.  Turn off '${restrictbySwitch.displayName}'")
+                         result = executeAction("/api/local/action/stop")
+                         result = executeAction("/api/local/action/dock")
+                     }
             }
             break
         case "resume":
