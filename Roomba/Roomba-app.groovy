@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.2.4 - i7 series modifications to dock roomba correctly
  *   1.2.3 - added ability to restrict cleaning based on switch, turn off restricted switch if presence away options
  *   1.2.2 - added additional notification options for errors, add time-delay for notification of errors
  *   1.2.1 - fixed current day scheduling bug, minor tweaks and fixes
@@ -60,7 +61,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.2.3"
+	state.version = "1.2.4"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -747,7 +748,10 @@ def switchHandler(evt) {
     if(evt.value == "on") {
         def result = executeAction("/api/local/info/state")
         def device = getChildDevice("roomba:" + result.data.name)
-        device.dock()
+        if(result.data.cleanMissionStatus.phase.contains("run")) {
+            pushNow("Restriction switch turned on while ${state.roombaName} was cleaning. Sending ${state.roombaName} home to dock.")   
+            device.dock()
+        }
     }
 }
 
@@ -780,7 +784,7 @@ def presenceHandler(evt) {
             if((result.data.cleanMissionStatus.phase.contains("charge") || result.data.cleanMissionStatus.phase.contains("stop")) && roombaPresenceClean) device.start()
             if(roombaPresenceDelay && state.schedDelay) {
                 state.schedDelay = false
-                device.start
+                device.start()
             }
         }
         //update status of Roomba
@@ -816,7 +820,8 @@ def handleDevice(device, id, evt) {
                         if(!device_result.data.cleanMissionStatus.phase.contains("run") || !device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
                             result = executeAction("/api/local/action/start")
                         } else {
-                            result = executeAction("/api/local/action/stop")
+                            result = executeAction("/api/local/action/pause")
+                            pauseExecution(1500)
                             result = executeAction("/api/local/action/start")
                         }
                     } else log.warn "${device} is currently not on the charging station.  Cannot start cleaning."
@@ -824,7 +829,8 @@ def handleDevice(device, id, evt) {
             } else { if(device_result.data.cleanMissionStatus.phase.contains("run")) {
                          log.warn "Cleaning schedule for ${state.roombaName} is currently restricted.  Turn off '${restrictbySwitch.displayName}'"
                          pushNow("Cleaning schedule for ${state.roombaName} is currently restricted.  Turn off '${restrictbySwitch.displayName}'")
-                         result = executeAction("/api/local/action/stop")
+                         result = executeAction("/api/local/action/pause")
+                         pauseExecution(1500)
                          result = executeAction("/api/local/action/dock")
                      }
             }
@@ -837,7 +843,8 @@ def handleDevice(device, id, evt) {
             break
         case "dock":
             if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
-                    result = executeAction("/api/local/action/stop")
+                    result = executeAction("/api/local/action/pause")
+                    pauseExecution(1500)
                     result = executeAction("/api/local/action/dock")
             } else {
                     result = executeAction("/api/local/action/dock")
@@ -846,7 +853,8 @@ def handleDevice(device, id, evt) {
         case "off":
             if(roombaOff=="dock") {
                     if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
-                        result = executeAction("/api/local/action/stop")
+                        result = executeAction("/api/local/action/pause")
+                        pauseExecution(1500)
                         result = executeAction("/api/local/action/dock")
                     } else {
                         result = executeAction("/api/local/action/dock")
