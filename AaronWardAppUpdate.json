@@ -54,7 +54,7 @@
   "RoombaSchedulerChild3Name": "",
   "RoombaSchedulerChild4Version": "",
   "RoombaSchedulerChild4Name": "",
-  "RoombaSchedulerDriverVersion": "1.1.2",
+  "RoombaSchedulerDriverVersion": "1.2.3",
   "RoombaSchedulerParentRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy",
   "RoombaSchedulerChild1RawCode": "",
   "RoombaSchedulerChild2RawCode": "",
@@ -62,5 +62,5 @@
   "RoombaSchedulerChild4RawCode": "",
   "RoombaSchedulerDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy",
   "RoombaSchedulerDiscussion": "https://community.hubitat.com/t/release-roomba-scheduler/22873",
-  "RoombaSchedulerUpdateNote": "1.2.2 - added additional notification options for errors, add time-delay for notification of errors",
+  "RoombaSchedulerUpdateNote": "1.2.3 - added ability to restrict cleaning based on switch, turn off resticted switch if presence away options",
  }
