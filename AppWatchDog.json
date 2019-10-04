@@ -7,9 +7,9 @@
       "parentName": "NOAA Weather Alerts",
       "parentVersion": "2.4.5",
       "parentRAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
-      "driver1Name": "NOAA Tile",
-      "driver1Version": "1.2.1",
-      "driver1RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
+      "driverName1": "NOAA Tile",
+      "driverVersion`": "1.2.1",
+      "driverRAW1": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
       "hubitatDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
       "updateNote": "2.4.5 - fixed 'final' bug in repeat - forgot to convert to integers for calculations, complete reorganization of code"
     },
@@ -24,9 +24,9 @@
       "parentName": "Roomba Scheduler",
       "parentVersion": "1.2.3",
       "parentRAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy",
-      "driver1Name": "Roomba",
-      "driver1Version": "1.",
-      "driver1RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy",
+      "driverName1": "Roomba",
+      "driverVersion1": "1.",
+      "driverRAW1": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy",
       "hubitatDiscussion": "https://community.hubitat.com/t/release-roomba-scheduler/22873",
       "updateNote": "1.2.3 - added ability to restrict cleaning based on switch, turn off restricted switch if presence away options"
     }
