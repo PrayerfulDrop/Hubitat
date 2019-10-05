@@ -4,68 +4,68 @@
   "PayPalURL": "https://paypal.me/aaronmward?locale.x=en_US",
   "application": [
     {
-      "parentName": "NOAA Weather Alerts",
-      "parentVersion": "2.4.5",
-      "parentRAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
-	  "child": [],
-	  "driver":[
-	  	{
-      		"name": "NOAA Tile",
-      		"version`": "1.2.1",
-      		"RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
-	   	}
-	  ],
+      "name": "NOAA Weather Alerts",
+      "version": "2.4.5",
+      "RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
+      "child": [],
+      "driver": [
+        {
+          "name": "NOAA Tile",
+          "version": "1.2.1",
+          "RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy"
+        }
+      ],
       "hubitatDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
       "updateNote": "2.4.5 - fixed 'final' bug in repeat - forgot to convert to integers for calculations, complete reorganization of code"
     },
     {
-      "parentName": "You Got Mail",
-      "parentVersion": "1.0.6",
-      "parentRAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/You%20Got%20Mail/yougotmail.groovy",
-	  "child":[],
-	  "driver":[],
+      "name": "You Got Mail",
+      "version": "1.0.6",
+      "RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/You%20Got%20Mail/yougotmail.groovy",
+      "child": [],
+      "driver": [],
       "hubitatDiscussion": "https://community.hubitat.com/t/release-you-got-mail/17946",
-      "updateNote": "1.0.6 - enforced inputs required for the app to work, added ability to rename app for multiple instacnes"
+      "updateNote": "1.0.6 - enforced inputs required for the app to work, added ability to rename app for multiple instances"
     },
     {
-      "parentName": "Roomba Scheduler",
-      "parentVersion": "1.2.3",
-      "parentRAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy",
-	  "child": [],
-	  "driver":[
-	  	{		
-      		"name": "Roomba",
-      		"version": "1.0.2",
-      		"RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy",
-      	   	}
-	  ],
-	  "hubitatDiscussion": "https://community.hubitat.com/t/release-roomba-scheduler/22873",
-      "updateNote": "1.2.3 - added ability to restrict cleaning based on switch, turn off restricted switch if presence away options"
+      "name": "Roomba Scheduler",
+      "version": "1.2.4",
+      "RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy",
+      "child": [],
+      "driver": [
+        {
+          "name": "Roomba",
+          "version": "1.0.2",
+          "RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy"
+        }
+      ],
+      "hubitatDiscussion": "https://community.hubitat.com/t/release-roomba-scheduler/22873",
+      "updateNote": "1.2.4 - fixed i7 series docking issues"
     }
   ],
   "drivers": [
     {
-      "parentName": "MQTT Generic Driver",
-      "parentVersion": "1.0.2",
-      "parentRAW": "https://community.hubitat.com/t/project-mqtt-generic-driver-and-salt-tank-monitor-using-arduino/16008",
-	  "child": [],
+      "name": "MQTT Generic Driver",
+      "version": "1.0.2",
+      "RAW": "https://community.hubitat.com/t/project-mqtt-generic-driver-and-salt-tank-monitor-using-arduino/16008",
+      "child": [],
       "hubitatDiscussion": "",
       "updateNote": "1.0.2 - added support for AppWatchDogv2"
     },
     {
-      "parentName": "EcoLink Custom",
-      "parentVersion": "1.0.1",
-      "parentRAW": "https://community.hubitat.com/t/release-you-got-mail/17946/15",
+      "name": "EcoLink Custom",
+      "version": "1.0.1",
+      "RAW": "https://community.hubitat.com/t/release-you-got-mail/17946/15",
       "child": [],
-	  "hubitatDiscussion": "https://community.hubitat.com/t/release-you-got-mail/17946/15",
+      "hubitatDiscussion": "hubitatDiscussion\": \"https://community.hubitat.com/t/release-you-got-mail/17946/15",
       "updateNote": "1.0.1 - added AppWatchDogv2 support"
     },
     {
-      "parentName": "Kiddie Fire Alarm",
-      "parentVersion": "1.0.2",
-      "parentRAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy",
+      "name": "Kiddie Fire Alarm",
+      "version": "1.0.2",
+      "RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy",
       "child": [],
-	  "hubitatDiscussion": "https://community.hubitat.com/t/release-port-z-wave-door-window-sensor-as-smoke-detector-gocontrol-kiddie-sm120x/18182",
+      "hubitatDiscussion": "https://community.hubitat.com/t/release-port-z-wave-door-window-sensor-as-smoke-detector-gocontrol-kiddie-sm120x/18182",
       "updateNote": "1.0.2 - added support for CO2 capabilities"
     }
   ]
