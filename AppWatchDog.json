@@ -29,7 +29,7 @@
     },
     {
       "name": "Roomba Scheduler",
-      "version": "1.2.4",
+      "version": "1.2.5",
       "RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy",
       "child": [],
       "driver": [
@@ -40,7 +40,7 @@
         }
       ],
       "hubitatDiscussion": "https://community.hubitat.com/t/release-roomba-scheduler/22873",
-      "updateNote": "1.2.4 - fixed i7 series docking issues"
+      "updateNote": "1.2.5 - fixed restriction logic so restrictions work, more notification choices, UI updates"
     }
   ],
   "drivers": [
