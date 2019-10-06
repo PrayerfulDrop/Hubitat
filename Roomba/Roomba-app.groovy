@@ -91,7 +91,7 @@ preferences {
 }
 
 def mainPage() {
-    debug=false
+    debug=true
 	dynamicPage(name: "mainPage") {
         section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
 				paragraph "<div style='color:#1A77C9'>This application provides Roomba local integration and advanced scheduling.</div>"
@@ -803,7 +803,8 @@ def presenceHandler(evt) {
 
 def handleDevice(device, id, evt) {
     try {
-    def restrict = (modeYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false        
+    def restrict = (modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
+        log.error "restrict: ${restrict} - modeYes: ${modeYes} - restrictbySwitch.currentState: ${restrictbySwitch.currentState("switch").value}"
     def device_result = executeAction("/api/local/info/state")
     def result = ""
     switch(evt) {
@@ -813,7 +814,7 @@ def handleDevice(device, id, evt) {
         case "start":
             if(!restrict) {
                 if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock") || device_result.data.batPct.toInteger()<75) 
-                    { log.warn "${device} is currently cleaning.  Scheduled times may be too close together." }
+                    { log.warn "${device} was currently cleaning.  Scheduled times may be too close together." }
                 else {
                     if(device_result.data.cleanMissionStatus.phase.contains("charge") && device_result.data.batPct.toInteger()>40) {
                         if(roomba900) {
