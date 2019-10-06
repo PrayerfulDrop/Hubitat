@@ -91,7 +91,7 @@ preferences {
 }
 
 def mainPage() {
-    debug=true
+    debug=false
 	dynamicPage(name: "mainPage") {
         section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
 				paragraph "<div style='color:#1A77C9'>This application provides Roomba local integration and advanced scheduling.</div>"
