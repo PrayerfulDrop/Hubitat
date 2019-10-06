@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.2.6 - fixed i7series result set for Roomba information
  *   1.2.5 - fixed restriction logic so restrictions work, more notification choices, UI updates
  *   1.2.4 - i7 series modifications to dock roomba correctly
  *   1.2.3 - added ability to restrict cleaning based on switch, turn off restricted switch if presence away options
@@ -62,7 +63,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.2.5"
+	state.version = "1.2.6"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -267,7 +268,6 @@ def mainPage() {
 
 def pageroombaInfo() {
     def result = executeAction("/api/local/info/state")
-    def result2 = executeAction("/api/local/config/preferences")
     def cleantime=false
     switch(state.cleaning) {
         case "cleaning":
@@ -305,9 +305,9 @@ def pageroombaInfo() {
     else bin="Empty"
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
     temp = "<div><h2><img max-width=100% height=auto src=${img} border=0>&nbsp;&nbsp;${state.roombaName}</h2>"
-    temp += "<p style=font-size:20px><b>Roomba SKU:</b> ${result2.data.sku}</p>"
+    temp += "<p style=font-size:20px><b>Roomba SKU:</b> ${result.data.sku}</p>"
     temp += "<p style=font-size:20px><b>Roomba MAC:</b> ${result.data.mac}</p>"
-    temp += "<p style=font-size:20px><b>Software Version:</b> ${result2.data.softwareVer}</p>"
+    temp += "<p style=font-size:20px><b>Software Version:</b> ${result.data.softwareVer}</p>"
     temp += "<p style=font-size:20px><b>Current State:</b> ${msg}</p>"
     if(cleantime) temp += "<p style=font-size:20px><b>Elapsed Time:</b> ${result.data.cleanMissionStatus.mssnM} minutes</p>"
     temp += "<p style=font-size:20px><b>Battery Status:</b> ${result.data.batPct}%"
