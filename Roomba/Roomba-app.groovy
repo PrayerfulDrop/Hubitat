@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.2.5 - fixed restriction logic so restrictions work, more notification choices, UI updates
  *   1.2.4 - i7 series modifications to dock roomba correctly
  *   1.2.3 - added ability to restrict cleaning based on switch, turn off restricted switch if presence away options
  *   1.2.2 - added additional notification options for errors, add time-delay for notification of errors
@@ -61,7 +62,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.2.4"
+	state.version = "1.2.5"
     if(awDevice) {
     try {
         if(sendToAWSwitch && awDevice) {
@@ -96,25 +97,24 @@ def mainPage() {
 				paragraph "<div style='color:#1A77C9'>This application provides Roomba local integration and advanced scheduling.</div>"
 			}
 
-        section(getFormat("header-blue", " Rest980/Dorita980 Integration:")){
+        section(getFormat("header-blue", " Rest980/Dorita980 Connectivity:")){
             if(state.roombaName==null || state.error) paragraph "<b><font color=red>Rest980 Server cannot be reached - check IP Address</b></font>"
-			input "doritaIP", "text", title: "Rest980 Server IP Address:", description: "Rest980 Server IP Address:", required: true, submitOnChange: true
-			input "doritaPort", "number", title: "Rest980 Server Port:", description: "Dorita Port", required: true, defaultValue: 3000, range: "1..65535"
-            if(state.roombaName!=null && state.roombaName.length() > 0) { href "pageroombaInfo", title: "Information about Roomba: ${state.roombaName}", description:"" }
+			input "doritaIP", "text", title: "Rest980 Server IP Address:", description: "Rest980 Server IP Address:", required: true, submitOnChange: true, width: 6
+			input "doritaPort", "number", title: "Rest980 Server Port:", description: "Dorita Port", required: true, defaultValue: 3000, width: 6
+            if(state.roombaName!=null && state.roombaName.length() > 0) href "pageroombaInfo", title: "Information about my Roomba: ${state.roombaName}", description:""
 		}
         section(getFormat("header-blue", " Notification Device(s):")) {
 		    // PushOver Devices
-		     input "pushovertts", "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true 
+		     input "pushovertts", "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true
              if(pushovertts == true) {
-                input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true
-                input "pushoverStart", "bool", title: "Notifications when Roomba starts cleaning?", required: false, defaultValue:false, submitOnChange: true 
-                input "pushoverStop", "bool", title: "Notifications when Roomba stops cleaning?", required: false, defaultValue:false, submitOnChange: true 
-                input "pushoverDock", "bool", title: "Notifications when Roomba docks and is charging?", required: false, defaultValue:false, submitOnChange: true 
-                paragraph "<hr>"
-                input "pushoverBin", "bool", title: "Notifications when Roomba's bin is full?", required: false, defaultValue:false, submitOnChange: true 
-                input "pushoverDead", "bool", title: "Notifications when Roomba's Battery dies?", required: false, defaultValue:false, submitOnChange: true 
-                input "pushoverError", "bool", title: "Notifications when Roomba has an error?", required: false, defaultValue:false, submitOnChange: true 
-                href "pageroombaNotify", title: "Click to change default notification messages from ${state.roombaName}", description: ""
+                input "pushoverdevice", "capability.notification", title: "PushOver Device(s)", required: true, multiple: true
+                input "pushoverStart", "bool", title: "Notify when Roomba starts cleaning?", required: false, defaultValue:false, submitOnChange: true, width: 6
+                input "pushoverBin", "bool", title: "Notify when Roomba's bin is full?", required: false, defaultValue:false, submitOnChange: true, width: 6                
+                input "pushoverStop", "bool", title: "Notify when Roomba stops cleaning?", required: false, defaultValue:false, submitOnChange: true, width: 6
+                input "pushoverDead", "bool", title: "Notify when Roomba's Battery dies?", required: false, defaultValue:false, submitOnChange: true, width: 6 
+                input "pushoverDock", "bool", title: "Notify when Roomba is docked and charging?", required: false, defaultValue:false, submitOnChange: true, width: 6
+                input "pushoverError", "bool", title: "Notify when Roomba has an error?", required: false, defaultValue:false, submitOnChange: true, width: 6
+                href "pageroombaNotify", title: "Change default notification messages from ${state.roombaName}", description: ""
             }
         }
         section(getFormat("header-blue", " Cleaning Schedule:")) { 
@@ -129,7 +129,8 @@ def mainPage() {
                     "5":	"Friday",
                     "6":	"Saturday"
                 ] 
-            input "timeperday", "text", title: "Number of times per day to clean:", required: true, defaultValue: "1", submitOnChange:true
+            input "timeperday", "text", title: "Number of times per day to clean:", required: true, defaultValue: "1", submitOnChange:true, width: 6
+            paragraph "", width: 6
             if(timeperday==null) timeperday="1"
             if(timeperday.toInteger()<1 || timeperday.toInteger()>10) { paragraph "<b><font color=red>Please enter a value between 1 and 10</b></font><br>"
                                           } else {    for(i=0; i < timeperday.toInteger(); i++) {
@@ -165,7 +166,7 @@ def mainPage() {
                                                                 proper="Tenth"
                                                                 break
                                                         }
-                                                        input "day${i}", "time", title: "${proper} time:",required: true
+                                                        input "day${i}", "time", title: "${proper} time:",required: true, width: 6
                                                    }    
                                                 }
         }
@@ -181,21 +182,24 @@ def mainPage() {
         }
         section(getFormat("header-blue", " Advanced Options:")) {
             paragraph "Roomba models below 900+ series do not have the ability to find a docking station prior to the battery dying.  Options below provide similar functionality or at least a better chance for Roomba to dock before dying."
-            input "useTime", "bool", title: "Limit Roomba's cleaning time?", defaultValue: false, submitOnChange: true
+            input "useTime", "bool", title: "Limit Roomba's cleaning time?", defaultValue: false, submitOnChange: true, width: 6
             if(useTime) {
                 input "roombaLimitTime", "text", title: "How many minutes to run (minimum 20)?", defaultValue: "60", required: true, submitOnChange: true
                 if(roombaLimitTime==null) roombaLimitTime="20"
-                if(roombaLimitTime.toInteger() < 20) { paragraph "<b><font color=red>Please enter a greater than 20</b></font><br>"
-                            app?.updateSetting("roombaLimitTime",[value:"60",type:"text"])                                     
+                if(roombaLimitTime.toInteger() < 20) { paragraph "<b><font color=red>Please enter a number greater than 20</b></font><br>"
+                            app?.updateSetting("roombaLimitTime",[value:"60",type:"text"])
                 }
             }
+            
             input "useBattery", "bool", title: "Have Roomba dock based on battery percentage?", defaultValue: false, submitOnChange: true
-            if(useBattery) input "roombaBattery", "enum", title: "What percent to have Roomba begin docking?", defaultValue: "30", required: false, multiple: false, submitOnChange: true,
+            if(useBattery) {
+            input "roombaBattery", "enum", title: "What percent to have Roomba begin docking?", defaultValue: "30", required: false, multiple: false, submitOnChange: true, 
             options: [
                 "40": "40%",
                 "30": "30%",
                 "20": "20%",
                 "10": "10%"]
+            }
             input "roombaOff", "enum", title: "Do the following when Roomba's switch is turned 'Off'?", defaultValue: "dock", required: false, multiple: false, submitOnChange: true,
             options: [
                 "dock": "Dock",
@@ -239,10 +243,13 @@ def mainPage() {
             // ** End App Watchdog Code **
     
             section() {
-                input "modesYes", "bool", title: "Enable restrictions of cleaning schedule?", required: true, defaultValue: false, submitOnChange: true
-				if(modesYes) input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict cleaning schedule:", required: false, multiple: false, defaultValue: null, submitOnChange: true
-                if(modesYes && usePresence) input "turnoffSwitch", "bool", title: "Turn off restrictions if presence away?", required: false, multiple: false, defaultValue: false, submitOnChange: true
-             	input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
+                input "modesYes", "bool", title: "Enable restrictions?", required: true, defaultValue: false, submitOnChange: true
+                if(modesYes) { 
+                    input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict cleaning schedule:", required: false, multiple: false, defaultValue: null, submitOnChange: true
+                    input "pushoverRestrictions", "bool", title: "Send Pushover Msg if restrictions are on and Roomba tries to clean?", required: false, defaultValue:false, submitOnChange: true, width: 6
+                }
+                if(modesYes && usePresence) input "turnoffSwitch", "bool", title: "Turn off restrictions if presence away?", required: false, multiple: false, defaultValue: false, submitOnChange: true, width: 6
+             	input "logEnable", "bool", title: "Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
                 if(debug) input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
                 if(init) {
@@ -796,7 +803,7 @@ def presenceHandler(evt) {
 
 def handleDevice(device, id, evt) {
     try {
-    def restrict = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false        
+    def restrict = (modeYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false        
     def device_result = executeAction("/api/local/info/state")
     def result = ""
     switch(evt) {
@@ -828,12 +835,12 @@ def handleDevice(device, id, evt) {
                 }
             } else { if(device_result.data.cleanMissionStatus.phase.contains("run")) {
                          log.warn "Cleaning schedule for ${state.roombaName} is currently restricted.  Turn off '${restrictbySwitch.displayName}'"
-                         pushNow("Cleaning schedule for ${state.roombaName} is currently restricted.  Turn off '${restrictbySwitch.displayName}'")
+                         if(pushoverRestrictions) pushNow("Current cleaning for ${state.roombaName} has been restricted.  Sending ${state.roombaName} to dock.")
                          result = executeAction("/api/local/action/pause")
                          pauseExecution(1500)
                          result = executeAction("/api/local/action/dock")
-                     }
-            }
+                     } else if(pushoverRestrictions) pushNow("Cleaning schedule for ${state.roombaName} is currently restricted.  Turn off '${restrictbySwitch.displayName}' to resume cleaning schedule.")
+            } 
             break
         case "resume":
             result = executeAction("/api/local/action/resume")
@@ -933,7 +940,7 @@ def executeAction(path) {
 
 //Application Handlers
 def getImage(type) {
-    def loc = "<img src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/roomba.png'>"
+    def loc = "<img src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/roomba-clean.png'>"
 }
 
 def getFormat(type, myText=""){
