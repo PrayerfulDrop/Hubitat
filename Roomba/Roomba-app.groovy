@@ -804,7 +804,6 @@ def presenceHandler(evt) {
 def handleDevice(device, id, evt) {
     try {
     def restrict = (modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
-        log.error "restrict: ${restrict} - modeYes: ${modeYes} - restrictbySwitch.currentState: ${restrictbySwitch.currentState("switch").value}"
     def device_result = executeAction("/api/local/info/state")
     def result = ""
     switch(evt) {
