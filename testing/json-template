@@ -1,0 +1,77 @@
+http://www.objgen.com/json/models/fonB8
+
+Developer=
+GitHubURL=
+PayPalURL=
+application[0]
+  name=
+  version=
+  RAW=
+  child[0]
+    name=
+    version=
+    RAW=
+  child[1]
+    name=
+    version=
+    RAW=
+  driver[0]
+    name=
+    version=
+    RAW=
+  driver[1]
+    name=
+    version=
+    RAW=
+  hubitatDiscussion=
+  updateNote=
+application[1]
+  name=
+  version=
+  RAW=
+  child[0]
+    name=
+    version=
+    RAW=
+  child[1]
+    name=
+    version=
+    RAW=
+  driver[0]
+    name=
+    version=
+    RAW=
+  driver[1]
+    name=
+    version=
+    RAW=
+  hubitatDiscussion=
+  updateNote=
+drivers[0]
+  name=
+  version=
+  RAW=
+  child[0]
+    name=
+    version=
+    RAW=
+  child[1]
+    name=
+    version=
+    RAW=
+  hubitatDiscussion=
+  updateNote=
+drivers[1]
+  name=
+  version=
+  RAW=
+  child[0]
+    name=
+    version=
+    RAW=
+  child[1]
+    name=
+    version=
+    RAW=
+  hubitatDiscussion=
+  updateNote=
