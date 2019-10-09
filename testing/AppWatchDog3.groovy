@@ -16,6 +16,7 @@ preferences {
  page name: "pageTest2", title: "", install: false, uninstall: false, nextPage: "mainPage"
 } 
 
+
 def mainPage() {	
 dynamicPage(name: "mainPage") {
     section ("Developers:"){
@@ -45,18 +46,20 @@ dynamicPage(name: "mainPage") {
                 paragraph "<hr>"
             }
         }
+        
+         // call another page to test if we can bring back the user selected apps/drivers dynamically based off devname
          hrefparams = [
              devname : devname,
              passed: true
                     ]
-        // call another page to test if we can bring back the user selected apps/drivers dynamically based off devname
          href "pageTest2", title: "Testing", params: hrefparams, description: "Testing of selected developers"
     }
 }
 }
 
+
+// Testing to see if we can pull the user selected apps back dynamically
 def pageTest2(params) {
-    // Testing to see if we can pull the user selected apps back dynamically
     if (params.passed) {
     atomicState.params = params // We got something, so save it otherwise it's a page refresh for submitOnChange
 }
@@ -71,13 +74,16 @@ def pageTest2(params) {
     }
 }
 
+
+//display page of a given developer and their apps/drivers - future code to derive summary page from
 def pageTest(params) {
+ 
 if (params.passed) {
     atomicState.params = params // We got something, so save it otherwise it's a page refresh for submitOnChange
 }
-
 def developer = atomicState.params?.devname ?: ""
 def jsonURL = atomicState.params?.jsonURL ?: ""
+    
 dynamicPage(name: "devPage") {
     section("${developer}") {
         def results = getDeveloperApps(jsonURL, "")
@@ -123,6 +129,8 @@ dynamicPage(name: "devPage") {
 }
 }
 
+
+// Get a developers apps/drivers from JSON URI
 def getDeveloperApps(URI, type) {
     log.debug "URI: ${URI} - type: ${type}"
     def requestParams =
@@ -157,6 +165,8 @@ def getDeveloperApps(URI, type) {
     } catch (e) { log.error e }
 }
 
+
+// Get a list of pariticpating developers using AppWatchDog for users to select
 def getDevelopers(dev, type) {
 def wxURI = "https://raw.githubusercontent.com/bptworld/Hubitat/master/MasterAppWatchDog.json"
 def devlist = []
@@ -189,6 +199,8 @@ try {
  catch (e) { log.error e }
 }
 
+
+//boring stuff
 def installed() {
 log.debug "Installed with settings: ${settings}"
 initialize()
