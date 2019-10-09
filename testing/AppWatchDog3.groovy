@@ -26,9 +26,9 @@ dynamicPage(name: "mainPage") {
                 name=devname[i]
                 paragraph "<b>${name}</b>"
                 templist = getDeveloperApps(getDevelopers(name,""), "apps")
-                input "${name}-app", "enum", title: "Application list:", required: false, multiple: true, options: templist, width:6
+                input "${name.replaceAll("\\s","")}-app", "enum", title: "Application list:", required: false, multiple: true, options: templist, width:6
                 templist = getDeveloperApps(getDevelopers(name,""), "drivers")
-                input "${name}-driver", "enum", title: "Drivers list:", required: false, multiple: true, options: templist, width:6
+                input "${name.replaceAll("\\s","")}-driver", "enum", title: "Drivers list:", required: false, multiple: true, options: templist, width:6
             
                 hrefparams = [
                               devname : name,
@@ -43,20 +43,23 @@ dynamicPage(name: "mainPage") {
              devname : devname,
              passed: true
                     ]
+        // call another page to test if we can bring back the user selected apps/drivers dynamically based off devname
          href "pageTest2", title: "Testing", params: hrefparams, description: "Testing of selected developers"
     }
 }
 }
 
 def pageTest2(params) {
+    // Testing to see if we can pull the user selected apps back dynamically
     if (params.passed) {
     atomicState.params = params // We got something, so save it otherwise it's a page refresh for submitOnChange
 }
     def devname = atomicState.params?.devname ?: ""
     dynamicPage(name: "devPage2") {
         section("Testing") {
+            def templist = []
             for(x=0;x<devname.size();x++){
-                paragraph devname[x]
+                paragraph devname[x]            
             }
         }
     }
