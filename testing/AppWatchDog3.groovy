@@ -25,9 +25,15 @@ dynamicPage(name: "mainPage") {
             for(i=0;i<devname.size();i++){
                 name=devname[i]
                 paragraph "<b>${name}</b>"
+                
+                //acquire all the apps of a certain developer
                 templist = getDeveloperApps(getDevelopers(name,""), "apps")
+                //create dynamic input name to store user selected apps
                 input "${name.replaceAll("\\s","")}-app", "enum", title: "Application list:", required: false, multiple: true, options: templist, width:6
+                
+                //acquire all the drivers of a certain developer
                 templist = getDeveloperApps(getDevelopers(name,""), "drivers")
+                //create dynamic input name to store user selected drivers
                 input "${name.replaceAll("\\s","")}-driver", "enum", title: "Drivers list:", required: false, multiple: true, options: templist, width:6
             
                 hrefparams = [
