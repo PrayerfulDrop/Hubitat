@@ -73,7 +73,7 @@
       "version": "1.0.4",
       "RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/Salt%20Tank.groovy",
       "child": [],
-      "hubitatDiscussion": "https://community.hubitat.com/t/project-salt-tank-monitor-using-arduino-mqtt/16008",
+      "hubitatDiscussion": "",
       "updateNote": "1.0.4 - added AppWatchdog 3 support"
      }
   ]
