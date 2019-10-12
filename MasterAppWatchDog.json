@@ -6,7 +6,7 @@
     },
     {
       "developer": "Aaron Ward",
-      "jsonURL": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/AppWatchDog.json"
+      "jsonURL": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/watchdog.json"
     }
   ]
 }
