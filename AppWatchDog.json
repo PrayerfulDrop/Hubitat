@@ -75,5 +75,6 @@
       "child": [],
       "hubitatDiscussion": "https://community.hubitat.com/t/project-salt-tank-monitor-using-arduino-mqtt/16008",
       "updateNote": "1.0.4 - added AppWatchdog 3 support"
-      ]
+    }
+  ]
 }
