@@ -29,8 +29,8 @@
     },
     {
       "name": "Roomba Scheduler",
-      "version": "1.2.6",
-      "RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy",
+      "version": "1.2.7",
+      "RAW": "1.2.7 - optimized scheduling code (thanks StepHack!), fixed additional scheduling bugs (thx dman2306)",
       "child": [],
       "driver": [
         {
