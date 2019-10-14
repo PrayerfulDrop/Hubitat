@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.2.7 - optimized scheduling code (thanks StepHack!), fixed additional scheduling bugs (thx dman2306)
  *   1.2.6 - fixed i7series result set for Roomba information
  *   1.2.5 - fixed restriction logic so restrictions work, more notification choices, UI updates
  *   1.2.4 - i7 series modifications to dock roomba correctly
@@ -57,22 +58,9 @@
  *   1.0.1 - added ability for all WiFi enabled Roomba devices to be added and controlled
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
-
-def setVersion(){
-    // *  V2.0.0 - 08/18/19 - Now App Watchdog compliant
-	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
-    // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
-    state.appName = "RoombaSchedulerParentVersion"
-	state.version = "1.2.6"
-    if(awDevice) {
-    try {
-        if(sendToAWSwitch && awDevice) {
-            awInfo = "${state.appName}:${state.version}"
-		    awDevice.sendAWinfoMap(awInfo)
-            if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
-	    }
-    } catch (e) { log.error "In setVersion - ${e}" }
-    }
+def version() {
+    version = "1.2.7"
+    return version
 }
 
 definition(
@@ -108,7 +96,7 @@ def mainPage() {
 		    // PushOver Devices
 		     input "pushovertts", "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true
              if(pushovertts == true) {
-                input "pushoverdevice", "capability.notification", title: "PushOver Device(s)", required: true, multiple: true
+                input "pushoverdevice", "capability.notification", title: "PushOver Device(s):", required: true, multiple: true
                 input "pushoverStart", "bool", title: "Notify when Roomba starts cleaning?", required: false, defaultValue:false, submitOnChange: true, width: 6
                 input "pushoverBin", "bool", title: "Notify when Roomba's bin is full?", required: false, defaultValue:false, submitOnChange: true, width: 6                
                 input "pushoverStop", "bool", title: "Notify when Roomba stops cleaning?", required: false, defaultValue:false, submitOnChange: true, width: 6
@@ -230,15 +218,15 @@ def mainPage() {
 
         section(getFormat("header-blue", " Logging and Restrictions:")) { }
             // ** App Watchdog Code **
-        section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
+        section("This app supports App Watchdog! Click here for more Information", hideable: true, hidden: true) {
 				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
-                paragraph "<b>Requirements</b><br> - Must install the app 'App Watchdog'. Please visit <a href='https://community.hubitat.com/t/release-app-watchdog/9952' target='_blank'>this page</a> for more information.<br> - When you are ready to go, turn on the switch below<br> - Then select 'App Watchdog Data' from the dropdown.<br> - That's it, you will now be notified automaticaly of updates."
+                paragraph "<b>Requirements</b><br> - Must install the app 'App Watchdog'. <br> - Then select 'App Watchdog Data' from the dropdown.<br> - That's it, you will now be notified automaticaly of updates."
                 input(name: "sendToAWSwitch", type: "bool", defaultValue: "false", title: "Use App Watchdog to track this apps version info?", description: "Update App Watchdog", submitOnChange: "true")
 			}
             if(sendToAWSwitch) {
-                section(" App Watchdog 2") {    
+                section(" App Watchdog") {    
                     if(sendToAWSwitch) input(name: "awDevice", type: "capability.actuator", title: "Please select 'App Watchdog Data' from the dropdown", submitOnChange: true, required: true, multiple: false)
-			        if(sendToAWSwitch && awDevice) setVersion()
+			        if(sendToAWSwitch && awDevice) AppWatchdog()
                 }
             }
             // ** End App Watchdog Code **
@@ -261,7 +249,7 @@ def mainPage() {
                     app?.updateSetting("init",[value:"false",type:"bool"])
                 }
 				paragraph getFormat("line")
-				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${state.version}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
+				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
 			}
 	}
 }
@@ -361,7 +349,7 @@ def initialize() {
     RoombaScheduler()
     updateDevices()
     app.updateLabel("Roomba Scheduler - ${state.roombaName}")
-    schedule("0 0 3 ? * * *", setVersion) 
+    AppWatchdog() 
     if (logEnable && logMinutes.toInteger() != 0) {
     if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
         runIn((logMinutes.toInteger() * 60),logsOff)
@@ -378,7 +366,6 @@ def installed() {
 def updated() {
 	if(logEnable) log.debug "Updated with settings: ${settings}"
     unschedule()
-    setVersion()
 	initialize()
 }
 
@@ -394,39 +381,7 @@ def uninstalled() {
 def getRoombaSchedule() {
     def roombaSchedule = []
     for(i=0; i <timeperday.toInteger(); i++) {
-                switch (i) {
-            case 0:
-                temp = day0
-                break
-            case 1:
-                temp = day1
-                break   
-            case 2:
-                temp = day2
-                break
-            case 3:
-                temp = day3
-                break
-            case 4:
-                temp = day4
-                break
-            case 5:
-                temp = day5
-                break
-            case 6:
-                temp = day6
-                break
-            case 7:
-                temp = day7
-                break
-            case 8:
-                temp = day8
-                break
-            case 9:
-                temp = day9
-                break          
-        }
-    roombaSchedule.add(temp)    
+         roombaSchedule.add(Date.parse("yyyy-MM-dd'T'HH:mm:ss", app."day${i}").format('HH:mm'))                      
     }
     state.roombaSchedule = roombaSchedule.sort()
 }
@@ -455,18 +410,19 @@ def RoombaScheduler() {
     foundschedule=false
     def cleaningday = day
     nextcleaning = state.roombaSchedule[0]
+    if(debug) log.debug "RS: current day: ${day} - user setting: daysofweek ${daysofweek} - first time of user defined schedule: ${state.roombaSchedule[0]}"
     // Check if we clean today
     if(daysofweek.contains(day.toString())) { 
         // Check when next scheduled cleaning time will be
             for(it in state.roombaSchedule) {
-                temp = Date.parse("yyyy-MM-dd'T'HH:mm:ss", it).format('HH:mm')
-                if((temp > current) && !foundschedule) {
+                if((it > current) && !foundschedule) {
                     nextcleaning = it
                     cleaningday = "*"
                     weekday = "Today"
                     foundschedule=true
                 }
             }
+        
         if(!foundschedule) {
              tempday = day
              while(!foundschedule) {
@@ -492,8 +448,8 @@ def RoombaScheduler() {
              }
          }
         }
-    log.info "Next scheduled cleaning: ${weekday} at ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('h:mm a')}" 
-    schedule("0 ${Date.parse("yyyy-MM-dd'T'HH:mm:ss", nextcleaning).format('mm H')} ? * ${cleaningday} *", RoombaSchedStart) 
+    log.info "Next scheduled cleaning: ${weekday} at ${Date.parse("HH:mm", nextcleaning).format('h:mm a')}" 
+    schedule("0 ${Date.parse("HH:mm", nextcleaning).format('mm H')} ? * ${cleaningday} *", RoombaSchedStart) 
 }
 
 def RoombaSchedStart() {
@@ -939,6 +895,24 @@ def executeAction(path) {
 }
 
 //Application Handlers
+
+def AppWatchdog(){
+    // Must match the exact name used in the json file.
+    parentappName = "Roomba Scheduler"
+    if(awDevice) {
+    try {
+        if(sendToAWSwitch && awDevice) {
+            awInfo = []
+            awInfo+= parentappName
+            awInfo+= version()
+		    awDevice.sendAWinfoMap(awInfo)
+            if(logEnable) log.debug "App Watchdog - sending info: ${awInfo}"
+	    }
+    } catch (e) { log.error "In setVersion - ${e}" }
+    schedule("0 0 3 ? * * *", AppWatchdog)
+    }
+}
+
 def getImage(type) {
     def loc = "<img src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/roomba-clean.png'>"
 }
