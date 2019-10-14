@@ -45,7 +45,7 @@
   "YouGotMailUpdateNote": "1.0.6 - enforced inputs required for the app to work, added ability to rename app for multiple instacnes",
   
   "RoombaSchedulerType": "App",
-  "RoombaSchedulerParentVersion": "1.2.6",
+  "RoombaSchedulerParentVersion": "1.2.7",
   "RoombaSchedulerChild1Version": "",
   "RoombaSchedulerChild1Name": "",
   "RoombaSchedulerChild2Version": "",
@@ -62,5 +62,5 @@
   "RoombaSchedulerChild4RawCode": "",
   "RoombaSchedulerDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy",
   "RoombaSchedulerDiscussion": "https://community.hubitat.com/t/release-roomba-scheduler/22873",
-  "RoombaSchedulerUpdateNote": "1.2.6 - fixed i7series result set for Roomba information",
+  "RoombaSchedulerUpdateNote": "1.2.7 - optimized scheduling code (thanks StepHack!), fixed additional scheduling bugs (thx dman2306)",
  }
