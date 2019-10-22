@@ -67,6 +67,14 @@
       "child": [],
       "hubitatDiscussion": "https://community.hubitat.com/t/release-port-z-wave-door-window-sensor-as-smoke-detector-gocontrol-kiddie-sm120x/18182",
       "updateNote": "1.0.2 - added support for CO2 capabilities"
+    },
+    {
+      "name": "Salt Tank Device",
+      "version": "1.0.3",
+      "RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/Salt%20Tank.groovy",
+      "child": [],
+      "hubitatDiscussion": "https://community.hubitat.com/t/project-salt-tank-monitor-using-arduino-mqtt/16008",
+      "updateNote": "1.0.3 - fixed dashboard CSS styling issues"
     }
   ]
 }
