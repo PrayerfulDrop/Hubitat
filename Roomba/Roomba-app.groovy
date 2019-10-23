@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.2.8 - lowest battery option for start cleaning, new delay presence options, new day cleaning enforcement, restricted days for cleaning, more error checking, reset application state option, fixed updateDevices scheduling issue
  *   1.2.7 - optimized scheduling code (thanks StepHack!), fixed additional scheduling bugs (thx dman2306)
  *   1.2.6 - fixed i7series result set for Roomba information
  *   1.2.5 - fixed restriction logic so restrictions work, more notification choices, UI updates
@@ -59,7 +60,7 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 def version() {
-    version = "1.2.7"
+    version = "1.2.8"
     return version
 }
 
@@ -69,9 +70,9 @@ definition(
     author: "Aaron Ward",
     description: "Scheduling and local execution of Roomba services",
     category: "Misc",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
-    iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
+    iconUrl: "",
+    iconX2Url: "",
+    iconX3Url: " ")
 
 preferences {
 	page name: "mainPage", title: "", install: true, uninstall: true
@@ -157,20 +158,54 @@ def mainPage() {
                                                         }
                                                         input "day${i}", "time", title: "${proper} time:",required: true, width: 6
                                                    }    
-                                                }
+                                                }           
         }
         section(getFormat("header-blue", " Presence Options:")) {
             input "usePresence", "bool", title: "Use presence?", defaultValue: false, submitOnChange: true
             if(usePresence) {
                 input "roombaPresence", "capability.presenceSensor", title: "Choose presence device(s):", multiple: true, required: true, submitOnChange: true
                 input "roombaPresenceClean", "bool", title: "Immediately start cleaning if everyone leaves (outside of normal schedule)?", defaultValue: false, submitOnChange: true
-                input "roombaPresenceDelay", "bool", title: "Delay cleaning schedule if someone is present in home?", defaultValue: false, submitOnChange: true
-                if(roombaPresenceDelay) input "roombaPresenceDelayTime", "text", title: "Minutes to enforce cleaning schedule even if people present?", defaultValue: "90", submitOnChange: true
-                input "roombaPresenceDock", "bool", title: "Dock Roomba if someone arrives home?", defaultValue: false, submitonChange: true
+                if(roombaPresenceClean) {
+                    input "roombaPresenceCleandelay", "text", title: "Delay this many minutes prior to cleaning? (0-1440)", defaultValue: 5, range:"0-1440", submitOnChange: true
+                    if(roombaPresenceCleandelay==null) roombaPresenceCleandelay="5"
+                    if(roombaPresenceCleandelay.toInteger()<0 || roombaPresenceCleandelay.toInteger()>1440) paragraph "<font style='color:red'><b>Error:</b> Please enter number of minutes between 0 and 1440.</font>"   
+                }
+                input "roombaPresenceDock", "bool", title: "Dock Roomba if someone arrives home?", defaultValue: false, submitonChange: true                
+                if(roombaPresenceDelay) paragraph getFormat("wordline", "Delay Cleaning when presence home:") 
+                input "roombaPresenceDelay", "bool", title: "If presence is home, delay the cleaning schedule?", defaultValue: false, submitOnChange: true
+                if(roombaPresenceDelay) { 
+                    input "roombaPresenceDelayTime", "text", title: "Minutes to delay cleaning schedule if people present? (0-1440)", defaultValue: 90, range:"0-1440", submitOnChange: true
+                    if(roombaPresenceDelayTime==null) roombaPresenceDelayTime = "90"
+                    if(roombaPresenceDelayTime.toInteger()<0 || roombaPresenceDelayTime.toInteger()>1440) paragraph "<font style='color:red'><b>Error:</b> Please enter number of minutes between 0 and 1440.</font>"                  
+                    input "roombaDelayDay", "bool", title: "If presence still present, cancel cleaning but reschedule for next schedule cleaning time/day?", defaultValue: false, submitOnChange: true
+                    if(roombaDelayDay) {
+                        input "roombaafterday", "bool", title: "Would you like to reschedule a cleaning for any day (even outside of cleaning schedule) if cleaning cancelled for more than a certain number of days?", defaultValue: false, submitOnChange: true
+                        if(roombaafterday) {
+                            input "roombaaftertimeday", "text", title: "Number of days that can be missed before a cleaning must occur?", defaultValue: 0, submitOnChange: true
+                            input "roombarestrictSched", "enum", title: "Day(s) that should be restricted from rescheduling the missed cleaning after ${roombaaftertimeday} days occur?", required: false, multiple: true, submitOnChange: true,
+                                options: [
+        	        		        "0":	"Sunday",
+                                    "1":	"Monday",
+                                    "2":	"Tuesday",
+                                    "3":	"Wednesday",
+                                    "4":	"Thursday",
+                                    "5":	"Friday",
+                                    "6":	"Saturday"
+                                ] 
+                        }
+                    }
+                }
             }
         }
         section(getFormat("header-blue", " Advanced Options:")) {
             paragraph "Roomba models below 900+ series do not have the ability to find a docking station prior to the battery dying.  Options below provide similar functionality or at least a better chance for Roomba to dock before dying."
+            input "roombaBatteryLevel", "enum", title: "Lowest battery percentage Roomba is allowed to start cleaning?", defaultValue:"60", required:false, multiple: false, submitOnChange:true,
+                options: [
+                    "80":"80%",
+                    "70":"70%",
+                    "60":"60%",
+                    "50":"50%",
+                    "40":"40%"]                   
             input "useTime", "bool", title: "Limit Roomba's cleaning time?", defaultValue: false, submitOnChange: true, width: 6
             if(useTime) {
                 input "roombaLimitTime", "text", title: "How many minutes to run (minimum 20)?", defaultValue: "60", required: true, submitOnChange: true
@@ -237,16 +272,27 @@ def mainPage() {
                     input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict cleaning schedule:", required: false, multiple: false, defaultValue: null, submitOnChange: true
                     input "pushoverRestrictions", "bool", title: "Send Pushover Msg if restrictions are on and Roomba tries to clean?", required: false, defaultValue:false, submitOnChange: true, width: 6
                 }
-                if(modesYes && usePresence) input "turnoffSwitch", "bool", title: "Turn off restrictions if presence away?", required: false, multiple: false, defaultValue: false, submitOnChange: true, width: 6
-             	input "logEnable", "bool", title: "Debug Logging?", required: false, defaultValue: true, submitOnChange: true
+                if(modesYes && usePresence) input "turnoffSwitch", "bool", title: "Turn off switch if presence away?", required: false, multiple: false, defaultValue: false, submitOnChange: true, width: 6
+                paragraph "Note: resetting the application state settings should only be used if you are experiencing issues with Roomba starting correctly."
+                input "resetApp", "bool", title: "Reset application state settings?", required: false, defaultValue:false, submitOnChange: true
+                input "logEnable", "bool", title: "Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true
                 if(debug) input "init", "bool", title: "Initialize?", required: false, defaultVale:false, submitOnChange: true // For testing purposes
-                if(init) {
+                if(app.init) {
+                    log.debug "Initalizing button clicked."
                     try {
                         initialize()
                     }
                     catch (any) { log.error "${any}" }
                     app?.updateSetting("init",[value:"false",type:"bool"])
+                }
+                if(app.resetApp) {
+                    app?.updateSetting("resetApp",[value:"false",type:"bool"])
+                    resetApp()
+                    paragraph "<font style='color:green;'><b>Success!</b></font> Roomba Scheduler's application state settings have been reset."
+                }
+                if(debug) {
+                    paragraph "<hr>state.schedDelay: ${state.schedDelay} - state.lastcleaning: ${state.lastcleaning} - state.presence: ${state.presence}<br>state.errors: ${state.errors} - state.prevcleaning: ${state.prevcleaning} - state.DaysSinceLastCleaning: ${state.DaysSinceLastCleaning}"
                 }
 				paragraph getFormat("line")
 				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
@@ -301,14 +347,18 @@ def pageroombaInfo() {
     temp += "<p style=font-size:20px><b>Battery Status:</b> ${result.data.batPct}%"
     temp += "<p style=font-size:20px><b>Bin Status:</b> ${bin}"
     temp += "<p style=font-size:20px><b># of cleaning jobs:</b> ${String.format("%,d",result.data.cleanMissionStatus.nMssn)}</p>"
-    temp += "<p style=font-size:20px><b>Total Time Cleaning:</b> ${String.format("%,d",result.data.bbrun.hr)} hours and ${result.data.bbrun.min} minutes</p></div>"
+    temp += "<p style=font-size:20px><b>Total Time Cleaning:</b> ${String.format("%,d",result.data.bbrun.hr)} hours and ${result.data.bbrun.min} minutes</p>"
+    temp += "<p style=font-size:20px><b>Days since last cleaning:</b> ${String.format("%,d", state.DaysSinceLastCleaning)}</p></div>"
 
+           
 	dynamicPage(name: "pageroombaInfo", title: "", nextPage: "mainPage", install: false, uninstall: false) {
-        section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {}
-        section(getFormat("header-green", " Device Information:")) {
+        section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
+        paragraph "<div style='color:#1A77C9'>This application provides Roomba local integration and advanced scheduling.</div>"
+        }
+        section(getFormat("header-blue", " Device Information:")) {
             paragraph temp
             paragraph getFormat("line")
-		    paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${state.version}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
+		    paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
         }
     }
 }
@@ -340,14 +390,15 @@ def pageroombaNotify() {
 def initialize() {
     if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
     if(modesYes) subscribe(restrictbySwitch, "switch", switchHandler)
-	if(logEnable) log.debug "Initializing $app.label...unscheduling current jobs."
+	log.info "Initializing $app.label...unscheduling current jobs."
     setStateVariables()
     unschedule()
     cleanupChildDevices()
 	createChildDevices()
     getRoombaSchedule()
-    RoombaScheduler()
+    RoombaScheduler(false)
     updateDevices()
+    schedule("0/30 * * * * ?", updateDevices)
     app.updateLabel("Roomba Scheduler - ${state.roombaName}")
     AppWatchdog() 
     if (logEnable && logMinutes.toInteger() != 0) {
@@ -358,19 +409,19 @@ def initialize() {
 }
 
 def installed() {
-	if(logEnable) log.debug "Installed with settings: ${settings}"
+	log.info "Installed with settings: ${settings}"
     state.error=false
 	initialize()
 }
 
 def updated() {
-	if(logEnable) log.debug "Updated with settings: ${settings}"
+	log.info "Updated with settings: ${settings}"
     unschedule()
 	initialize()
 }
 
 def uninstalled() {
-	if(logEnable) log.debug "Uninstalled app"
+	log.warn "Uninstalled app"
 
 	for (device in getChildDevices())
 	{
@@ -386,7 +437,7 @@ def getRoombaSchedule() {
     state.roombaSchedule = roombaSchedule.sort()
 }
 
-def RoombaScheduler() {
+def RoombaScheduler(delayday) {
     def map=[
            0:"Sunday",
            1:"Monday",
@@ -407,12 +458,26 @@ def RoombaScheduler() {
     current = date.format("HH:mm")
     def day = date.getDay()
     daysofweek = schedDay.join(",")
+    if(roombarestrictSched!=null) restricteddaysofweek = roombarestrictSched.join(",")
+    else restricteddaysofweek = []
     foundschedule=false
     def cleaningday = day
     nextcleaning = state.roombaSchedule[0]
-    if(debug) log.debug "RS: current day: ${day} - user setting: daysofweek ${daysofweek} - first time of user defined schedule: ${state.roombaSchedule[0]}"
     // Check if we clean today
-    if(daysofweek.contains(day.toString())) { 
+    if(delayday) {
+        tempday = day
+         while(!foundschedule) {
+             tempday = tempday + 1
+             if(tempday>7) { tempday=1 }
+             if(!restricteddaysofweek.contains(tempday.toString())) { 
+                 foundschedule=true
+                 cleaningday = map2[tempday]
+                 weekday = map[tempday]
+             }
+         }        
+    }
+        
+    if(daysofweek.contains(day.toString()) && !foundschedule) { 
         // Check when next scheduled cleaning time will be
             for(it in state.roombaSchedule) {
                 if((it > current) && !foundschedule) {
@@ -457,17 +522,22 @@ def RoombaSchedStart() {
     def device = getChildDevice("roomba:" + result.data.name)
     def presence = getPresence()
     
+    log.debug "Roomba SchedStart()"
     // If Delay cleaning is selected
-    if(roombaPresenceDelay) {
-        if(!state.schedDelay && presence) {
-            log.info "Roomba Schedule was initiated but presence is detected.  Waiting ${roombaPresenceDelayTime.toInteger()} minutes before starting."
+    if((roombaPresenceDelay && presence) || state.presence) {
+        log.debug "roomba PresenceDelay or Presence leave values true"
+        if(state.presence) timer = roombaPresenceCleandelay
+        else timer = roombaPresenceDelayTime
+        if(!state.schedDelay && state.startDelayTime==null) {
+            if(roombaPresenceDelay && state.presence) log.info "Presence has departed with delay start.  Waiting ${timer} minute(s) before starting cleaning"
+            else log.info "Roomba Schedule was initiated but presence is detected.  Waiting ${timer} minutes before starting"
             def now = new Date()
             long temp = now.getTime()
             state.startDelayTime = temp
             state.schedDelay = true
             runIn(60,RoombaDelay)
-            RoombaScheduler()
-        } else {
+            RoombaScheduler(false)
+        } else { 
             long timeDiff
    		    def now = new Date()
     	    long unxNow = now.getTime()
@@ -476,28 +546,41 @@ def RoombaSchedStart() {
     	    unxPrev = unxPrev/1000
     	    timeDiff = Math.abs(unxNow-unxPrev)
     	    timeDiff = Math.round(timeDiff/60)
-            if(logEnable) log.debug "Time delay difference is currently: ${timeDiff.toString()} minute(s)"
-            if(timeDiff < roombaPresenceDelayTime.toInteger()) {
+            log.debug "Time delay difference is currently: ${timeDiff.toString()} of ${timer} minute(s)"
+            if(logEnable) log.debug "Time delay difference is currently: ${timeDiff.toString()} of ${timer} minute(s)"
+            if(timeDiff <= timer.toInteger()-1) {
                 runIn(60,RoombaDelay)
             } else {
-                log.info "Delay time has expired.  Starting expired cleaning schedule."
-                device.start()
+                if(roombaDelayDay && state.DaysSinceLastCleaning.toInteger()>roombaaftertimeday.toInteger()-1) {
+                    RoombaScheduler(true)
+                } else {
+                    if(roombaDelayDay) log.debug "Delay time has expired, skip cleaning is selected due to presence is home.  Current days since last cleaning: ${state.DaysSinceLastCleaning}"
+                    else { 
+                            log.info "Delay time has expired.  Starting expired cleaning schedule"
+                            device.start()
+                         }
+                    RoombaScheduler(false)
+                }
                 updateDevices()
-                RoombaScheduler()
                 state.schedDelay = false
+                state.presence = false
+                state.startDelayTime=null
             }
         }
     } 
     // Delay cleaning is not selected
-    else { device.start()
+    else { 
+           log.debug "RoombaDelay or Immediate Presence values false...starting Roomba normal cleaning schedule"
+           if(logEnable) "Starting Roomba normal cleaning schedule" 
+           device.start()
            updateDevices() 
-           RoombaScheduler()}
+           RoombaScheduler(false)}
 }
 
 def RoombaDelay() {
     RoombaSchedStart()
 }
-                   
+               
                    
 // Device creation and status updhandlers
 def createChildDevices() {
@@ -591,6 +674,17 @@ def updateDevices() {
                 if(pushoverDock) msg=state.pushoverDockMsg
                 state.batterydead = false 
                 state.errors = false
+                // working on
+                long daystimeDiff = 0                
+   		        def daynow = new Date()
+	            long dayunxNow = daynow.getTime()
+    	        dayunxPrev = state.lastcleaning
+    	        dayunxNow = dayunxNow/1000/60/60/24
+    	        dayunxPrev = dayunxPrev/1000/60/60/24
+    	        daytimeDiff = Math.abs(dayunxNow-dayunxPrev)
+                daytimeDiff = daytimeDiff.trunc()
+    	        daytimeDiff = Math.round(daytimeDiff)
+                state.DaysSinceLastCleaning = daytimeDiff    
 				break
 			case "run":
 				status = "cleaning"
@@ -673,7 +767,7 @@ def updateDevices() {
         state.cleaning = status
 
         device.sendEvent(name: "cleanStatus", value: status)
-        if(logEnable) log.debug "Sending '${status}' to ${device} dashboard tile"
+        if(logEnable) log.trace "Sending '${status}' to ${device} dashboard tile"
         device.roombaTile(state.cleaning, result.data.batPct, result.data.cleanMissionStatus.mssnM)
  
         if(!state.notified && !state.cleaning.contains(state.prevcleaning)) {
@@ -687,7 +781,6 @@ def updateDevices() {
     }
     catch (e) { if(logEnable) log.error "iRobot cloud error.  ${e} "
                 if(logEnable) log.warn "Retrying updating devices in 30 seconds." }                   
-    runIn(30, updateDevices)
 }
 
 def pushNow(msg) {
@@ -718,12 +811,7 @@ def switchHandler(evt) {
     }
 }
 
-def presenceHandler(evt) {
-    if(turnoffSwitch) {
-        log.info "Restrcition switch '${restrictbySwitch.displayName} is ${restrictbySwitch.value}.  Presence away, turning off ${restrictbySwitch.displayName}"
-        restrictbySwitch.off
-    }
-    
+def presenceHandler(evt) {   
     try {
     def result = executeAction("/api/local/info/state")
 
@@ -733,21 +821,37 @@ def presenceHandler(evt) {
         def presence = getPresence()
     
         if(presence) {
+            if(logEnable) log.info "Presence has been detected - Resetting cleaning and time delay schedules"            
             // Presence is detected, Roomba is cleaning AND user chooses to have Roomba dock when someone is home
-            if(result.data.cleanMissionStatus.phase.contains("run") && roombaPresenceDock) {
-                   device.dock()
-            }
+            if(result.data.cleanMissionStatus.phase.contains("run") && roombaPresenceDock) { 
+                if(logEnable) log.info "Docking ${state.roombaName} based on presence options"
+                device.dock()
+            } 
+            state.schedDelay = false 
+            state.presence = false
+            state.startDelayTime = null
+            unschedule()
+            RoombaScheduler(false)
+            updateDevices()
         } else {
             // Presence is away start cleaning schedule and variations
-            // Check if Roomba is docking, if so stop then start cleaning
-            if(result.data.cleanMissionStatus.phase.contains("hmUsrDock") && roombaPresenceClean) {
-                device.start()
-            }
-            // Check if Roomba is charging OR is stopped then start cleaning
-            if((result.data.cleanMissionStatus.phase.contains("charge") || result.data.cleanMissionStatus.phase.contains("stop")) && roombaPresenceClean) device.start()
-            if(roombaPresenceDelay && state.schedDelay) {
+            if(turnoffSwitch && restrictbySwitch.currentState("switch").value == "on") {
+                log.info "Restriction switch '${restrictbySwitch.displayName} is ${restrictbySwitch.currentState("switch").value}.  Presence away, turning off ${restrictbySwitch.displayName}"
+                restrictbySwitch.off
+            }            
+            if(result.data.cleanMissionStatus.phase.contains("charge") || result.data.cleanMissionStatus.phase.contains("stop")) {
                 state.schedDelay = false
-                device.start()
+                state.presence = true
+                if(roombaPresenceCleandelay.toInteger()>0 || roombaPresenceDelay) {
+                    state.startDelayTime = null
+                    RoombaDelay()
+                }
+                else {
+                    device.start()
+                    unschedule()
+                    RoombaScheduler(false)
+                    updateDevices()                    
+                }
             }
         }
         //update status of Roomba
@@ -771,7 +875,9 @@ def handleDevice(device, id, evt) {
                 if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock") || device_result.data.batPct.toInteger()<75) 
                     { log.warn "${device} was currently cleaning.  Scheduled times may be too close together." }
                 else {
-                    if(device_result.data.cleanMissionStatus.phase.contains("charge") && device_result.data.batPct.toInteger()>40) {
+                    def now = new Date()
+                    long nowtemp = now.getTime()
+                    if(device_result.data.cleanMissionStatus.phase.contains("charge") && device_result.data.batPct.toInteger()>roombaBatteryLevel.toInteger()) {
                         if(roomba900) {
                             result = executeAction("/api/local/config/carpetBoost/${roombacarpetBoost}")
                             if(roombaedgeClean) result = executeAction("/api/local/config/edgeClean/on")
@@ -782,10 +888,12 @@ def handleDevice(device, id, evt) {
                         }
                         if(!device_result.data.cleanMissionStatus.phase.contains("run") || !device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
                             result = executeAction("/api/local/action/start")
+                            state.lastcleaning=nowtemp
                         } else {
                             result = executeAction("/api/local/action/pause")
                             pauseExecution(1500)
                             result = executeAction("/api/local/action/start")
+                            state.lastcleaning=nowtemp
                         }
                     } else log.warn "${device} is currently not on the charging station.  Cannot start cleaning."
                 }
@@ -864,6 +972,21 @@ def setStateVariables() {
     if(state.bin==null) state.bin = true
     if(state.schedDelay==null) state.schedDelay = false
     state.errors = false
+    if(state.lastcleaning==null) {
+        def now = new Date()
+        long nowtemp = now.getTime()
+        state.lastcleaning=nowtemp
+    }
+    if(state.presence==null) state.presence = false
+    state.startDelayTime=null
+}
+
+def resetApp(){
+    if(logEnable) log.warn "Application state variables have been reset."
+    state.schedDelay = false
+    state.batterydead = false
+    state.notified = false
+    state.presence = false
 }
 
 def executeAction(path) {
@@ -921,6 +1044,8 @@ def getFormat(type, myText=""){
     if(type == "header-blue") return "<div style='color:#ffffff;font-weight: bold;background-color:#1A7BC7;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${myText}</div>"
     if(type == "line") return "\n<hr style='background-color:#1A77C9; height: 1px; border: 0;'></hr>"
     if(type == "title") return "<h2 style='color:#1A77C9;font-weight: bold'>${myText}</h2>"
+    if(type == "wordline") return "<font style='font-weight:bold;font-size:14px;color:#1A77C9;border-bottom:1px solid #1A77C9; padding-bottom:3px;width:100%;float:left;'>${myText}</font>"
+    
 }
 
 
