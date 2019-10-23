@@ -32,6 +32,7 @@
  *
  *  Changes:
  *       
+ *   1.1.3 - fixed on/off states
  *   1.1.2 - additional CSS fixes to ensure of future dashboard changes won't affect tile
  *   1.1.1 - fixed CSS for dashboard update
  *   1.1.0 - support for switch control on/off, handler changes
@@ -81,36 +82,43 @@ def updateVersion() {
 def start() {
     parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "start")
     if(logEnable) log.debug "Roomba is being started through driver"
+    sendEvent(name: "switch", value: "on", isStateChange: true)
 }
 
 def stop() {
     parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "stop")
     if(logEnable) log.debug "Roomba is being stopped through driver"
+    sendEvent(name: "switch", value: "off", isStateChange: true)
 }
 
 def pause() {
     parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "pause")
     if(logEnable) log.debug "Roomba is being paused through driver"
+    sendEvent(name: "switch", value: "off", isStateChange: true)
 }
 
 def resume() {
     parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "resume")
     if(logEnable) log.debug "Roomba is resuming through driver"
+    sendEvent(name: "switch", value: "off", isStateChange: true)
 }
 
 def dock() {
     parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "dock")
     if(logEnable) log.debug "Roomba is being docked through driver"
+    sendEvent(name: "switch", value: "off", isStateChange: true)
 }
 
 def on() {
     parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "start")
     if(logEnable) log.debug "Roomba is being started through driver"
+    sendEvent(name: "switch", value: "on", isStateChange: true)
 }
 
 def off() {
     parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "off")
     if(logEnable) log.debug "Roomba off initiated through driver"
+    sendEvent(name: "switch", value: "off", isStateChange: true)
 }
 
 def roombaTile(cleaning, batterylevel, cleaningTime) {
