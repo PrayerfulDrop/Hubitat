@@ -31,7 +31,8 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *       
+ * 
+ *   1.1.4 - Roomba driver backup of failed application scheduled events
  *   1.1.3 - fixed on/off states
  *   1.1.2 - additional CSS fixes to ensure of future dashboard changes won't affect tile
  *   1.1.1 - fixed CSS for dashboard update
@@ -69,7 +70,7 @@ metadata {
 
 def setVersion(){
     appName = "RoombaDriver"
-	version = "1.0.9" 
+	version = "1.1.4" 
     dwInfo = "${appName}:${version}"
     sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
 }
@@ -121,36 +122,71 @@ def off() {
     sendEvent(name: "switch", value: "off", isStateChange: true)
 }
 
+def timecheck() {
+    if(!state.timecheck){
+        def now = new Date()
+        long temp = now.getTime()
+        state.starttime = temp
+        state.timecheck = true
+        runIn(60, timecheck)
+    } else {
+        long timeDiff
+   		def now = new Date()
+    	long unxNow = now.getTime()
+    	unxPrev = state.starttime
+    	unxNow = unxNow/1000
+    	unxPrev = unxPrev/1000
+    	timeDiff = Math.abs(unxNow-unxPrev)
+    	timeDiff = Math.round(timeDiff/60)  
+        if(logEnable) "Driver has not had any communication from parent in ${timeDiff} minute(s)"
+        if(timeDiff > 5) { 
+            parent.initialize()
+            log.warn "Parent Roomba Scheduler stopped working.  Initializing the application"
+        }
+        else runIn(60, timecheck)
+    }
+    
+}    
+
 def roombaTile(cleaning, batterylevel, cleaningTime) {
+    state.timecheck=false  
+    timecheck()
     def img = ""
     switch(cleaning) {
         case "cleaning":
             img = "roomba-clean.png"
             msg=cleaning.capitalize()
+            sendEvent(name: "switch", value: "on", isStateChange: true)
             break
         case "stopped":
             img = "roomba-stop.png"
             msg=cleaning.capitalize()
+            sendEvent(name: "switch", value: "off", isStateChange: true)
             break        
         case "charging":
             img = "roomba-charge.png"
             msg=cleaning.capitalize()
+            sendEvent(name: "switch", value: "off", isStateChange: true)
             break        
         case "docking":
             img = "roombadock.png"
             msg=cleaning.capitalize()
+            sendEvent(name: "switch", value: "off", isStateChange: true)
             break
         case "dead":
             img = "roomba-dead.png"
             msg="Battery Died"
+            sendEvent(name: "switch", value: "off", isStateChange: true)
             break
         case "error":
             img = "roomba-error.png"
             msg = cleaning.capitalize()
+            sendEvent(name: "switch", value: "off", isStateChange: true)
             break
         default:
             img = "roomba-stop.png"
             msg=cleaning.capitalize()
+            sendEvent(name: "switch", value: "off", isStateChange: true)
             break
     }
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
