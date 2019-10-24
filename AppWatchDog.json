@@ -36,6 +36,19 @@
 			}],
 			"hubitatDiscussion": "https://community.hubitat.com/t/release-roomba-scheduler/22873",
 			"updateNote": "1.2.8 - lowest battery option for start cleaning, new delay presence options, new day cleaning enforcement, restricted days for cleaning, more error checking, reset application state option, fixed updateDevices scheduling issue"
+		},
+		{
+			"name": "App Watchdog 3",
+			"version": "1.0.5",
+			"RAW": "some URL",
+			"child": [],
+			"driver": [{
+				"name": "App Watchdog 3 Driver",
+				"version": "1.0.2",
+				"RAW": "some url"
+			}],
+			"hubitatDiscussion": "some discussions",
+			"updateNote": "Many many updates with still many many bugs"
 		}
 	],
 	"drivers": [{
