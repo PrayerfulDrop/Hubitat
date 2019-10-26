@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.2.9 - fixed bug in notifications and battery % start
  *   1.2.8 - lowest battery option for start cleaning, new delay presence options, new day cleaning enforcement, restricted days for cleaning, more error checking, reset application state option, fixed updateDevices scheduling issue
  *   1.2.7 - optimized scheduling code (thanks StepHack!), fixed additional scheduling bugs (thx dman2306)
  *   1.2.6 - fixed i7series result set for Roomba information
@@ -60,7 +61,7 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 def version() {
-    version = "1.2.8"
+    version = "1.2.9"
     return version
 }
 
@@ -400,7 +401,7 @@ def initialize() {
     updateDevices()
     schedule("0/30 * * * * ?", updateDevices)
     app.updateLabel("Roomba Scheduler - ${state.roombaName}")
-    AppWatchdog() 
+    if(awDevice) AppWatchdog() 
     if (logEnable && logMinutes.toInteger() != 0) {
     if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
         runIn((logMinutes.toInteger() * 60),logsOff)
@@ -769,6 +770,7 @@ def updateDevices() {
         device.sendEvent(name: "cleanStatus", value: status)
         if(logEnable) log.trace "Sending '${status}' to ${device} dashboard tile"
         device.roombaTile(state.cleaning, result.data.batPct, result.data.cleanMissionStatus.mssnM)
+        log.warn msg
  
         if(!state.notified && !state.cleaning.contains(state.prevcleaning)) {
             if(msg!=null) {
@@ -872,7 +874,7 @@ def handleDevice(device, id, evt) {
             break
         case "start":
             if(!restrict) {
-                if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock") || device_result.data.batPct.toInteger()<75) 
+                if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock") || device_result.data.batPct.toInteger()<roombaBatteryLevel.toInteger()) 
                     { log.warn "${device} was currently cleaning.  Scheduled times may be too close together." }
                 else {
                     def now = new Date()
@@ -940,6 +942,18 @@ def handleDevice(device, id, evt) {
 def setStateVariables() {
     // Ensure variables are set
     def result = executeAction("/api/local/info/state")
+            input "pushoverStartMsg", "text", title: "Start Cleaning:", required: false, defaultValue:"%device% has started cleaning", submitOnChange: true 
+   pushoverStopMsg ="%device% has stopped cleaning"
+   pushoverDockMsg="%device% is charging"
+   pushoverBinMsg="%device%'s bin is full"
+   pushoverDeadMsg="%device% battery has died"
+   pushoverErrorMsg="%device% has stopped because"
+   pushoverErrorMsg2="both wheels are stuck"
+   pushoverErrorMsg3="left wheel is stuck"
+   pushoverErrorMsg4="right wheel is stuck"
+   pushoverErrorMsg5="it is wedged under something"
+   pushoverErrorMsg7="cleaning bin is missing"
+   pushoverErrorMsg16="stuck on an object"
     try { state.roombaName = result.data.name}
         catch (e) {state.roombaName = "RoombaUnknown"}
     try {state.pushoverStartMsg = pushoverStartMsg.replace("%device%",state.roombaName)}
@@ -1021,19 +1035,19 @@ def executeAction(path) {
 
 def AppWatchdog(){
     // Must match the exact name used in the json file.
-    parentappName = "Roomba Scheduler"
-    if(awDevice) {
+    developer = "Aaron Ward"
+    aName = "Roomba Scheduler"
     try {
-        if(sendToAWSwitch && awDevice) {
+        if(awDevice) {
             awInfo = []
-            awInfo+= parentappName
-            awInfo+= version()
-		    awDevice.sendAWinfoMap(awInfo)
+            awInfo+=developer
+            awInfo+=aName
+            awInfo+=version()
+            awDevice.sendAWinfoMap(awInfo)
             if(logEnable) log.debug "App Watchdog - sending info: ${awInfo}"
+            schedule("0 0 3 ? * * *", AppWatchdog)
 	    }
     } catch (e) { log.error "In setVersion - ${e}" }
-    schedule("0 0 3 ? * * *", AppWatchdog)
-    }
 }
 
 def getImage(type) {
