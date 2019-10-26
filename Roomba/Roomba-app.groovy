@@ -941,7 +941,7 @@ def handleDevice(device, id, evt) {
 def setStateVariables() {
     // Ensure variables are set
     def result = executeAction("/api/local/info/state")
-            input "pushoverStartMsg", "text", title: "Start Cleaning:", required: false, defaultValue:"%device% has started cleaning", submitOnChange: true 
+   pushoverStartMsg="%device% has started cleaning"
    pushoverStopMsg ="%device% has stopped cleaning"
    pushoverDockMsg="%device% is charging"
    pushoverBinMsg="%device%'s bin is full"
