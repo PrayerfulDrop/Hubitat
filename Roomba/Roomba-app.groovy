@@ -770,8 +770,7 @@ def updateDevices() {
         device.sendEvent(name: "cleanStatus", value: status)
         if(logEnable) log.trace "Sending '${status}' to ${device} dashboard tile"
         device.roombaTile(state.cleaning, result.data.batPct, result.data.cleanMissionStatus.mssnM)
-        log.warn msg
- 
+
         if(!state.notified && !state.cleaning.contains(state.prevcleaning)) {
             if(msg!=null) {
                 state.notified = true
