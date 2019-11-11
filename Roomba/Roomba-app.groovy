@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.3.0 - fixed additional logic for unique options set, optimized presence handler
  *   1.2.9 - fixed bug in notifications and battery % start
  *   1.2.8 - lowest battery option for start cleaning, new delay presence options, new day cleaning enforcement, restricted days for cleaning, more error checking, reset application state option, fixed updateDevices scheduling issue
  *   1.2.7 - optimized scheduling code (thanks StepHack!), fixed additional scheduling bugs (thx dman2306)
@@ -61,7 +62,7 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 def version() {
-    version = "1.2.9"
+    version = "1.3.0"
     return version
 }
 
@@ -166,17 +167,17 @@ def mainPage() {
             if(usePresence) {
                 input "roombaPresence", "capability.presenceSensor", title: "Choose presence device(s):", multiple: true, required: true, submitOnChange: true
                 input "roombaPresenceClean", "bool", title: "Immediately start cleaning if everyone leaves (outside of normal schedule)?", defaultValue: false, submitOnChange: true
+                if(roombaPresenceCleandelay==null || roombaPresenceCleandelay=="") roombaPresenceCleandelay="5"
                 if(roombaPresenceClean) {
                     input "roombaPresenceCleandelay", "text", title: "Delay this many minutes prior to cleaning? (0-1440)", defaultValue: 5, range:"0-1440", submitOnChange: true
-                    if(roombaPresenceCleandelay==null) roombaPresenceCleandelay="5"
                     if(roombaPresenceCleandelay.toInteger()<0 || roombaPresenceCleandelay.toInteger()>1440) paragraph "<font style='color:red'><b>Error:</b> Please enter number of minutes between 0 and 1440.</font>"   
                 }
                 input "roombaPresenceDock", "bool", title: "Dock Roomba if someone arrives home?", defaultValue: false, submitonChange: true                
                 if(roombaPresenceDelay) paragraph getFormat("wordline", "Delay Cleaning when presence home:") 
                 input "roombaPresenceDelay", "bool", title: "If presence is home, delay the cleaning schedule?", defaultValue: false, submitOnChange: true
+                if(roombaPresenceDelayTime==null || roombaPresenceDelayTime=="" ) roombaPresenceDelayTime = "90"
                 if(roombaPresenceDelay) { 
                     input "roombaPresenceDelayTime", "text", title: "Minutes to delay cleaning schedule if people present? (0-1440)", defaultValue: 90, range:"0-1440", submitOnChange: true
-                    if(roombaPresenceDelayTime==null) roombaPresenceDelayTime = "90"
                     if(roombaPresenceDelayTime.toInteger()<0 || roombaPresenceDelayTime.toInteger()>1440) paragraph "<font style='color:red'><b>Error:</b> Please enter number of minutes between 0 and 1440.</font>"                  
                     input "roombaDelayDay", "bool", title: "If presence still present, cancel cleaning but reschedule for next schedule cleaning time/day?", defaultValue: false, submitOnChange: true
                     if(roombaDelayDay) {
@@ -391,9 +392,8 @@ def pageroombaNotify() {
 def initialize() {
     if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
     if(modesYes) subscribe(restrictbySwitch, "switch", switchHandler)
-	log.info "Initializing $app.label...unscheduling current jobs."
+	log.info "Initializing $app.label...scheduling jobs."
     setStateVariables()
-    unschedule()
     cleanupChildDevices()
 	createChildDevices()
     getRoombaSchedule()
@@ -417,7 +417,6 @@ def installed() {
 
 def updated() {
 	log.info "Updated with settings: ${settings}"
-    unschedule()
 	initialize()
 }
 
@@ -523,12 +522,15 @@ def RoombaSchedStart() {
     def device = getChildDevice("roomba:" + result.data.name)
     def presence = getPresence()
     
-    log.debug "Roomba SchedStart()"
+    
     // If Delay cleaning is selected
+    if(debug) log.debug "Current variables:  roombaPresenceDelay: ${roombaPresenceDelay} - presence: ${presence} - state.presence: ${state.presence}"
     if((roombaPresenceDelay && presence) || state.presence) {
-        log.debug "roomba PresenceDelay or Presence leave values true"
-        if(state.presence) timer = roombaPresenceCleandelay
-        else timer = roombaPresenceDelayTime
+        if(debug) log.debug "roomba PresenceDelay or Presence leave values equal true"
+        
+        if(state.presence==true) timer = roombaPresenceCleandelay
+        else timer = roombaPresenceDelayTime 
+        
         if(!state.schedDelay && state.startDelayTime==null) {
             if(roombaPresenceDelay && state.presence) log.info "Presence has departed with delay start.  Waiting ${timer} minute(s) before starting cleaning"
             else log.info "Roomba Schedule was initiated but presence is detected.  Waiting ${timer} minutes before starting"
@@ -547,7 +549,6 @@ def RoombaSchedStart() {
     	    unxPrev = unxPrev/1000
     	    timeDiff = Math.abs(unxNow-unxPrev)
     	    timeDiff = Math.round(timeDiff/60)
-            log.debug "Time delay difference is currently: ${timeDiff.toString()} of ${timer} minute(s)"
             if(logEnable) log.debug "Time delay difference is currently: ${timeDiff.toString()} of ${timer} minute(s)"
             if(timeDiff <= timer.toInteger()-1) {
                 runIn(60,RoombaDelay)
@@ -555,12 +556,12 @@ def RoombaSchedStart() {
                 if(roombaDelayDay && state.DaysSinceLastCleaning.toInteger()>roombaaftertimeday.toInteger()-1) {
                     RoombaScheduler(true)
                 } else {
+                    RoombaScheduler(false)
                     if(roombaDelayDay) log.debug "Delay time has expired, skip cleaning is selected due to presence is home.  Current days since last cleaning: ${state.DaysSinceLastCleaning}"
                     else { 
                             log.info "Delay time has expired.  Starting expired cleaning schedule"
                             device.start()
                          }
-                    RoombaScheduler(false)
                 }
                 updateDevices()
                 state.schedDelay = false
@@ -571,11 +572,12 @@ def RoombaSchedStart() {
     } 
     // Delay cleaning is not selected
     else { 
-           log.debug "RoombaDelay or Immediate Presence values false...starting Roomba normal cleaning schedule"
+           if(debug) log.debug "RoombaDelay or Immediate Presence values false...starting Roomba normal cleaning schedule"
            if(logEnable) "Starting Roomba normal cleaning schedule" 
            device.start()
            updateDevices() 
-           RoombaScheduler(false)}
+           RoombaScheduler(false)
+    }
 }
 
 def RoombaDelay() {
@@ -621,17 +623,16 @@ def updateDevices() {
         def device = getChildDevice("roomba:" + result.data.name)
         
         device.sendEvent(name: "battery", value: result.data.batPct)
-        if (!result.data.bin.present)
-            device.sendEvent(name: "bin", value: "missing")
-        else if (result.data.bin.full) {
+        if (!result.data.bin.present) device.sendEvent(name: "bin", value: "missing")
+        if (result.data.bin.full) {
             device.sendEvent(name: "bin", value: "full")
-            if(pushoverBin && state.bin) {
+            if(pushoverBin && state.sendBinNotification) {
+                state.sendBinNotification = false
                 pushNow(state.pushoverBinMsg)
-                state.bin = false
             }
-        } else{
+        } else {
             device.sendEvent(name: "bin", value: "good")
-            state.bin = true
+            state.sendBinNotification = true
         }
         
 		def status = state.prevcleaning
@@ -768,7 +769,7 @@ def updateDevices() {
         state.cleaning = status
 
         device.sendEvent(name: "cleanStatus", value: status)
-        if(logEnable) log.trace "Sending '${status}' to ${device} dashboard tile"
+        if(debug) log.trace "Sending '${status}' to ${device} dashboard tile"
         device.roombaTile(state.cleaning, result.data.batPct, result.data.cleanMissionStatus.mssnM)
 
         if(!state.notified && !state.cleaning.contains(state.prevcleaning)) {
@@ -814,52 +815,51 @@ def switchHandler(evt) {
 
 def presenceHandler(evt) {   
     try {
-    def result = executeAction("/api/local/info/state")
+        def result = executeAction("/api/local/info/state")
 
-    if (result && result.data)
-    {
-        def device = getChildDevice("roomba:" + result.data.name)
-        def presence = getPresence()
-    
-        if(presence) {
-            if(logEnable) log.info "Presence has been detected - Resetting cleaning and time delay schedules"            
-            // Presence is detected, Roomba is cleaning AND user chooses to have Roomba dock when someone is home
-            if(result.data.cleanMissionStatus.phase.contains("run") && roombaPresenceDock) { 
-                if(logEnable) log.info "Docking ${state.roombaName} based on presence options"
-                device.dock()
-            } 
-            state.schedDelay = false 
+        if (result && result.data) {
+            def device = getChildDevice("roomba:" + result.data.name)
+            def presence = getPresence()          
             state.presence = false
-            state.startDelayTime = null
-            unschedule()
-            RoombaScheduler(false)
-            updateDevices()
-        } else {
-            // Presence is away start cleaning schedule and variations
-            if(turnoffSwitch && restrictbySwitch.currentState("switch").value == "on") {
+        
+            // Dock Roomba if presence is true and roombaPresenceDock is true
+            if(presence && result.data.cleanMissionStatus.phase.contains("run") && roombaPresenceDock) {
+                if(logEnable) log.info "Docking ${state.roombaName} based on presence options"
+                state.startDelayTime = null
+                state.schedDelay = false   
+                device.dock()
+                RoombaScheduler(false) 
+            } 
+        
+            // Reset restriction switch based on presence away and turnoffSwitch is true
+            if(!presence && turnoffSwitch && restrictbySwitch.currentState("switch").value == "on") {
                 log.info "Restriction switch '${restrictbySwitch.displayName} is ${restrictbySwitch.currentState("switch").value}.  Presence away, turning off ${restrictbySwitch.displayName}"
                 restrictbySwitch.off
-            }            
-            if(result.data.cleanMissionStatus.phase.contains("charge") || result.data.cleanMissionStatus.phase.contains("stop")) {
-                state.schedDelay = false
-                state.presence = true
-                if(roombaPresenceCleandelay.toInteger()>0 || roombaPresenceDelay) {
-                    state.startDelayTime = null
-                    RoombaDelay()
-                }
-                else {
-                    device.start()
-                    unschedule()
-                    RoombaScheduler(false)
-                    updateDevices()                    
-                }
             }
+
+            // If roombaPresenceClean is true start cleaning based on a delay
+            if(!presence && roombaPresenceClean && result.data.cleanMissionStatus.phase.contains("charge") || result.data.cleanMissionStatus.phase.contains("stop")) {
+                if(logEnable) log.info "Presence cleaning option is selected AND presence has departed."
+                state.presence = true
+                state.startDelayTime = null
+                state.schedDelay = false   
+                RoombaDelay()
+            }
+            
+            // if RoombaPresenceDelay is true start cleaning based if presence departs and cleaning schedule still valid
+            if(!presence && roombaPresenceDelay && state.schedDelay) {
+                if(logEnable) log.info "RoombaPresenceDelay is true AND presence has departed."
+                    state.schedDelay = false  
+                    state.startDelayTime = null
+                    device.start() 
+                    RoombaScheduler(false) 
+            }    
+
+            //update status of Roomba
+            updateDevices()
         }
-        //update status of Roomba
-        updateDevices()
-    }
     } 
-    catch (e) { log.error "iRobot Cloud communication error." }
+catch (e) { log.error "iRobot communication error. ${e}" }
 }
 
 def handleDevice(device, id, evt) {
@@ -982,7 +982,7 @@ def setStateVariables() {
     if(state.prevcleaning==null || state.prevcleaning=="") state.prevcleaning = "idle"
     state.notified = false
     if(state.batterydead==null) state.batterydead = false
-    if(state.bin==null) state.bin = true
+    if(state.sendBinNotification==null) state.sendBinNotification = true
     if(state.schedDelay==null) state.schedDelay = false
     state.errors = false
     if(state.lastcleaning==null) {
@@ -990,7 +990,7 @@ def setStateVariables() {
         long nowtemp = now.getTime()
         state.lastcleaning=nowtemp
     }
-    if(state.presence==null) state.presence = false
+    state.presence = false
     state.startDelayTime=null
 }
 
