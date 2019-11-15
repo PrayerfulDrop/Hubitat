@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.3.1 - finalized logic fixes for unique use case scenarios (thx dman2306 for being a patient tester)
  *   1.3.0 - fixed additional logic for unique options set, optimized presence handler
  *   1.2.9 - fixed bug in notifications and battery % start
  *   1.2.8 - lowest battery option for start cleaning, new delay presence options, new day cleaning enforcement, restricted days for cleaning, more error checking, reset application state option, fixed updateDevices scheduling issue
@@ -62,7 +63,7 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 def version() {
-    version = "1.3.0"
+    version = "1.3.1"
     return version
 }
 
