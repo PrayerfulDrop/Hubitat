@@ -338,17 +338,23 @@ def pageroombaInfo() {
             msg = state.cleaning.capitalize()
             break
 		}
-    if(result.data.bin.full) bin="Full"
+    if(result.data?.bin?.full) bin="Full"
     else bin="Empty"
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
     temp = "<div><h2><img max-width=100% height=auto src=${img} border=0>&nbsp;&nbsp;${state.roombaName}</h2>"
     temp += "<p style=font-size:20px><b>Roomba SKU:</b> ${result.data.sku}</p>"
-    temp += "<p style=font-size:20px><b>Roomba MAC:</b> ${result.data.mac}</p>"
+	if (result.data.mac != null)
+		temp += "<p style=font-size:20px><b>Roomba MAC:</b> ${result.data.mac}</p>"
+	else if (result.data.hwPartsRev?.wlan0HwAddr != null)
+		temp += "<p style=font-size:20px><b>Roomba MAC:</b> ${result.data.hwPartsRev?.wlan0HwAddr}</p>"
     temp += "<p style=font-size:20px><b>Software Version:</b> ${result.data.softwareVer}</p>"
     temp += "<p style=font-size:20px><b>Current State:</b> ${msg}</p>"
     if(cleantime) temp += "<p style=font-size:20px><b>Elapsed Time:</b> ${result.data.cleanMissionStatus.mssnM} minutes</p>"
     temp += "<p style=font-size:20px><b>Battery Status:</b> ${result.data.batPct}%"
-    temp += "<p style=font-size:20px><b>Bin Status:</b> ${bin}"
+	if (result.data.bin != null)
+		temp += "<p style=font-size:20px><b>Bin Status:</b> ${bin}"
+	else if (result.data.tankLvl != null)
+		temp += "<p style=font-size:20px><b>Tank Level:</b> ${String.format("%,d",result.data.tankLvl)}"
     temp += "<p style=font-size:20px><b># of cleaning jobs:</b> ${String.format("%,d",result.data.cleanMissionStatus.nMssn)}</p>"
     temp += "<p style=font-size:20px><b>Total Time Cleaning:</b> ${String.format("%,d",result.data.bbrun.hr)} hours and ${result.data.bbrun.min} minutes</p>"
     temp += "<p style=font-size:20px><b>Days since last cleaning:</b> ${String.format("%,d", state.DaysSinceLastCleaning)}</p></div>"
@@ -624,17 +630,24 @@ def updateDevices() {
         def device = getChildDevice("roomba:" + result.data.name)
         
         device.sendEvent(name: "battery", value: result.data.batPct)
-        if (!result.data.bin.present) device.sendEvent(name: "bin", value: "missing")
-        if (result.data.bin.full) {
-            device.sendEvent(name: "bin", value: "full")
-            if(pushoverBin && state.sendBinNotification) {
-                state.sendBinNotification = false
-                pushNow(state.pushoverBinMsg)
-            }
-        } else {
-            device.sendEvent(name: "bin", value: "good")
-            state.sendBinNotification = true
-        }
+		if (result.data.bin != null)
+		{
+			if (!result.data.bin.present) device.sendEvent(name: "bin", value: "missing")
+			if (result.data.bin.full) {
+				device.sendEvent(name: "bin", value: "full")
+				if(pushoverBin && state.sendBinNotification) {
+					state.sendBinNotification = false
+					pushNow(state.pushoverBinMsg)
+				}
+			} else {
+				device.sendEvent(name: "bin", value: "good")
+				state.sendBinNotification = true
+			}
+		}
+		else if (result.data.tankLvl != null)
+		{
+			
+		}
         
 		def status = state.prevcleaning
         def msg = null
