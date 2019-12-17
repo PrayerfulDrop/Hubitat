@@ -24,16 +24,19 @@
  *
  *
  *  Changes:
- *
+ *  1.0.4 - added generic notification and hub event support
  *  1.0.3 - added retained and QOS support
  *  1.0.2 - added support for AppWatchDogv2
  *  1.0.1 - added importURL and updated to new MQTT client methods
  *  1.0.0 - Initial release
  */
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
 
 metadata {
     definition (name: "Generic MQTT Driver", namespace: "aaronward", author: "Aaron Ward", importURL: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/Generic%20MQTT%20Client.groovy") {
         capability "Initialize"
+        capability "Notification"
         command "updateVersion"
 	command "publishMsg", ["String"]
 	attribute "delay", "number"
@@ -89,6 +92,28 @@ def parse(String description) {
 def publishMsg(String s) {
     if (logEnable) log.debug "Sent this: ${s} to ${settings?.topicPub} - QOS Value: ${settings?.QOS.toInteger()} - Retained: ${settings?.retained}"
     interfaces.mqtt.publish(settings?.topicPub, s, settings?.QOS.toInteger(), settings?.retained)
+}
+
+def deviceNotification(String s) {
+    if (logEnable) log.debug "Sent this: ${s} to ${settings?.topicPub} - QOS Value: ${settings?.QOS.toInteger()} - Retained: ${settings?.retained}"
+    
+    // Attempt to parse message as JSON
+    def slurper = new JsonSlurper()
+	def parsed = slurper.parseText(s)
+
+    // If this is a hub event message, do something special
+	if (parsed.keySet().contains('path') && 
+        parsed.keySet().contains('body') &&
+        parsed.body.keySet().contains('name') &&
+        parsed.body.keySet().contains('type') &&
+        parsed.body.keySet().contains('value') &&
+        (parsed.path == '/push')) {
+          def body = new JsonOutput().toJson(parsed.body)
+          interfaces.mqtt.publish("${settings?.topicPub}/push/${parsed.body.name}/${parsed.body.type}/value", parsed.body.value, settings?.QOS.toInteger(), settings?.retained)
+	} else {
+    // If its not, or json parse fails dump the input string to the topic
+        interfaces.mqtt.publish(settings?.topicPub, s, settings?.QOS.toInteger(), settings?.retained)
+    }
 }
 
 def updated() {
