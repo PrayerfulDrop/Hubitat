@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.3.2 - Added basic support for Braava m6 (supports notifications for tank being empty instead of bin being full)
  *   1.3.1 - finalized logic fixes for unique use case scenarios (thx dman2306 for being a patient tester)
  *   1.3.0 - fixed additional logic for unique options set, optimized presence handler
  *   1.2.9 - fixed bug in notifications and battery % start
@@ -63,7 +64,7 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 def version() {
-    version = "1.3.1"
+    version = "1.3.2"
     return version
 }
 
@@ -102,7 +103,8 @@ def mainPage() {
              if(pushovertts == true) {
                 input "pushoverdevice", "capability.notification", title: "PushOver Device(s):", required: true, multiple: true
                 input "pushoverStart", "bool", title: "Notify when Roomba starts cleaning?", required: false, defaultValue:false, submitOnChange: true, width: 6
-                input "pushoverBin", "bool", title: "Notify when Roomba's bin is full?", required: false, defaultValue:false, submitOnChange: true, width: 6                
+                input "pushoverBin", "bool", title: "Notify when Roomba's bin is full?", required: false, defaultValue:false, submitOnChange: true, width: 6     
+				input "pushoverTank", "bool", title: "Notify when Braava's tank is empty?", required: false, defaultValue:false, submitOnChange: true, width: 6  				
                 input "pushoverStop", "bool", title: "Notify when Roomba stops cleaning?", required: false, defaultValue:false, submitOnChange: true, width: 6
                 input "pushoverDead", "bool", title: "Notify when Roomba's Battery dies?", required: false, defaultValue:false, submitOnChange: true, width: 6 
                 input "pushoverDock", "bool", title: "Notify when Roomba is docked and charging?", required: false, defaultValue:false, submitOnChange: true, width: 6
@@ -338,17 +340,23 @@ def pageroombaInfo() {
             msg = state.cleaning.capitalize()
             break
 		}
-    if(result.data.bin.full) bin="Full"
+    if(result.data?.bin?.full) bin="Full"
     else bin="Empty"
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
     temp = "<div><h2><img max-width=100% height=auto src=${img} border=0>&nbsp;&nbsp;${state.roombaName}</h2>"
     temp += "<p style=font-size:20px><b>Roomba SKU:</b> ${result.data.sku}</p>"
-    temp += "<p style=font-size:20px><b>Roomba MAC:</b> ${result.data.mac}</p>"
+	if (result.data.mac != null)
+		temp += "<p style=font-size:20px><b>Roomba MAC:</b> ${result.data.mac}</p>"
+	else if (result.data.hwPartsRev?.wlan0HwAddr != null)
+		temp += "<p style=font-size:20px><b>Roomba MAC:</b> ${result.data.hwPartsRev?.wlan0HwAddr}</p>"
     temp += "<p style=font-size:20px><b>Software Version:</b> ${result.data.softwareVer}</p>"
     temp += "<p style=font-size:20px><b>Current State:</b> ${msg}</p>"
     if(cleantime) temp += "<p style=font-size:20px><b>Elapsed Time:</b> ${result.data.cleanMissionStatus.mssnM} minutes</p>"
     temp += "<p style=font-size:20px><b>Battery Status:</b> ${result.data.batPct}%"
-    temp += "<p style=font-size:20px><b>Bin Status:</b> ${bin}"
+	if (result.data.bin != null)
+		temp += "<p style=font-size:20px><b>Bin Status:</b> ${bin}"
+	else if (result.data.tankLvl != null)
+		temp += "<p style=font-size:20px><b>Tank Level:</b> ${result.data.tankLvl}%"
     temp += "<p style=font-size:20px><b># of cleaning jobs:</b> ${String.format("%,d",result.data.cleanMissionStatus.nMssn)}</p>"
     temp += "<p style=font-size:20px><b>Total Time Cleaning:</b> ${String.format("%,d",result.data.bbrun.hr)} hours and ${result.data.bbrun.min} minutes</p>"
     temp += "<p style=font-size:20px><b>Days since last cleaning:</b> ${String.format("%,d", state.DaysSinceLastCleaning)}</p></div>"
@@ -377,6 +385,7 @@ def pageroombaNotify() {
             input "pushoverStopMsg", "text", title: "Stop Cleaning:", required: false, defaultValue:"%device% has stopped cleaning", submitOnChange: true 
             input "pushoverDockMsg", "text", title: "Docked and Charging::", required: false, defaultValue:"%device% is charging", submitOnChange: true 
             input "pushoverBinMsg", "text", title: "Bin is Full:", required: false, defaultValue:"%device%'s bin is full", submitOnChange: true 
+			input "pushoverTankMsg", "text", title: "Tank is Empty:", required: false, defaultValue:"%device%'s tank is empty", submitOnChange: true 
             input "pushoverDeadMsg", "text", title: "Battery dies:", required: false, defaultValue:"%device% battery has died", submitOnChange: true 
             input "pushoverErrorMsg", "text", title: "Error:", required: false, defaultValue:"%device% has stopped because", submitOnChange: true 
             input "pushoverErrorMsg2", "text", title: "Error2 - Both wheels are stuck:", required: false, defaultValue:"both wheels are stuck", submitOnChange: true 
@@ -624,17 +633,39 @@ def updateDevices() {
         def device = getChildDevice("roomba:" + result.data.name)
         
         device.sendEvent(name: "battery", value: result.data.batPct)
-        if (!result.data.bin.present) device.sendEvent(name: "bin", value: "missing")
-        if (result.data.bin.full) {
-            device.sendEvent(name: "bin", value: "full")
-            if(pushoverBin && state.sendBinNotification) {
-                state.sendBinNotification = false
-                pushNow(state.pushoverBinMsg)
-            }
-        } else {
-            device.sendEvent(name: "bin", value: "good")
-            state.sendBinNotification = true
-        }
+		if (result.data.bin != null)
+		{
+			if (!result.data.bin.present) device.sendEvent(name: "bin", value: "missing")
+			if (result.data.bin.full) {
+				device.sendEvent(name: "bin", value: "full")
+				if(pushoverBin && state.sendBinNotification) {
+					state.sendBinNotification = false
+					pushNow(state.pushoverBinMsg)
+				}
+			} else {
+				device.sendEvent(name: "bin", value: "good")
+				state.sendBinNotification = true
+			}
+		}
+		else if (result.data.tankLvl != null)
+		{
+			if (result.data.detectedPad.contains("Wet"))
+			{			
+				if (!result.data.mopReady.tankPresent) 
+					device.sendEvent(name: "tank", value: "missing")
+				else if (result.data.tankLvl == 0) {
+					device.sendEvent(name: "tank", value: "empty")
+					if(pushoverTank && state.sendTankNotification) {
+						state.sendTankNotification = false
+						pushNow(state.pushoverTankMsg)
+					}
+				}
+				else {
+					device.sendEvent(name: "tank", value: "good")
+					state.sendTankNotification = true
+				}
+			}
+		}
         
 		def status = state.prevcleaning
         def msg = null
@@ -946,6 +977,7 @@ def setStateVariables() {
    pushoverStopMsg ="%device% has stopped cleaning"
    pushoverDockMsg="%device% is charging"
    pushoverBinMsg="%device%'s bin is full"
+   pushoverTankMsg="%device%'s tank is empty"
    pushoverDeadMsg="%device% battery has died"
    pushoverErrorMsg="%device% has stopped because"
    pushoverErrorMsg2="both wheels are stuck"
@@ -964,6 +996,8 @@ def setStateVariables() {
         catch (e) {state.pushoverDockMsg = pushoverDockMsg}
     try {state.pushoverBinMsg = pushoverBinMsg.replace("%device%",state.roombaName)}
         catch (e) {state.pushoverBinMsg = pushoverBinMsg}
+    try {state.pushoverTankMsg = pushoverTankMsg.replace("%device%",state.roombaName)}
+        catch (e) {state.pushoverTankMsg = pushoverTankMsg}
     try {state.pushoverDeadMsg = pushoverDeadMsg.replace("%device%",state.roombaName)}
         catch (e) {state.pushoverDeadMsg = pushoverDeadMsg}
     try {state.pushoverErrorMsg = pushoverErrorMsg.replace("%device%",state.roombaName)}
@@ -984,6 +1018,7 @@ def setStateVariables() {
     state.notified = false
     if(state.batterydead==null) state.batterydead = false
     if(state.sendBinNotification==null) state.sendBinNotification = true
+	if(state.sendTankNotification==null) state.sendTankNotification = true
     if(state.schedDelay==null) state.schedDelay = false
     state.errors = false
     if(state.lastcleaning==null) {
