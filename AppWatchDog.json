@@ -26,7 +26,7 @@
 		},
 		{
 			"name": "Roomba Scheduler",
-			"version": "1.3.2",
+			"version": "1.3.3",
 			"RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy",
 			"child": [],
 			"driver": [{
@@ -35,7 +35,7 @@
 				"RAW": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy"
 			}],
 			"hubitatDiscussion": "https://community.hubitat.com/t/release-roomba-scheduler/22873",
-			"updateNote": "1.3.2 - Added basic support for Braava m6 (supports notifications for tank being empty instead of bin being full)"
+			"updateNote": "1.3.3 - changed app name to iRobot Scheduler and added contact sensors for cleaning schedule restrictions"
 		},
 		{
 			"name": "App Watchdog 3",
