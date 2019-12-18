@@ -2,12 +2,12 @@
  *
  * Hubitat Import URL: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy
  *
- *  ****************  Roomba Scheduler  ****************
+ *  ****************  iRobot Scheduler  ****************
  *
  *  Design Usage:
- *  This app is designed to integrate any WiFi enabled Roomba devices to have direct local connectivity and integration into Hubitat.  This applicatin will create a Roomba device based on the 
- *  the name you gave your Roomba device in the cloud app.  With this app you can schedule multiple cleaning times, automate cleaning when presence is away, receive notifications about status
- *  of the Roomba (stuck, cleaning, died, etc) and also setup continous cleaning mode for non-900 series WiFi Roomba devices.
+ *  This app is designed to integrate any WiFi enabled Roomba or Brava devices to have direct local connectivity and integration into Hubitat.  This application will create a Roomba/Brava device based on the 
+ *  the name you gave your Roomba/Brava device in the cloud app.  With this app you can schedule multiple cleaning times, automate cleaning when presence is away, receive notifications about status
+ *  of the Roomba/Brava (stuck, cleaning, died, etc) and also setup continous cleaning mode for non-900 series WiFi Roomba devices.
  *
  *  Copyright 2019 Aaron Ward
  *
@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.3.3 - changed app name to iRobot Scheduler and added contact sensors for cleaning schedule restrictions
  *   1.3.2 - Added basic support for Braava m6 (supports notifications for tank being empty instead of bin being full)
  *   1.3.1 - finalized logic fixes for unique use case scenarios (thx dman2306 for being a patient tester)
  *   1.3.0 - fixed additional logic for unique options set, optimized presence handler
@@ -64,15 +65,15 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 def version() {
-    version = "1.3.2"
+    version = "1.3.3"
     return version
 }
 
 definition(
-    name: "Roomba Scheduler",
+    name: "iRobot Scheduler",
     namespace: "aaronward",
     author: "Aaron Ward",
-    description: "Scheduling and local execution of Roomba services",
+    description: "Scheduling and local execution of iRobot services",
     category: "Misc",
     iconUrl: "",
     iconX2Url: "",
@@ -88,7 +89,7 @@ def mainPage() {
     debug=false
 	dynamicPage(name: "mainPage") {
         section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
-				paragraph "<div style='color:#1A77C9'>This application provides Roomba local integration and advanced scheduling.</div>"
+				paragraph "<div style='color:#1A77C9'>This application provides iRobot Roomba and Brava local integration and advanced scheduling.</div>"
 			}
 
         section(getFormat("header-blue", " Rest980/Dorita980 Connectivity:")){
@@ -275,6 +276,7 @@ def mainPage() {
                 input "modesYes", "bool", title: "Enable restrictions?", required: true, defaultValue: false, submitOnChange: true
                 if(modesYes) { 
                     input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict cleaning schedule:", required: false, multiple: false, defaultValue: null, submitOnChange: true
+                    input "restrictbyContact", "capability.contactSensor", title: "Use a contact sensor(s) to restrict cleaning schedule:", required: false, multiple: false, defaultValue: null, submitOnChange: true
                     input "pushoverRestrictions", "bool", title: "Send Pushover Msg if restrictions are on and Roomba tries to clean?", required: false, defaultValue:false, submitOnChange: true, width: 6
                 }
                 if(modesYes && usePresence) input "turnoffSwitch", "bool", title: "Turn off switch if presence away?", required: false, multiple: false, defaultValue: false, submitOnChange: true, width: 6
@@ -397,46 +399,6 @@ def pageroombaNotify() {
             
         }
     }
-}
-
-def initialize() {
-    if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
-    if(modesYes) subscribe(restrictbySwitch, "switch", switchHandler)
-	log.info "Initializing $app.label...scheduling jobs."
-    setStateVariables()
-    cleanupChildDevices()
-	createChildDevices()
-    getRoombaSchedule()
-    RoombaScheduler(false)
-    updateDevices()
-    schedule("0/30 * * * * ?", updateDevices)
-    app.updateLabel("Roomba Scheduler - ${state.roombaName}")
-    if(awDevice) AppWatchdog() 
-    if (logEnable && logMinutes.toInteger() != 0) {
-    if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
-        runIn((logMinutes.toInteger() * 60),logsOff)
-        } else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
-
-}
-
-def installed() {
-	log.info "Installed with settings: ${settings}"
-    state.error=false
-	initialize()
-}
-
-def updated() {
-	log.info "Updated with settings: ${settings}"
-	initialize()
-}
-
-def uninstalled() {
-	log.warn "Uninstalled app"
-
-	for (device in getChildDevices())
-	{
-		deleteChildDevice(device.deviceNetworkId)
-	}	
 }
 
 def getRoombaSchedule() {
@@ -894,9 +856,15 @@ def presenceHandler(evt) {
 catch (e) { log.error "iRobot communication error. ${e}" }
 }
 
+def getContacts() {
+    def contacts = false
+    if(restrictbyContact.findAll { it?.currentContact == "open"}) { contacts = true }
+    return contacts
+}
+
 def handleDevice(device, id, evt) {
     try {
-    def restrict = (modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
+    def restrict = (modesYes && ((restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") || (restrictbyContact !=null && getContacts())) ) ? true : false
     def device_result = executeAction("/api/local/info/state")
     def result = ""
     switch(evt) {
@@ -1071,7 +1039,7 @@ def executeAction(path) {
 def AppWatchdog(){
     // Must match the exact name used in the json file.
     developer = "Aaron Ward"
-    aName = "Roomba Scheduler"
+    aName = "iRobot Scheduler"
     try {
         if(awDevice) {
             awInfo = []
@@ -1101,6 +1069,48 @@ def getFormat(type, myText=""){
 def logsOff(){
     log.warn "Debug logging disabled."
     app?.updateSetting("logEnable",[value:"false",type:"bool"])
+}
+
+// Start-up stuff
+
+def initialize() {
+    if(usePresence) subscribe(roombaPresence, "presence", presenceHandler)
+    if(modesYes) subscribe(restrictbySwitch, "switch", switchHandler)
+	log.info "Initializing $app.label...scheduling jobs."
+    setStateVariables()
+    cleanupChildDevices()
+	createChildDevices()
+    getRoombaSchedule()
+    RoombaScheduler(false)
+    updateDevices()
+    schedule("0/30 * * * * ?", updateDevices)
+    app.updateLabel("iRobot Scheduler - ${state.roombaName}")
+    if(awDevice) AppWatchdog() 
+    if (logEnable && logMinutes.toInteger() != 0) {
+    if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
+        runIn((logMinutes.toInteger() * 60),logsOff)
+        } else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
+
+}
+
+def installed() {
+	log.info "Installed with settings: ${settings}"
+    state.error=false
+	initialize()
+}
+
+def updated() {
+	log.info "Updated with settings: ${settings}"
+	initialize()
+}
+
+def uninstalled() {
+	log.warn "Uninstalled app"
+
+	for (device in getChildDevices())
+	{
+		deleteChildDevice(device.deviceNetworkId)
+	}	
 }
 
 //imports
