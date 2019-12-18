@@ -276,7 +276,7 @@ def mainPage() {
                 input "modesYes", "bool", title: "Enable restrictions?", required: true, defaultValue: false, submitOnChange: true
                 if(modesYes) { 
                     input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict cleaning schedule:", required: false, multiple: false, defaultValue: null, submitOnChange: true
-                    input "restrictbyContact", "capability.contactSensor", title: "Use a contact sensor(s) to restrict cleaning schedule:", required: false, multiple: false, defaultValue: null, submitOnChange: true
+                    input "restrictbyContact", "capability.contactSensor", title: "Use a contact sensor(s) to restrict cleaning schedule:", required: false, multiple: true, defaultValue: null, submitOnChange: true
                     input "pushoverRestrictions", "bool", title: "Send Pushover Msg if restrictions are on and Roomba tries to clean?", required: false, defaultValue:false, submitOnChange: true, width: 6
                 }
                 if(modesYes && usePresence) input "turnoffSwitch", "bool", title: "Turn off switch if presence away?", required: false, multiple: false, defaultValue: false, submitOnChange: true, width: 6
