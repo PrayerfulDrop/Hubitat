@@ -513,32 +513,37 @@ def RoombaSchedStart() {
             runIn(60,RoombaDelay)
             RoombaScheduler(false)
         } else { 
-            long timeDiff
-   		    def now = new Date()
-    	    long unxNow = now.getTime()
-    	    unxPrev = state.startDelayTime
-    	    unxNow = unxNow/1000
-    	    unxPrev = unxPrev/1000
-    	    timeDiff = Math.abs(unxNow-unxPrev)
-    	    timeDiff = Math.round(timeDiff/60)
-            if(logEnable) log.debug "Time delay difference is currently: ${timeDiff.toString()} of ${timer} minute(s)"
-            if(timeDiff <= timer.toInteger()-1) {
-                runIn(60,RoombaDelay)
+            if(state.startDelayTime==null || state.startDelayTime == "") { 
+                log.warn "Application state is inaccurate.  Initializing state variables."
+                initialize() 
             } else {
-                if(roombaDelayDay && state.DaysSinceLastCleaning.toInteger()>roombaaftertimeday.toInteger()-1) {
-                    RoombaScheduler(true)
+                long timeDiff
+   		        def now = new Date()
+    	        long unxNow = now.getTime()
+    	        unxPrev = state.startDelayTime
+    	        unxNow = unxNow/1000
+    	        unxPrev = unxPrev/1000
+    	        timeDiff = Math.abs(unxNow-unxPrev)
+    	        timeDiff = Math.round(timeDiff/60)
+                if(logEnable) log.debug "Time delay difference is currently: ${timeDiff.toString()} of ${timer} minute(s)"
+                if(timeDiff <= timer.toInteger()-1) {
+                    runIn(60,RoombaDelay)
                 } else {
-                    RoombaScheduler(false)
-                    if(roombaDelayDay) log.debug "Delay time has expired, skip cleaning is selected due to presence is home.  Current days since last cleaning: ${state.DaysSinceLastCleaning}"
-                    else { 
-                            log.info "Delay time has expired.  Starting expired cleaning schedule"
-                            device.start()
-                         }
+                    if(roombaDelayDay && state.DaysSinceLastCleaning.toInteger()>roombaaftertimeday.toInteger()-1) {
+                        RoombaScheduler(true)
+                    } else {
+                        RoombaScheduler(false)
+                        if(roombaDelayDay) log.debug "Delay time has expired, skip cleaning is selected due to presence is home.  Current days since last cleaning: ${state.DaysSinceLastCleaning}"
+                        else { 
+                                log.info "Delay time has expired.  Starting expired cleaning schedule"
+                                device.start()
+                             }
+                    }
+                    updateDevices()
+                    state.schedDelay = false
+                    state.presence = false
+                    state.startDelayTime=null
                 }
-                updateDevices()
-                state.schedDelay = false
-                state.presence = false
-                state.startDelayTime=null
             }
         }
     } 
