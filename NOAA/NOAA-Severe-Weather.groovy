@@ -657,7 +657,7 @@ def tileNow(alertmsg) {
 	if(noaaTileDevice) {
 		if(logEnable) log.debug "Sending to NOAA Tile - msg: ${alertmsg}"
 		noaaTileDevice.sendNoaaTile(alertmsg)
-        runIn(noaaTileReset.Integer() * 60, tileReset)
+        runIn(noaaTileReset.toInteger() * 60, tileReset)
 	}
 }
 
