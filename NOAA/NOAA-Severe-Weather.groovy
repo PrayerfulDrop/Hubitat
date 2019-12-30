@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.4.8 - added additional checkState configurations and activities
  *   2.4.7 - fixed repeat issue from 2.4.6
  *   2.4.6 - fixed tile refresh issue
  *   2.4.5 - fixed "final" bug in repeat - forgot to convert to integers for calculations, complete reorganization of code
@@ -100,7 +101,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "NOAAWeatherAlertsParentVersion"
-	state.version = "2.4.7"
+	state.version = "2.4.8"
     
     if(awDevice) {
         try {
@@ -367,24 +368,25 @@ def main() {
 }
 
 def repeatNow(){
-        if(state.num =="" || state.num==null) state.num=repeatTimes.toInteger()
-        if(state.repeat) {
-            alertNow(state.alertmsg, true)
-            state.count = state.count + 1
-            if(logEnable) log.debug "Repeating alert in ${state.frequency} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s). Repeat State: ${state.repeat}"
-        }
-        state.repeat = true
-	    if(state.num > 0){
-	        state.num = state.num - 1
-            runIn(state.frequency*60,repeatNow)
-        } else { 
-            if(logEnable) log.debug "Finished repeating alerts."
-            state.count = 1
-            state.num = repeatTimes.toInteger()
-            state.repeat = false 
-			if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
-			runIn((60*noaaTileReset.toInteger()),tileReset)
-        }
+    if(logEnable) log.debug "In repeatNow subroutine state.repeat: ${state.repeat}, state.count: ${state.count}, state.num: ${state.num}"
+   
+//    if(state.repeat) {
+        alertNow(state.alertmsg, true)
+        if(logEnable) log.debug "Repeating alert in ${state.frequency} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s). Repeat State: ${state.repeat}"
+        state.count = state.count + 1
+//     }
+     state.repeat = true
+	 if(state.num > 0){
+	    state.num = state.num - 1
+        runIn(state.frequency*60,repeatNow)
+     } else { 
+        if(logEnable) log.debug "Finished repeating alerts."
+        state.count = 0
+        state.num = repeatTimes.toInteger()
+        state.repeat = false 
+	    if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
+		runIn((60*noaaTileReset.toInteger()),tileReset)
+     }
 }
 
 def alertNow(alertmsg, repeatCheck){
@@ -433,9 +435,10 @@ def checkState() {
         state.frequency = repeatMinutes.toInteger()
         if(logEnable) log.debug "Global variables are set.  frequency:${state.num} - Minutes:${state.frequency}"
     }
-    state.count = 1
+    state.count = 0
     state.repeat = false
     state.resettileAlert = false
+    tileReset()
 }
 
 
@@ -678,8 +681,8 @@ def tileNow(alertmsg, resetAlert) {
 	if(noaaTileDevice) {
 		if(logEnable) log.debug "Sending to NOAA Tile - msg: ${alertmsg}"
 		noaaTileDevice.sendNoaaTile(alertmsg)
-        if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
-		runIn((60*noaaTileReset.toInteger()),tileReset)
+        //if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
+		//runIn((60*noaaTileReset.toInteger()),tileReset)
 	}
 }
 
