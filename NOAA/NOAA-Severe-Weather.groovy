@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.4.7 - fixed repeat issue from 2.4.6
  *   2.4.6 - fixed tile refresh issue
  *   2.4.5 - fixed "final" bug in repeat - forgot to convert to integers for calculations, complete reorganization of code
  *   2.4.4 - fixed missing reset for repeats, added restrictions to repeats, added options to Pushover if restricted option
@@ -94,9 +95,22 @@
  *   1.0.0 - initial code concept
 **/
 
-def version() {
-    version = "2.4.6"
-    return version
+def setVersion(){
+    // *  V2.0.0 - 08/18/19 - Now App Watchdog compliant
+	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
+    // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
+    state.appName = "NOAAWeatherAlertsParentVersion"
+	state.version = "2.4.7"
+    
+    if(awDevice) {
+        try {
+            if(sendToAWSwitch && awDevice) {
+                awInfo = "${state.appName}:${state.version}"
+		        awDevice.sendAWinfoMap(awInfo)
+                if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
+	        }
+        } catch (e) { log.error "In setVersion - ${e}" }
+    }
 }
 
 definition(
@@ -167,10 +181,7 @@ def mainPage() {
 				}
 				input name:"useAlertIntro", type: "bool", title: "Use a pre-notification message to TTS device(s)?", require: false, defaultValue: false, submitOnChange: true
 				if(useAlertIntro) input name:"AlertIntro", type: "text", title: "Alert pre-notification message:", require: false, defaultValue:"Attention, Attention"              
-                input name: "alertCustomMsg", type: "text", title: "Custom Alert Message (use customization instructions):", require: false, defaultValue: "{alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline}. {alertinstruction} This is the end of this Weather Announcement.", submitOnChange: true
-                if(alertCustomMsg==null || alertCustomMsg=="") alertCutomMsg="{alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline}. {alertinstruction} This is the end of this Weather Announcement."
-                paragraph alertCustomMsg
-                    
+                input name: "alertCustomMsg", type: "text", title: "Custom Alert Message (use customization instructions):", require: false, defaultValue: "{alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.", submitOnChange: true
             }	
         	   section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
         	    	paragraph "<b>Alert message variables:</b>"
@@ -252,19 +263,19 @@ def mainPage() {
 				}
 			}
         section(getFormat("header-blue", " Logging and Testing")) { }
-        // ** App Watchdog Code **
-        section("This app supports App Watchdog! Click here for more Information", hideable: true, hidden: true) {
-	        paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
-            paragraph "<b>Requirements</b><br> - Must install the app 'App Watchdog'. <br> - Then select 'App Watchdog Data' from the dropdown.<br> - That's it, you will now be notified automaticaly of updates."
-            input(name: "sendToAWSwitch", type: "bool", defaultValue: "false", title: "Use App Watchdog to track this apps version info?", description: "Update App Watchdog", submitOnChange: "true")
-	    }
-        if(sendToAWSwitch) {
-        section(" App Watchdog") {    
-            if(sendToAWSwitch) input(name: "awDevice", type: "capability.actuator", title: "Please select 'App Watchdog Data' from the dropdown", submitOnChange: true, required: true, multiple: false)
-			if(sendToAWSwitch && awDevice) AppWatchdog()
-        }
-   }
-// ** End App Watchdog Code **
+// ** App Watchdog Code **
+            section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
+				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
+                paragraph "<b>Requirements</b><br> - Must install the app 'App Watchdog'. Please visit <a href='https://community.hubitat.com/t/release-app-watchdog/9952' target='_blank'>this page</a> for more information.<br> - When you are ready to go, turn on the switch below<br> - Then select 'App Watchdog Data' from the dropdown.<br> - That's it, you will now be notified automaticaly of updates."
+                input(name: "sendToAWSwitch", type: "bool", defaultValue: "false", title: "Use App Watchdog to track this apps version info?", description: "Update App Watchdog", submitOnChange: "true")
+			}
+            if(sendToAWSwitch) {
+                section(" App Watchdog 2") {    
+                    if(sendToAWSwitch) input(name: "awDevice", type: "capability.actuator", title: "Please select 'App Watchdog Data' from the dropdown", submitOnChange: true, required: true, multiple: false)
+			        if(sendToAWSwitch && awDevice) setVersion()
+                }
+            }
+            // ** End App Watchdog Code **
         section() {
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
 				if(runTest) {
@@ -278,14 +289,13 @@ def mainPage() {
 				if(getAPI) {
 					app?.updateSetting("getAPI",[value:"false",type:"bool"])
 					getAlertMsg()
-                    buildAlertMsg()
 					def date = new Date()
 					sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
-					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built using:<br>${alertCustomMsg}<br><br>${state.alertmsg}<br><br><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
+					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${state.alertmsg}<br><br><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
 					else { paragraph "No JSON feed currently available for your coordinates.  Either there are no weather alerts in your area or you need to change options above to acquire desired results."}
 				}
 				paragraph getFormat("line")
-				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
+				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${state.version}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
 			}       
 		}
 }
@@ -293,6 +303,7 @@ def mainPage() {
 // Application Startup Routines
 
 def initialize() {
+    setVersion()
     unschedule()
     if (logEnable && logMinutes.toInteger() != 0) {
         if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
@@ -300,7 +311,7 @@ def initialize() {
     }
     else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
     checkState()
-	if(awDevice) AppWatchdog()
+	schedule("0 0 3 ? * * *", setVersion)
      switch (whatPoll.toInteger()) {
 		case 1: 
 			runEvery1Minute(main)
@@ -345,14 +356,18 @@ def main() {
 		    buildAlertMsg()
             alertNow(state.alertmsg, false)
             if(repeatYes==true) repeatNow()
-
-            // set the pastalert to the current alertsent timestamp
+            else {
+            	if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
+			    runIn((60*noaaTileReset.toInteger()),tileReset)
+            }
+	    // set the pastalert to the current alertsent timestamp
 	    state.pastalert = state.alertsent
 		}
 	} 
 }
 
 def repeatNow(){
+        if(state.num =="" || state.num==null) state.num=repeatTimes.toInteger()
         if(state.repeat) {
             alertNow(state.alertmsg, true)
             state.count = state.count + 1
@@ -367,6 +382,8 @@ def repeatNow(){
             state.count = 1
             state.num = repeatTimes.toInteger()
             state.repeat = false 
+			if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
+			runIn((60*noaaTileReset.toInteger()),tileReset)
         }
 }
 
@@ -385,7 +402,7 @@ def alertNow(alertmsg, repeatCheck){
             pushNow(alertmsg, repeatCheck)
 		    if(alertSwitch) { alertSwitch.on() }
 		    talkNow(alertmsg, repeatCheck)  
-		    tileNow(alertmsg) 
+		    tileNow(alertmsg, "true") 
         }
      } else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 }
@@ -395,6 +412,10 @@ def runtestAlert() {
     state.alertmsg=buildTestAlert()
     alertNow(state.alertmsg, false)
     if(repeatYes==true) repeatNow()
+     else {
+       	if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
+	    runIn((60*noaaTileReset.toInteger()),tileReset)
+     }
 }
 
 
@@ -653,30 +674,16 @@ def tileReset() {
 			tileNow("No weather alerts to report.","false")
 }
 
-def tileNow(alertmsg) {
+def tileNow(alertmsg, resetAlert) {
 	if(noaaTileDevice) {
 		if(logEnable) log.debug "Sending to NOAA Tile - msg: ${alertmsg}"
 		noaaTileDevice.sendNoaaTile(alertmsg)
-        runIn(noaaTileReset.toInteger() * 60, tileReset)
+        if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
+		runIn((60*noaaTileReset.toInteger()),tileReset)
 	}
 }
 
-def AppWatchdog(){
-    // Must match the exact name used in the json file.
-    developer = "Aaron Ward"
-    aName = "NOAA Weather Alerts"
-    try {
-        if(awDevice) {
-            awInfo = []
-            awInfo+=developer
-            awInfo+=aName
-            awInfo+=version()
-            awDevice.sendAWinfoMap(awInfo)
-            if(logEnable) log.debug "App Watchdog - sending info: ${awInfo}"
-            schedule("0 0 3 ? * * *", AppWatchdog)
-	    }
-    } catch (e) { log.error "In setVersion - ${e}" }
-}
+
 
 // Common Application Routines and Requirements
 import groovy.json.*
@@ -698,4 +705,3 @@ def logsOff(){
     log.warn "Debug logging disabled."
     app?.updateSetting("logEnable",[value:"false",type:"bool"])
 }
-
