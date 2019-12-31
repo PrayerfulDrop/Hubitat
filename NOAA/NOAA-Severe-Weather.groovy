@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.4.9 - fixed API undocumented changes from weather.gov (thanks CurtisZM!)
  *   2.4.8 - added additional checkState configurations and activities
  *   2.4.7 - fixed repeat issue from 2.4.6
  *   2.4.6 - fixed tile refresh issue
@@ -101,7 +102,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "NOAAWeatherAlertsParentVersion"
-	state.version = "2.4.8"
+	state.version = "2.4.9"
     
     if(awDevice) {
         try {
@@ -452,7 +453,7 @@ def getAlertMsg() {
 		state.latitude = "${location.latitude}"
 		state.longitude = "${location.longitude}"
 	}
-	wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert"
+	wxURI = "https://api.weather.gov/alerts?active=true&point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert"
 	
 	// Build out the API options
 	if(whatAlertUrgency != null) {
