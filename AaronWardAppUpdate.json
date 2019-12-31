@@ -5,7 +5,7 @@
   "Apps": "NOAA Weather Alerts, You Got Mail, Roomba Scheduler",
    
   "NOAAWeatherAlertsType": "App",
-  "NOAAWeatherAlertsParentVersion": "2.4.8",
+  "NOAAWeatherAlertsParentVersion": "2.4.9",
   "NOAAWeatherAlertsChild1Version": "",
   "NOAAWeatherAlertsChild1Name": "",
   "NOAAWeatherAlertsChild2Version": "",
@@ -22,7 +22,7 @@
   "NOAAWeatherAlertsChild4RawCode": "",
   "NOAAWeatherAlertsDriverRawCode": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
   "NOAAWeatherAlertsDiscussion": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
-  "NOAAWeatherAlertsUpdateNote": "2.4.8 - added additional checkState configurations and activities",
+  "NOAAWeatherAlertsUpdateNote": "2.4.9 - fixed API undocumented changes from weather.gov (thanks CurtisZM!)",
 
   "YouGotMailType": "App",
   "YouGotMailParentVersion": "1.0.6",
