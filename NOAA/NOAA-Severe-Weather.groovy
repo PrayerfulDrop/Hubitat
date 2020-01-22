@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.5.0 - added URL for testing configuration and no results return & added additional automated URL checks for alerts
  *   2.4.9 - fixed API undocumented changes from weather.gov (thanks CurtisZM!)
  *   2.4.8 - added additional checkState configurations and activities
  *   2.4.7 - fixed repeat issue from 2.4.6
@@ -102,7 +103,7 @@ def setVersion(){
 	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
     // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
     state.appName = "NOAAWeatherAlertsParentVersion"
-	state.version = "2.4.9"
+	state.version = "2.5.0"
     
     if(awDevice) {
         try {
@@ -294,7 +295,9 @@ def mainPage() {
 					def date = new Date()
 					sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
 					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${state.alertmsg}<br><br><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
-					else { paragraph "No JSON feed currently available for your coordinates.  Either there are no weather alerts in your area or you need to change options above to acquire desired results."}
+					else { 
+                        paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a>"
+                        paragraph "No JSON feed currently available for your coordinates.  Either there are no weather alerts in your area or you need to change options above to acquire desired results."}
 				}
 				paragraph getFormat("line")
 				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${state.version}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
@@ -444,6 +447,7 @@ def checkState() {
 
 
 def getAlertMsg() {
+    state.alertJSON = false
 	if (logEnable) log.debug "Connecting to weather.gov service."
 	// Determine if custom coordinates have been selected
 	if(useCustomCords) {
@@ -453,69 +457,92 @@ def getAlertMsg() {
 		state.latitude = "${location.latitude}"
 		state.longitude = "${location.longitude}"
 	}
-	wxURI = "https://api.weather.gov/alerts?active=true&point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert"
+    wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert"
+    wxURI2 = "https://api.weather.gov/alerts?active=true&point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert"
 	
 	// Build out the API options
 	if(whatAlertUrgency != null) {
 		wxURI = wxURI + "&urgency=${whatAlertUrgency.join(",")}"
+        wxURI2 = wxURI2 + "&urgency=${whatAlertUrgency.join(",")}"
 	}
 	if(whatAlertSeverity != null) {
 		wxURI = wxURI + "&severity=${whatAlertSeverity.join(",")}"
+        wxURI2 = wxURI2 + "&severity=${whatAlertSeverity.join(",")}"
 	} else {
 		wxURI = wxURI + "&severity=severe"
+        wxURI2 = wxURI2 + "&severity=severe"
 	}
 	if(whatAlertCertainty !=null) {
 		wxURI = wxURI + "&certainty=${whatAlertCertainty.join(",")}"
+        wxURI2 = wxURI2 + "&certainty=${whatAlertCertainty.join(",")}"
 	}
 	if(myWeatherAlert != null) {
 		wxURI = wxURI + "&code=${myWeatherAlert.join(",")}"
+        wxURI2 = wxURI2 + "&code=${myWeatherAlert.join(",")}"
 	}
-	state.wxURI = wxURI
+
 
 	//What default weather.gov API looks like: wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert&urgency=${AlertUrgency}&severity=${whatAlertSeverity}&code=${myCodes}"
 		
-		if (logEnable) log.debug "URI: ${wxURI}"
-		def requestParams =
-			[
-				uri:  wxURI,
-				requestContentType: "application/json",
-				contentType: "application/json"
-			]
+	if (logEnable) log.debug "URI: ${wxURI}"
+	def requestParams = [uri:  wxURI, requestContentType: "application/json", contentType: "application/json"]
 	
 	try {
 		httpGet(requestParams)	{	  response ->
 			if (response?.status == 200){
-				if(response.data.features){
-					if (logEnable) log.debug "Building alert variables."
-				// build out variables from JSON feed
-					state.alertJSON = true
-					state.alertseverity = response.data.features[0].properties.severity
-					alertarea = response.data.features[0].properties.areaDesc
-						alertarea = alertarea.replaceAll(";",",")
-						alertarea = alertarea.replaceAll("\n"," ")
-						StringBuffer buffer = new StringBuffer(alertarea)
-						alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
-					state.alertarea = new StringBuffer(alertarea).reverse().toString()
-					state.alertsent = response.data.features[0].properties.sent
-					state.alerteffective = response.data.features[0].properties.effective
-					state.alertexpires = response.data.features[0].properties.expires
-					state.alertstatus = response.data.features[0].properties.status
-					state.alertmessagetype = response.data.features[0].properties.messageType
-					state.alertcategory = response.data.features[0].properties.category
-					state.alertcertainty = response.data.features[0].properties.certainty
-					state.alerturgency = response.data.features[0].properties.urgency
-					state.alertsendername = response.data.features[0].properties.senderName
-					state.alertheadline = response.data.features[0].properties.headline
-					state.alertdescription = response.data.features[0].properties.description
-					if(response.data.features[0].properties.instruction) { state.alertinstruction = response.data.features[0].properties.instruction }
-					else {state.alertinstruction = response.data.features[0].properties.description }
-					state.alertevent = response.data.features[0].properties.event
-				}  else { state.alertJSON = false }
-			}
+                if(response.data.features) { 
+                    state.alertJSON = true
+                    state.wxURI = wxURI
+                }
+            }
 			else log.warn "${response?.status}"
 		}
 	}
-	catch (any) { log.warn "Weather.gov API did not respond to JSON request."}
+	catch (any) { log.warn "Weather.gov API did not respond to JSON request.  API may be busy."}                    
+
+    if(!state.alertJSON) {
+	    if (logEnable) log.debug "Trying secondary URI: ${wxURI2}"
+	    requestParams = [uri:  wxURI2, requestContentType: "application/json", contentType: "application/json"]
+	
+	    try {
+		    httpGet(requestParams)	{	  response ->
+		    	if (response?.status == 200){
+                    if(response.data.features) { 
+                        state.alertJSON = true
+                        state.wxURI = wxURI2
+                    }
+                }
+			    else log.warn "${response?.status}"
+		    }
+	    }
+	    catch (any) { log.warn "Weather.gov API did not respond to JSON request.  API may be busy."} 
+    }
+                
+    // build out variables from JSON feed
+    if(state.alertJSON) {
+        if (logEnable) log.debug "Building alert variables."
+		state.alertseverity = response.data.features[0].properties.severity
+		alertarea = response.data.features[0].properties.areaDesc
+		alertarea = alertarea.replaceAll(";",",")
+		alertarea = alertarea.replaceAll("\n"," ")
+		StringBuffer buffer = new StringBuffer(alertarea)
+		alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
+		state.alertarea = new StringBuffer(alertarea).reverse().toString()
+		state.alertsent = response.data.features[0].properties.sent
+		state.alerteffective = response.data.features[0].properties.effective
+		state.alertexpires = response.data.features[0].properties.expires
+		state.alertstatus = response.data.features[0].properties.status
+		state.alertmessagetype = response.data.features[0].properties.messageType
+		state.alertcategory = response.data.features[0].properties.category
+		state.alertcertainty = response.data.features[0].properties.certainty
+		state.alerturgency = response.data.features[0].properties.urgency
+		state.alertsendername = response.data.features[0].properties.senderName
+		state.alertheadline = response.data.features[0].properties.headline
+		state.alertdescription = response.data.features[0].properties.description
+		if(response.data.features[0].properties.instruction) { state.alertinstruction = response.data.features[0].properties.instruction }
+		else {state.alertinstruction = response.data.features[0].properties.description }
+		state.alertevent = response.data.features[0].properties.event  
+     }
 }
 
 
