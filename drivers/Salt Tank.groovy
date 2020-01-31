@@ -23,6 +23,8 @@
  *
  *  Changes:
  *
+ *  1.0.5 - changes to MQTT reconnection and salt level options
+ *  1.0.4 - added additional MQTT client response error checking
  *  1.0.3 - fixed dashboard CSS styling issues
  *  1.0.2 - added switch to remove WATO requirements
  *  1.0.1 - added dynamic dashboard tile
@@ -33,6 +35,7 @@ metadata {
     definition (name: "Salt Tank Device", namespace: "aaronward", author: "Aaron Ward", importURL: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/Salt%20Tank.groovy") {
         capability "Initialize"
         capability "Switch"
+        capability "Actuator"
         command "updateVersion"
 	command "publishMsg", ["String"]
 	attribute "delay", "number"
@@ -40,6 +43,7 @@ metadata {
     attribute "Salt Level", "number"
 	attribute "dwDriverInfo", "string"
     attribute "SaltTile", "string"
+        attribute "Notification Perc", "string"
 	   }
 
     preferences {
@@ -63,7 +67,7 @@ def installed() {
 
 def setVersion(){
     appName = "SaltTankDriver"
-	version = "1.0.3" 
+	version = "1.0.5" 
     dwInfo = "${appName}:${version}"
     sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
 }
@@ -107,16 +111,20 @@ def uninstalled() {
 
 def initialize() {
 	if (logEnable) runIn(900,logsOff)
-    tileNow()
+    mqttConnect()
+
+}
+
+def mqttConnect() {
 	try {
         if(settings?.retained==null) settings?.retained=false
         if(settings?.QOS==null) setting?.QOS="1"
         //open connection
 		mqttbroker = "tcp://" + settings?.MQTTBroker + ":1883"
-        interfaces.mqtt.connect(mqttbroker, "hubitat", settings?.username,settings?.password)
+        interfaces.mqtt.connect(mqttbroker, "hubitat-salttank", settings?.username,settings?.password)
         //give it a chance to start
         pauseExecution(1000)
-        log.info "Connection established"
+        //log.info "Connection established"
 		if (logEnable) log.debug "Subscribed to: ${settings?.topicSub}"
         interfaces.mqtt.subscribe(settings?.topicSub)
     } catch(e) {
@@ -124,9 +132,15 @@ def initialize() {
     }
 }
 
-def mqttClientStatus(String status){
-    if (logEnable) log.debug "MQTTStatus- error: ${status}"
-}
+def mqttClientStatus(String status) {
+    if(!status.contains("succeeded")) {
+        try { interfaces.mqtt.disconnect() }
+        catch (e) { }
+        
+        if(logEnable) log.debug "Broker: ${status} Will restart in 5 seconds"
+        runIn (5,mqttConnect)  
+    }
+} 
 
 def logsOff(){
     log.warn "Debug logging disabled."
@@ -140,12 +154,18 @@ def off() {sendEvent(name: "switch", value: "off", isStateChange: true)}
 def tileNow(){ 
     if(salttank==null || salttank=="") salttank="4"
     if(state.distance==null || state.distance=="") state.distance=0
-    int saltlevel = (salttank.toInteger() * 12) - state.distance.toInteger()
-    float tank = salttank.toInteger() * 12
-    float perc = saltlevel/tank*100
-    if(saltlevel < (tank * 0.25)) {img = "salt-low.png"
+    int saltlevel = ((salttank.toInteger()-1) * 12) - state.distance.toInteger()
+    int tank = (salttank.toInteger()-1) * 12
+    float perc = 100
+    if(saltlevel < tank) {
+        perc = (saltlevel/tank*100)
+    }
+    else perc = perc
+    float tanknotify = tank*0.35
+    if(logEnable) log.debug "Salt Level: ${saltlevel} Tank: ${tank} Salt Perc: ${perc.round()} - Notify at perc: ${tanknotify.round()}"
+    if(saltlevel < (tank * 0.35)) {img = "salt-low.png"
                                    on()}
-    if((saltlevel > (tank *0.25)) && (saltlevel < (tank * 0.75))) img = "salt-half.png"
+    if((saltlevel > (tank *0.35)) && (saltlevel < (tank * 0.75))) img = "salt-half.png"
     if(saltlevel > (tank * 0.75)) img = "salt-full.png"                                               
     sendEvent(name: "Salt Level", value: saltlevel, displayed: true)
     state.saltlevel = saltlevel
@@ -153,5 +173,6 @@ def tileNow(){
     html = "<style>img.salttankImage { max-width:80%;height:auto;}div#salttankImgWrapper {width=100%}div#salttankWrapper {font-size:13px;margin: 30px auto; text-align:center;}</style><div id='salttankWrapper'>"
     html += "<div id='salttankImgWrapper'><center><img src='${img}' class='saltankImage'></center></div>"
     html += "Salt Level: ${perc.round()}%</div>"
+    sendEvent(name: "Notification Perc", value: tanknotify, displayed: true)
     sendEvent(name: "SaltTile", value: html, displayed: true)
 }    
