@@ -5,7 +5,7 @@
    "packages": [
    	{
    		"name": "NOAA Weather Alerts",
-   		"category": "Weather",
+   		"category": "Convenience",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA.json",
    		"description": "NOAA Weather Alerts provides weather alert notifications for USA based users through TTS using any or all Music devices, Echo Speaks devices, Google/Speech devices, PushOver Notifications devices, Hubitat app, and Dashboard tiles. NOAA provides granular customization to enable users to watch for specific events, severity, urgency while also using global variables to customize alert notification messages."
    	},
