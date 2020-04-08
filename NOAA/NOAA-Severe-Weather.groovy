@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.4.9 - removed AppWatchDog, removed states from alertarea, removed timezones, changed logging to only output errors, fixed bugs in test API results
  *   2.4.8 - added additional checkState configurations and activities
  *   2.4.7 - fixed repeat issue from 2.4.6
  *   2.4.6 - fixed tile refresh issue
@@ -96,22 +97,9 @@
  *   1.0.0 - initial code concept
 **/
 
-def setVersion(){
-    // *  V2.0.0 - 08/18/19 - Now App Watchdog compliant
-	if(logEnable) log.debug "In setVersion - App Watchdog Parent app code"
-    // Must match the exact name used in the json file. ie. YourFileNameParentVersion, YourFileNameChildVersion or YourFileNameDriverVersion
-    state.appName = "NOAAWeatherAlertsParentVersion"
-	state.version = "2.4.8"
-    
-    if(awDevice) {
-        try {
-            if(sendToAWSwitch && awDevice) {
-                awInfo = "${state.appName}:${state.version}"
-		        awDevice.sendAWinfoMap(awInfo)
-                if(logEnable) log.debug "In setVersion - Info was sent to App Watchdog"
-	        }
-        } catch (e) { log.error "In setVersion - ${e}" }
-    }
+def version() {
+    version = "2.4.9"
+    return version
 }
 
 definition(
@@ -182,7 +170,7 @@ def mainPage() {
 				}
 				input name:"useAlertIntro", type: "bool", title: "Use a pre-notification message to TTS device(s)?", require: false, defaultValue: false, submitOnChange: true
 				if(useAlertIntro) input name:"AlertIntro", type: "text", title: "Alert pre-notification message:", require: false, defaultValue:"Attention, Attention"              
-                input name: "alertCustomMsg", type: "text", title: "Custom Alert Message (use customization instructions):", require: false, defaultValue: "{alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} {alertinstruction} This is the end of this Weather Announcement.", submitOnChange: true
+                input name: "alertCustomMsg", type: "text", title: "Custom Alert Message (use customization instructions):", require: false, defaultValue: "{alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} This is the end of this Weather Announcement.", submitOnChange: true
             }	
         	   section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
         	    	paragraph "<b>Alert message variables:</b>"
@@ -264,19 +252,6 @@ def mainPage() {
 				}
 			}
         section(getFormat("header-blue", " Logging and Testing")) { }
-// ** App Watchdog Code **
-            section("This app supports App Watchdog 2! Click here for more Information", hideable: true, hidden: true) {
-				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
-                paragraph "<b>Requirements</b><br> - Must install the app 'App Watchdog'. Please visit <a href='https://community.hubitat.com/t/release-app-watchdog/9952' target='_blank'>this page</a> for more information.<br> - When you are ready to go, turn on the switch below<br> - Then select 'App Watchdog Data' from the dropdown.<br> - That's it, you will now be notified automaticaly of updates."
-                input(name: "sendToAWSwitch", type: "bool", defaultValue: "false", title: "Use App Watchdog to track this apps version info?", description: "Update App Watchdog", submitOnChange: "true")
-			}
-            if(sendToAWSwitch) {
-                section(" App Watchdog 2") {    
-                    if(sendToAWSwitch) input(name: "awDevice", type: "capability.actuator", title: "Please select 'App Watchdog Data' from the dropdown", submitOnChange: true, required: true, multiple: false)
-			        if(sendToAWSwitch && awDevice) setVersion()
-                }
-            }
-            // ** End App Watchdog Code **
         section() {
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
 				if(runTest) {
@@ -290,13 +265,14 @@ def mainPage() {
 				if(getAPI) {
 					app?.updateSetting("getAPI",[value:"false",type:"bool"])
 					getAlertMsg()
+                    buildAlertMsg()
 					def date = new Date()
 					sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
 					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${state.alertmsg}<br><br><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
 					else { paragraph "No JSON feed currently available for your coordinates.  Either there are no weather alerts in your area or you need to change options above to acquire desired results."}
 				}
 				paragraph getFormat("line")
-				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${state.version}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
+				paragraph "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
 			}       
 		}
 }
@@ -304,7 +280,6 @@ def mainPage() {
 // Application Startup Routines
 
 def initialize() {
-    setVersion()
     unschedule()
     if (logEnable && logMinutes.toInteger() != 0) {
         if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
@@ -312,7 +287,6 @@ def initialize() {
     }
     else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
     checkState()
-	schedule("0 0 3 ? * * *", setVersion)
      switch (whatPoll.toInteger()) {
 		case 1: 
 			runEvery1Minute(main)
@@ -350,7 +324,7 @@ def main() {
 	getAlertMsg()	
 	if (logEnable) log.debug "Polled weather API: Alert Sent Timestamp: '${state.alertsent}'   Past Alert Timestamp: '${state.pastalert}'"
 	if(state.alertsent.equals(state.pastalert)) { 
-		log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+		if (logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
 	} else {
 		if(state.alertsent!=null){
 		// play TTS and send PushOver
@@ -481,7 +455,7 @@ def getAlertMsg() {
 				contentType: "application/json"
 			]
 	
-	try {
+	//try {
 		httpGet(requestParams)	{	  response ->
 			if (response?.status == 200){
 				if(response.data.features){
@@ -490,11 +464,67 @@ def getAlertMsg() {
 					state.alertJSON = true
 					state.alertseverity = response.data.features[0].properties.severity
 					alertarea = response.data.features[0].properties.areaDesc
-						alertarea = alertarea.replaceAll(";",",")
+                        // Remove States
+                        if(alertarea.contains("AL")) alertarea = alertarea.replaceAll("AL","")
+                        if(alertarea.contains("AK")) alertarea = alertarea.replaceAll("AK","")
+                        if(alertarea.contains("AZ")) alertarea = alertarea.replaceAll("AZ","")
+                        if(alertarea.contains("AR")) alertarea = alertarea.replaceAll("AR","")
+                        if(alertarea.contains("CA")) alertarea = alertarea.replaceAll("CA","") 
+                        if(alertarea.contains("CO")) alertarea = alertarea.replaceAll("CO","")
+                        if(alertarea.contains("CT")) alertarea = alertarea.replaceAll("CT","")
+                        if(alertarea.contains("DE")) alertarea = alertarea.replaceAll("DE","")
+                        if(alertarea.contains("FL")) alertarea = alertarea.replaceAll("FL","")
+                        if(alertarea.contains("GA")) alertarea = alertarea.replaceAll("GA","")
+                        if(alertarea.contains("HI")) alertarea = alertarea.replaceAll("HI","")
+                        if(alertarea.contains("ID")) alertarea = alertarea.replaceAll("ID","")
+                        if(alertarea.contains("IL")) alertarea = alertarea.replaceAll("IL","")
+                        if(alertarea.contains("IN")) alertarea = alertarea.replaceAll("IN","")
+                        if(alertarea.contains("IA")) alertarea = alertarea.replaceAll("IA","")
+                        if(alertarea.contains("KS")) alertarea = alertarea.replaceAll("KS","")
+                        if(alertarea.contains("KY")) alertarea = alertarea.replaceAll("KY","")
+                        if(alertarea.contains("LA")) alertarea = alertarea.replaceAll("LA","")
+                        if(alertarea.contains("ME")) alertarea = alertarea.replaceAll("ME","")
+                        if(alertarea.contains("MA")) alertarea = alertarea.replaceAll("MA","")
+                        if(alertarea.contains("MD")) alertarea = alertarea.replaceAll("MD","")
+                        if(alertarea.contains("MI")) alertarea = alertarea.replaceAll("MI","")
+                        if(alertarea.contains("MN")) alertarea = alertarea.replaceAll("MN","")
+                        if(alertarea.contains("MS")) alertarea = alertarea.replaceAll("MS","")
+                        if(alertarea.contains("MO")) alertarea = alertarea.replaceAll("MO","")
+                        if(alertarea.contains("MT")) alertarea = alertarea.replaceAll("MT","")
+                        if(alertarea.contains("NE")) alertarea = alertarea.replaceAll("NE","")
+                        if(alertarea.contains("NV")) alertarea = alertarea.replaceAll("NV","")
+                        if(alertarea.contains("NH")) alertarea = alertarea.replaceAll("NH","")
+                        if(alertarea.contains("NJ")) alertarea = alertarea.replaceAll("NJ","")
+                        if(alertarea.contains("NM")) alertarea = alertarea.replaceAll("NM","")
+                        if(alertarea.contains("NY")) alertarea = alertarea.replaceAll("NY","")
+                        if(alertarea.contains("NC")) alertarea = alertarea.replaceAll("NC","")
+                        if(alertarea.contains("ND")) alertarea = alertarea.replaceAll("ND","")
+                        if(alertarea.contains("OH")) alertarea = alertarea.replaceAll("OH","")
+                        if(alertarea.contains("OK")) alertarea = alertarea.replaceAll("OK","")
+                        if(alertarea.contains("OR")) alertarea = alertarea.replaceAll("OR","")
+                        if(alertarea.contains("PA")) alertarea = alertarea.replaceAll("PA","")
+                        if(alertarea.contains("RI")) alertarea = alertarea.replaceAll("RI","")
+                        if(alertarea.contains("SC")) alertarea = alertarea.replaceAll("SC","")
+                        if(alertarea.contains("SD")) alertarea = alertarea.replaceAll("SD","")
+                        if(alertarea.contains("TN")) alertarea = alertarea.replaceAll("TN","")
+                        if(alertarea.contains("TX")) alertarea = alertarea.replaceAll("TX","")
+                        if(alertarea.contains("UT")) alertarea = alertarea.replaceAll("UT","")
+                        if(alertarea.contains("VT")) alertarea = alertarea.replaceAll("VT","")
+                        if(alertarea.contains("VA")) alertarea = alertarea.replaceAll("VA","")
+                        if(alertarea.contains("WA")) alertarea = alertarea.replaceAll("WA","")
+                        if(alertarea.contains("WV")) alertarea = alertarea.replaceAll("WV","")
+                        if(alertarea.contains("WI")) alertarea = alertarea.replaceAll("WI","")
+                        if(alertarea.contains("WY")) alertarea = alertarea.replaceAll("WY","")
+                        
+						alertarea = alertarea.replaceAll(";","")
 						alertarea = alertarea.replaceAll("\n"," ")
+                        alertarea = alertarea.replaceAll("  "," ")
 						StringBuffer buffer = new StringBuffer(alertarea)
-						alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
-					state.alertarea = new StringBuffer(alertarea).reverse().toString()
+                        alertarea = buffer.reverse().toString().replaceFirst(",","")
+                        alertarea = alertarea.toString().replaceFirst(" ","")
+						alertarea = alertarea.toString().replaceFirst(",","dna ")
+					    alertarea = new StringBuffer(alertarea).reverse().toString()
+                    state.alertarea = alertarea + "."
 					state.alertsent = response.data.features[0].properties.sent
 					state.alerteffective = response.data.features[0].properties.effective
 					state.alertexpires = response.data.features[0].properties.expires
@@ -504,7 +534,75 @@ def getAlertMsg() {
 					state.alertcertainty = response.data.features[0].properties.certainty
 					state.alerturgency = response.data.features[0].properties.urgency
 					state.alertsendername = response.data.features[0].properties.senderName
-					state.alertheadline = response.data.features[0].properties.headline
+                    alertheadline = response.data.features[0].properties.headline
+                        if(alertheadline.contains("NWS")) alertheadline=alertheadline.replaceAll("NWS","the National Weather Service of")
+                        if(alertheadline.contains("AL")) alertheadline = alertheadline.replaceAll("AL","Alabama")
+                        if(alertheadline.contains("AK")) alertheadline = alertheadline.replaceAll("AK","Alaska")
+                        if(alertheadline.contains("AZ")) alertheadline = alertheadline.replaceAll("AZ","Arizona")
+                        if(alertheadline.contains("AR")) alertheadline = alertheadline.replaceAll("AR","Arkansas")
+                        if(alertheadline.contains("CA")) alertheadline = alertheadline.replaceAll("CA","California") 
+                        if(alertheadline.contains("CO")) alertheadline = alertheadline.replaceAll("CO","Colorado")
+                        if(alertheadline.contains("CT")) alertheadline = alertheadline.replaceAll("CT","Connecticut")
+                        if(alertheadline.contains("DE")) alertheadline = alertheadline.replaceAll("DE","Deleware")
+                        if(alertheadline.contains("FL")) alertheadline = alertheadline.replaceAll("FL","Florida")
+                        if(alertheadline.contains("GA")) alertheadline = alertheadline.replaceAll("GA","Georgia")
+                        if(alertheadline.contains("HI")) alertheadline = alertheadline.replaceAll("HI","Hawaii")
+                        if(alertheadline.contains("ID")) alertheadline = alertheadline.replaceAll("ID","Idaho")
+                        if(alertheadline.contains("IL")) alertheadline = alertheadline.replaceAll("IL","Illinois")
+                        if(alertheadline.contains("IN")) alertheadline = alertheadline.replaceAll("IN","Indiana")
+                        if(alertheadline.contains("IA")) alertheadline = alertheadline.replaceAll("IA","Iowa")
+                        if(alertheadline.contains("KS")) alertheadline = alertheadline.replaceAll("KS","Kansas")
+                        if(alertheadline.contains("KY")) alertheadline = alertheadline.replaceAll("KY","Kentucky")
+                        if(alertheadline.contains("LA")) alertheadline = alertheadline.replaceAll("LA","Louisiana")
+                        if(alertheadline.contains("ME")) alertheadline = alertheadline.replaceAll("ME","Maine")
+                        if(alertheadline.contains("MA")) alertheadline = alertheadline.replaceAll("MA","Massachusetts")
+                        if(alertheadline.contains("MD")) alertheadline = alertheadline.replaceAll("MD","Maryland")
+                        if(alertheadline.contains("MI")) alertheadline = alertheadline.replaceAll("MI","Michigan")
+			            if(alertheadline.contains("MN")) alertheadline = alertheadline.replaceAll("MN","Minnesota")
+                        if(alertheadline.contains("MS")) alertheadline = alertheadline.replaceAll("MS","Mississippi")
+                        if(alertheadline.contains("MO")) alertheadline = alertheadline.replaceAll("MO","Missouri")
+                        if(alertheadline.contains("MT")) alertheadline = alertheadline.replaceAll("MT","Montana")
+                        if(alertheadline.contains("NE")) alertheadline = alertheadline.replaceAll("NE","Nebraska")
+                        if(alertheadline.contains("NV")) alertheadline = alertheadline.replaceAll("NV","Nevada")
+                        if(alertheadline.contains("NH")) alertheadline = alertheadline.replaceAll("NH","New Hampshire")
+                        if(alertheadline.contains("NJ")) alertheadline = alertheadline.replaceAll("NJ","New Jersey")
+                        if(alertheadline.contains("NM")) alertheadline = alertheadline.replaceAll("NM","New Mexico")
+                        if(alertheadline.contains("NY")) alertheadline = alertheadline.replaceAll("NY","New York")
+                        if(alertheadline.contains("NC")) alertheadline = alertheadline.replaceAll("NC","North Carolina")
+                        if(alertheadline.contains("ND")) alertheadline = alertheadline.replaceAll("ND","North Dakota")
+                        if(alertheadline.contains("OH")) alertheadline = alertheadline.replaceAll("OH","Ohio")
+                        if(alertheadline.contains("OK")) alertheadline = alertheadline.replaceAll("OK","Oklahoma")
+                        if(alertheadline.contains("OR")) alertheadline = alertheadline.replaceAll("OR","Oregon")
+                        if(alertheadline.contains("PA")) alertheadline = alertheadline.replaceAll("PA","Pennsylvania")
+                        if(alertheadline.contains("RI")) alertheadline = alertheadline.replaceAll("RI","Rhode Island")
+                        if(alertheadline.contains("SC")) alertheadline = alertheadline.replaceAll("SC","South Carolina")
+                        if(alertheadline.contains("SD")) alertheadline = alertheadline.replaceAll("SD","South Dakota")
+                        if(alertheadline.contains("TN")) alertheadline = alertheadline.replaceAll("TN","Tennessee")
+                        if(alertheadline.contains("TX")) alertheadline = alertheadline.replaceAll("TX","Texas")
+                        if(alertheadline.contains("UT")) alertheadline = alertheadline.replaceAll("UT","Utah")
+                        if(alertheadline.contains("VT")) alertheadline = alertheadline.replaceAll("VT","Vermont")
+                        if(alertheadline.contains("VA")) alertheadline = alertheadline.replaceAll("VA","Virginia")
+                        if(alertheadline.contains("WA")) alertheadline = alertheadline.replaceAll("WA","Washington")
+                        if(alertheadline.contains("WV")) alertheadline = alertheadline.replaceAll("WV","West Virginia")
+                        if(alertheadline.contains("WI")) alertheadline = alertheadline.replaceAll("WI","Wisconsin")
+                        if(alertheadline.contains("WY")) alertheadline = alertheadline.replaceAll("WY","Wyoming")
+                        // Remove Timezones
+                        if(alertheadline.contains("AST")) alertheadline = alertheadline.replaceAll("AST","")
+                        if(alertheadline.contains("EST")) alertheadline = alertheadline.replaceAll("EST","")
+                        if(alertheadline.contains("EDT")) alertheadline = alertheadline.replaceAll("EDT","")
+                        if(alertheadline.contains("CST")) alertheadline = alertheadline.replaceAll("CST","")
+                        if(alertheadline.contains("CDT")) alertheadline = alertheadline.replaceAll("CDT","")
+                        if(alertheadline.contains("MST")) alertheadline = alertheadline.replaceAll("MST","")
+                        if(alertheadline.contains("MDT")) alertheadline = alertheadline.replaceAll("MDT","")
+                        if(alertheadline.contains("PST")) alertheadline = alertheadline.replaceAll("PST","")
+                        if(alertheadline.contains("PDT")) alertheadline = alertheadline.replaceAll("PDT","")
+                        if(alertheadline.contains("AKST")) alertheadline = alertheadline.replaceAll("AKST","")
+                        if(alertheadline.contains("AKDT")) alertheadline = alertheadline.replaceAll("AKDT","")
+                        if(alertheadline.contains("HST")) alertheadline = alertheadline.replaceAll("HST","")
+                        if(alertheadline.contains("HAST")) alertheadline = alertheadline.replaceAll("HAST","")
+                        if(alertheadline.contains("HADT")) alertheadline = alertheadline.replaceAll("HADT","")
+                        alertheadline = alertheadline.replaceAll("  "," ")
+					state.alertheadline = alertheadline + "."
 					state.alertdescription = response.data.features[0].properties.description
 					if(response.data.features[0].properties.instruction) { state.alertinstruction = response.data.features[0].properties.instruction }
 					else {state.alertinstruction = response.data.features[0].properties.description }
@@ -513,8 +611,8 @@ def getAlertMsg() {
 			}
 			else log.warn "${response?.status}"
 		}
-	}
-	catch (any) { log.warn "Weather.gov API did not respond to JSON request."}
+//	}
+//	catch (any) { log.warn "Weather.gov API did not respond to JSON request."}
 }
 
 
@@ -559,24 +657,6 @@ def buildAlertMsg() {
 			catch (any) {}
 		try {alertmsg = alertmsg.replace("{alertevent}","${state.alertevent}") }
 			catch (any) {}					
-		try {alertmsg = alertmsg.replace(" CST","") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace(" CDT","") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace(" MDT","") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace(" MST","") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace(" PST","") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace(" PDT","") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace(" EST","") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace(" EDT","") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace(" NWS "," the National Weather Service ") }
-			catch (any) {}
 		try {alertmsg = alertmsg.replaceAll("\n"," ") }
 			catch (any) {}
         try {alertmsg = alertmsg.trim().replaceAll("[ ]{2,}", ", ") }
