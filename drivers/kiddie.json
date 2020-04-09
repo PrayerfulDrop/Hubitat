@@ -8,9 +8,11 @@
    	{
    		"id" : "fd2af3a4-ae30-4e88-a25f-b6823d7ac3bc",
    		"name": "Kiddie Fire Alarm Driver",
+         "namespace": "aaronward",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy",
    		"required": true,
-   		"oauth": false
+   		"oauth": false,
+         "version": "1.0.2"
    	}
    ]
 }
