@@ -7,7 +7,7 @@
    "apps" : [
    	{
    		"id" : "094f56a9-44f3-48a2-a698-4de5f1de66e1",
-   		"name": "You Got Mail App",
+   		"name": "You Got Mail",
          "namespace": "aaronward",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/You%20Got%20Mail/yougotmail.groovy",
    		"required": true,
