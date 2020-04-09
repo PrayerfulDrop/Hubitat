@@ -1,0 +1,16 @@
+{
+   "packageName": "Salt Tank MQTT Driver",
+   "minimumHEVersion": "2.1.9",
+   "author": "Aaron Ward",
+   "version": "1.0.5,
+   "dateReleased": "2019-06-10",
+   "drivers" : [
+   	{
+   		"id" : "94d2fe65-12a1-4074-934e-6bf7eef1bd96",
+   		"name": "Salt Tank MQTT Driver",
+   		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/Salt%20Tank.groovy",
+   		"required": true,
+   		"oauth": false
+   	}
+   ]
+}
