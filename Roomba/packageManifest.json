@@ -7,7 +7,7 @@
    "apps" : [
    	{
    		"id" : "14d00d83-9eb1-47f2-87ed-07bc81b39f34",
-   		"name": "iRobot Scheduler App",
+   		"name": "iRobot Scheduler",
          "namespace": "aaronward",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-app.groovy",
    		"required": true,
@@ -18,7 +18,7 @@
    "drivers" : [
    	{
    		"id": "ee4f2c21-6ec9-455b-b426-2276c1e84fe8",
-   		"name": "iRobot Scheduler Device",
+   		"name": "Roomba",
          "namespace": "roomba",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/Roomba-device.groovy",
    		"required": true,
