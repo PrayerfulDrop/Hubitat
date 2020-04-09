@@ -1,0 +1,16 @@
+{
+   "packageName": "EcoLink Contact Sensor Custom",
+   "minimumHEVersion": "2.1.9",
+   "author": "Aaron Ward",
+   "version": "1.0.1,
+   "dateReleased": "2019-06-10",
+   "drivers" : [
+   	{
+   		"id" : "06cd7d68-2108-4842-8f83-b977fd4fa8c3",
+   		"name": "EcoLink Contact Sensor Custom",
+   		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/ecolink-custom.groovy",
+   		"required": true,
+   		"oauth": false
+   	}
+   ]
+}
