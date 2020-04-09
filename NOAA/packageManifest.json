@@ -7,7 +7,7 @@
    "apps" : [
    	{
    		"id" : "82a848f3-e61c-429e-b557-2019b559f509",
-   		"name": "NOAA Weather App",
+   		"name": "NOAA Weather",
          "namespace": "aaronward",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
    		"required": true,
@@ -18,7 +18,7 @@
    "drivers" : [
    	{
    		"id": "68115e5c-d300-430e-afb3-277b61554946",
-   		"name": "NOAA Tile Driver",
+   		"name": "NOAA Tile",
          "namespace": "aaronward",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
    		"required": true,
