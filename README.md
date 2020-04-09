@@ -2,6 +2,7 @@
 <H1>Applications:</H1>
 <ul>
   <li>NOAA Weather Alerts - announce weather alerts for your area</li>
+  <li>iRobot Scheduler - advanced scheduler for iRobot cleaning devices</li>
   <li>Salt Water Tank - Auduino code to make a DIY Salt Tank monitor device</li>
   <li>You Got Mail - mailbox TTS announcement application </li>
 </ul>
