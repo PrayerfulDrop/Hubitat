@@ -2,7 +2,7 @@
    "packageName": "Salt Tank MQTT Driver",
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
-   "version": "1.0.5,
+   "version": "1.0.5",
    "dateReleased": "2019-06-10",
    "drivers" : [
    	{
