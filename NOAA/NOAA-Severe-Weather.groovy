@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.5.0 - fixed alertarea counties dependent on certani weather announcement differences
  *   2.4.9 - removed AppWatchDog, removed states from alertarea, removed timezones, changed logging to only output errors, fixed bugs in test API results
  *   2.4.8 - added additional checkState configurations and activities
  *   2.4.7 - fixed repeat issue from 2.4.6
@@ -98,7 +99,7 @@
 **/
 
 def version() {
-    version = "2.4.9"
+    version = "2.5.0"
     return version
 }
 
@@ -464,6 +465,7 @@ def getAlertMsg() {
 					state.alertJSON = true
 					state.alertseverity = response.data.features[0].properties.severity
 					alertarea = response.data.features[0].properties.areaDesc
+
                         // Remove States
                         if(alertarea.contains("AL")) alertarea = alertarea.replaceAll("AL","")
                         if(alertarea.contains("AK")) alertarea = alertarea.replaceAll("AK","")
@@ -515,14 +517,13 @@ def getAlertMsg() {
                         if(alertarea.contains("WV")) alertarea = alertarea.replaceAll("WV","")
                         if(alertarea.contains("WI")) alertarea = alertarea.replaceAll("WI","")
                         if(alertarea.contains("WY")) alertarea = alertarea.replaceAll("WY","")
-                        
-						alertarea = alertarea.replaceAll(";","")
+                        alertarea = alertarea.replaceAll(", ","")
+                        alertarea = alertarea.replaceAll(",","")
+                        alertarea = alertarea.replaceAll(";",",")                    
 						alertarea = alertarea.replaceAll("\n"," ")
-                        alertarea = alertarea.replaceAll("  "," ")
+                        alertarea = alertarea.replaceAll("  "," ")                        
 						StringBuffer buffer = new StringBuffer(alertarea)
-                        alertarea = buffer.reverse().toString().replaceFirst(",","")
-                        alertarea = alertarea.toString().replaceFirst(" ","")
-						alertarea = alertarea.toString().replaceFirst(",","dna ")
+						alertarea = buffer.reverse().toString().replaceFirst(",","dna ")
 					    alertarea = new StringBuffer(alertarea).reverse().toString()
                     state.alertarea = alertarea + "."
 					state.alertsent = response.data.features[0].properties.sent
