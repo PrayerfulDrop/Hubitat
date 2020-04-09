@@ -12,9 +12,5 @@
    		"required": true,
    		"oauth": false
    	}
-   ],
-   "drivers" : [
-   	{
-   	}
    ]
 }
