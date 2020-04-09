@@ -1,0 +1,16 @@
+{
+   "packageName": "Kiddie Fire Alarm Driver",
+   "minimumHEVersion": "2.1.9",
+   "author": "Aaron Ward",
+   "version": "1.0.2,
+   "dateReleased": "2019-06-10",
+   "drivers" : [
+   	{
+   		"id" : "fd2af3a4-ae30-4e88-a25f-b6823d7ac3bc",
+   		"name": "Kiddie Fire Alarm Driver",
+   		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie-firealarm.groovy",
+   		"required": true,
+   		"oauth": false
+   	}
+   ]
+}
