@@ -14,7 +14,24 @@
    		"category": "Convenience",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/irobot.json",
    		"description": "iRobot Scheduler is an application and device that enables local execution and scheduling of Roomba and Brava cleaning tasks in assistance with a Raspberry Pi running Dorita980 and Rest980. This application and device works with ALL WiFi enabled Roomba and Braava devices."
-   	}
+   	},
+     	{
+   		"name": "You Got Mail",
+   		"category": "Convenience",
+   		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/You%20Got%20Mail/packagemanifest.json",
+   		"description": "You Got Mail is a notification application that provides notifications when a contact sensor is open on a mailbox. This application supports Pushover, Music Speakers, Speech Speakers, Echo Speaks devices and Google devices for notifications. Application allows for custom notifications, random messages and mail delivery time window. Notification options if mailbox was left open."
+   	},
+     	{
+   		"name": "EcoLink Contact Sensor Custom",
+   		"category": "Convenience",
+   		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/eco.json",
+   		"description": "Swaps Open/Close messages in the driver."
+   	},
+     	{
+   		"name": "Kiddie Fire Alarm Driver",
+   		"category": "Security",
+   		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie.json",
+   		"description": "The Kiddie relay enables you to connect a wired fire alarm system to pretty much anything."
+   	}       
    ]
-   
 }
