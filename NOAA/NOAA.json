@@ -2,7 +2,7 @@
    "packageName": "NOAA Weather Alerts",
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
-   "version": "2.4.9",
+   "version": "2.5.0",
    "dateReleased": "2019-02-01",
    "apps" : [
    	{
