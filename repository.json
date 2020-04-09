@@ -32,6 +32,12 @@
    		"category": "Security",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/kiddie.json",
    		"description": "The Kiddie relay enables you to connect a wired fire alarm system to pretty much anything."
-   	}       
+   	},
+     	{
+   		"name": "Salt Tank MQTT Driver",
+   		"category": "Convenience",
+   		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/drivers/salt.json",
+   		"description": "MQTT Driver to support Salt Tank level project."
+   	}      
    ]
 }
