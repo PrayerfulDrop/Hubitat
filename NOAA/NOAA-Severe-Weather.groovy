@@ -456,7 +456,7 @@ def getAlertMsg() {
 				contentType: "application/json"
 			]
 	
-	//try {
+	try {
 		httpGet(requestParams)	{	  response ->
 			if (response?.status == 200){
 				if(response.data.features){
@@ -612,8 +612,8 @@ def getAlertMsg() {
 			}
 			else log.warn "${response?.status}"
 		}
-//	}
-//	catch (any) { log.warn "Weather.gov API did not respond to JSON request."}
+	}
+	catch (any) { log.warn "Weather.gov API did not respond to JSON request."}
 }
 
 
