@@ -2,7 +2,7 @@
    "packageName": "Kiddie Fire Alarm Driver",
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
-   "version": "1.0.2,
+   "version": "1.0.2",
    "dateReleased": "2019-06-10",
    "drivers" : [
    	{
