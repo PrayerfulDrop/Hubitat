@@ -29,7 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   1.3.4 - removed AppWatchDog, added last cleaning visability, added ability to start a Brava device after successful docking/charging
+ *   1.3.4 - removed AppWatchDog, added last cleaning visibility, added ability to start a Brava device after successful docking/charging
  *   1.3.3 - changed app name to iRobot Scheduler and added contact sensors for cleaning schedule restrictions
  *   1.3.2 - Added basic support for Braava m6 (supports notifications for tank being empty instead of bin being full)
  *   1.3.1 - finalized logic fixes for unique use case scenarios (thx dman2306 for being a patient tester)
