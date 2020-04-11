@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.3.4 - removed AppWatchDog, added last cleaning visability, added ability to start a Brava device after successful docking/charging
  *   1.3.3 - changed app name to iRobot Scheduler and added contact sensors for cleaning schedule restrictions
  *   1.3.2 - Added basic support for Braava m6 (supports notifications for tank being empty instead of bin being full)
  *   1.3.1 - finalized logic fixes for unique use case scenarios (thx dman2306 for being a patient tester)
@@ -65,7 +66,7 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 def version() {
-    version = "1.3.3"
+    version = "1.3.4"
     return version
 }
 
@@ -255,23 +256,13 @@ def mainPage() {
                 ]                 
                 input "roombaalwaysFinish", "bool", title: "Set Always Finish Option (On/Off):", defaultValue: false, submitOnChange: true                
             }
+            paragraph "<hr><u>Settings for Brava devices:</u>"
+            input "bravaYes", "bool", title: "Start Brava(s) after iRobot is done cleaning?", required: false, defaultValue: false, submitOnChange: true
+            if(bravaYes) input "bravaDevice", "capability.switch", title: "Select Brava robot(s) to turn on after iRobot docks:", required: false, multiple: true, defaultValue: null, submitOnChange: true
+            
         }
-
-        section(getFormat("header-blue", " Logging and Restrictions:")) { }
-            // ** App Watchdog Code **
-        section("This app supports App Watchdog! Click here for more Information", hideable: true, hidden: true) {
-				paragraph "<b>Information</b><br>See if any compatible app needs an update, all in one place!"
-                paragraph "<b>Requirements</b><br> - Must install the app 'App Watchdog'. <br> - Then select 'App Watchdog Data' from the dropdown.<br> - That's it, you will now be notified automaticaly of updates."
-                input(name: "sendToAWSwitch", type: "bool", defaultValue: "false", title: "Use App Watchdog to track this apps version info?", description: "Update App Watchdog", submitOnChange: "true")
-			}
-            if(sendToAWSwitch) {
-                section(" App Watchdog") {    
-                    if(sendToAWSwitch) input(name: "awDevice", type: "capability.actuator", title: "Please select 'App Watchdog Data' from the dropdown", submitOnChange: true, required: true, multiple: false)
-			        if(sendToAWSwitch && awDevice) AppWatchdog()
-                }
-            }
-            // ** End App Watchdog Code **
-    
+        
+        section(getFormat("header-blue", " Logging and Restrictions:")) { }   
             section() {
                 input "modesYes", "bool", title: "Enable restrictions?", required: true, defaultValue: false, submitOnChange: true
                 if(modesYes) { 
@@ -361,7 +352,9 @@ def pageroombaInfo() {
 		temp += "<p style=font-size:20px><b>Tank Level:</b> ${result.data.tankLvl}%"
     temp += "<p style=font-size:20px><b># of cleaning jobs:</b> ${String.format("%,d",result.data.cleanMissionStatus.nMssn)}</p>"
     temp += "<p style=font-size:20px><b>Total Time Cleaning:</b> ${String.format("%,d",result.data.bbrun.hr)} hours and ${result.data.bbrun.min} minutes</p>"
+    temp += "<p style=font-size:20px><b>Last cleaning occured on:</b> ${state.lastcleaningcycle}</p>"
     temp += "<p style=font-size:20px><b>Days since last cleaning:</b> ${String.format("%,d", state.DaysSinceLastCleaning)}</p></div>"
+
 
            
 	dynamicPage(name: "pageroombaInfo", title: "", nextPage: "mainPage", install: false, uninstall: false) {
@@ -675,6 +668,10 @@ def updateDevices() {
                 if(pushoverDock) msg=state.pushoverDockMsg
                 state.batterydead = false 
                 state.errors = false
+                if(!state.docked) {
+                    if(bravaYes) bravaDevice.on()
+                    state.docked = true             
+                 }
                 // working on
                 long daystimeDiff = 0                
    		        def daynow = new Date()
@@ -688,6 +685,7 @@ def updateDevices() {
                 state.DaysSinceLastCleaning = daytimeDiff    
 				break
 			case "run":
+                state.docked=false
 				status = "cleaning"
                 if(pushoverStart) msg=state.pushoverStartMsg
                 state.batterydead = false
@@ -881,8 +879,6 @@ def handleDevice(device, id, evt) {
                 if(device_result.data.cleanMissionStatus.phase.contains("run") || device_result.data.cleanMissionStatus.phase.contains("hmUsrDock") || device_result.data.batPct.toInteger()<roombaBatteryLevel.toInteger()) 
                     { log.warn "${device} was currently cleaning.  Scheduled times may be too close together." }
                 else {
-                    def now = new Date()
-                    long nowtemp = now.getTime()
                     if(device_result.data.cleanMissionStatus.phase.contains("charge") && device_result.data.batPct.toInteger()>roombaBatteryLevel.toInteger()) {
                         if(roomba900) {
                             result = executeAction("/api/local/config/carpetBoost/${roombacarpetBoost}")
@@ -894,12 +890,12 @@ def handleDevice(device, id, evt) {
                         }
                         if(!device_result.data.cleanMissionStatus.phase.contains("run") || !device_result.data.cleanMissionStatus.phase.contains("hmUsrDock")) {
                             result = executeAction("/api/local/action/start")
-                            state.lastcleaning=nowtemp
+                            setLastCycle()
                         } else {
                             result = executeAction("/api/local/action/pause")
                             pauseExecution(1500)
                             result = executeAction("/api/local/action/start")
-                            state.lastcleaning=nowtemp
+                            setLastCycle()
                         }
                     } else log.warn "${device} is currently not on the charging station.  Cannot start cleaning."
                 }
@@ -941,6 +937,14 @@ def handleDevice(device, id, evt) {
     }
     } 
     catch (e) { log.error "iRobot error.  Cannot start action. ${e}" }
+}
+
+def setLastCycle() {
+    def now = new Date()
+    state.lastcleaningcycle=now.format("MM/dd/YYYY h:mm a")
+    app.updateLabel("iRobot Scheduler - ${state.roombaName} - <span style='color:green'>Last Cleaning: ${state.lastcleaningcycle}</span>")
+    state.lastcleaning=now.getTime()
+    
 }
 
 def setStateVariables() {
@@ -1041,23 +1045,6 @@ def executeAction(path) {
 
 //Application Handlers
 
-def AppWatchdog(){
-    // Must match the exact name used in the json file.
-    developer = "Aaron Ward"
-    aName = "iRobot Scheduler"
-    try {
-        if(awDevice) {
-            awInfo = []
-            awInfo+=developer
-            awInfo+=aName
-            awInfo+=version()
-            awDevice.sendAWinfoMap(awInfo)
-            if(logEnable) log.debug "App Watchdog - sending info: ${awInfo}"
-            schedule("0 0 3 ? * * *", AppWatchdog)
-	    }
-    } catch (e) { log.error "In setVersion - ${e}" }
-}
-
 def getImage(type) {
     def loc = "<img src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/roomba-clean.png'>"
 }
@@ -1090,7 +1077,6 @@ def initialize() {
     updateDevices()
     schedule("0/30 * * * * ?", updateDevices)
     app.updateLabel("iRobot Scheduler - ${state.roombaName}")
-    if(awDevice) AppWatchdog() 
     if (logEnable && logMinutes.toInteger() != 0) {
     if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
         runIn((logMinutes.toInteger() * 60),logsOff)
