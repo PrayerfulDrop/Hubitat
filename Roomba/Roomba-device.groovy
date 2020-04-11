@@ -32,6 +32,7 @@
  *
  *  Changes:
  * 
+ *   1.1.5 - removed AppWatchDog
  *   1.1.4 - Roomba driver backup of failed application scheduled events
  *   1.1.3 - fixed on/off states
  *   1.1.2 - additional CSS fixes to ensure of future dashboard changes won't affect tile
@@ -56,7 +57,8 @@ metadata {
         
         attribute "cleanStatus", "string"
         attribute "RoombaTile", "string"
-        
+        attribute "Last Activity", "string"
+
         command "start"
         command "stop"
         command "pause"
@@ -68,22 +70,13 @@ metadata {
     }
 }
 
-def setVersion(){
-    appName = "RoombaDriver"
-	version = "1.1.4" 
-    dwInfo = "${appName}:${version}"
-    sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
-}
-
-def updateVersion() {
-    log.info "In updateVersion"
-    setVersion()
-}
-
 def start() {
     parent.handleDevice(device, device.deviceNetworkId.split(":")[1], "start")
     if(logEnable) log.debug "Roomba is being started through driver"
+    def date = new Date()
+    def sdf = new SimpleDateFormat("MM/dd/yyyy hh:mm:ss aa")
     sendEvent(name: "switch", value: "on", isStateChange: true)
+    sendEvent(name: "Last Activity", value: sdf.format(date), isStateChange: true) 
 }
 
 def stop() {
@@ -198,3 +191,5 @@ def roombaTile(cleaning, batterylevel, cleaningTime) {
     sendEvent(name: "RoombaTile", value: html, displayed: true)
     if(logEnable) log.debug "Roomba Status of '${msg}' sent to dashboard"
 }
+
+import java.text.SimpleDateFormat
