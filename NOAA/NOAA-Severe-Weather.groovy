@@ -30,7 +30,8 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   2.5.0 - fixed alertarea counties dependent on certani weather announcement differences
+ *   2.5.1 - added severity alerts option that can ignore current restrictions
+ *   2.5.0 - fixed alertarea counties dependent on certain weather announcement differences
  *   2.4.9 - removed AppWatchDog, removed states from alertarea, removed timezones, changed logging to only output errors, fixed bugs in test API results
  *   2.4.8 - added additional checkState configurations and activities
  *   2.4.7 - fixed repeat issue from 2.4.6
@@ -99,7 +100,7 @@
 **/
 
 def version() {
-    version = "2.5.0"
+    version = "2.5.1"
     return version
 }
 
@@ -244,13 +245,21 @@ def mainPage() {
 			}
 			section(getFormat("header-blue", " Restrictions")) {
 				input "modesYes", "bool", title: "Enable restriction of notifications by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
-				if(pushovertts) input "pushoverttsalways ", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
                 if(modesYes){	
 				    input(name:"modes", type: "mode", title: "Restrict notifications when current mode is:", multiple: true, required: false, submitOnChange: true)
-				}
+                    input "modeSeverityYes", "bool", title: "Ignore restrictions for certain severity types?", required: true, defaultValue: false, submitOnChange: true	
+                    if (modeSeverityYes) input name: "modeSeverity", type: "enum", title: "Severity option(s) that will ignore restrictions: ", 
+					options: [
+						"minor": "Minor",
+						"moderate": "Moderate", 
+						"severe": "Severe", 
+						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"
+                }
 				if(!modesYes){
 			          input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict notfications:", required: false, multiple: false, defaultValue: null, submitOnChange: true
 				}
+                 
+                if(pushovertts) input "pushoverttsalways ", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
 			}
         section(getFormat("header-blue", " Logging and Testing")) { }
         section() {
@@ -267,9 +276,14 @@ def mainPage() {
 					app?.updateSetting("getAPI",[value:"false",type:"bool"])
 					getAlertMsg()
                     buildAlertMsg()
+                    def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
+                    def result2 =    ( modesYes && modes !=null && modes.contains(location.mode)) ? true : false
+                    def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(state.alertseverity.toLowerCase())) ? true : false
+                    def testresult = (!(result || result2) || result3) ? true : false
+                    log.warn testresult
 					def date = new Date()
 					sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
-					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${state.alertmsg}<br><br><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
+					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${state.alertmsg}<br><br>Restrictions enabled?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}<br><br><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
 					else { paragraph "No JSON feed currently available for your coordinates.  Either there are no weather alerts in your area or you need to change options above to acquire desired results."}
 				}
 				paragraph getFormat("line")
@@ -286,7 +300,9 @@ def initialize() {
         if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
         runIn((logMinutes.toInteger() * 60),logsOff)
     }
-    else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } }
+    else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } 
+          else {log.info "Debug logs disabled."}
+         }
     checkState()
      switch (whatPoll.toInteger()) {
 		case 1: 
@@ -368,20 +384,23 @@ def alertNow(alertmsg, repeatCheck){
 	// check restrictions based on Modes and Switches
     def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
     def result2 =    ( modesYes && modes !=null && modes.contains(location.mode)) ? true : false
-    if (logEnable) log.debug "Restrictions on?  Modes: $result2, Switch: $result"
+    def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(state.alertseverity.toLowerCase())) ? true : false
+    if (logEnable) log.debug "Restrictions on?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}"
    
-    if(!(result || result2) && !pushoverttsalways) {  
-        if(pushoverttsalways) {	
-            log.info "Restrictions are enabled but PushoverTTS enabled.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
-            pushNow(alertmsg, repeatCheck) }
-        else {
+    // no restrictions
+    if(!(result || result2) || result3) {  
             log.info "Sending alert: ${state.alertmsg}"
             pushNow(alertmsg, repeatCheck)
 		    if(alertSwitch) { alertSwitch.on() }
 		    talkNow(alertmsg, repeatCheck)  
 		    tileNow(alertmsg, "true") 
-        }
-     } else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+     } else {
+            if(pushoverttsalways) {	
+                log.info "Restrictions are enabled but PushoverTTS enabled.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+                pushNow(alertmsg, repeatCheck) 
+            }
+            else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+    }
 }
 
 def runtestAlert() {
