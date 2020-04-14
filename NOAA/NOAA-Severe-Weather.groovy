@@ -30,7 +30,8 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   2.5.1 - added severity alerts option that can ignore current restrictions
+ *   2.5.2 - removed manual process of creation of NOAA Tile.  App now checks and autocreates device
+ *   2.5.1 - added severity alerts option that can ignore current mode or switch restrictions
  *   2.5.0 - fixed alertarea counties dependent on certain weather announcement differences
  *   2.4.9 - removed AppWatchDog, removed states from alertarea, removed timezones, changed logging to only output errors, fixed bugs in test API results
  *   2.4.8 - added additional checkState configurations and activities
@@ -188,16 +189,8 @@ def mainPage() {
 				    paragraph "<b>Example:</b>{alertseverity} weather alert. Certainty is {alertcertainty}. Urgency is {alerturgency}. {alertheadline}. {alertinstruction}. This is the end of the weather announcement."
 			    }
 
-			section(getFormat("header-blue", " Dashboard Tile")) {}
-			section("Instructions for Dashboard Tile:", hideable: true, hidden: true) {
-				paragraph "<b>Instructions for adding NOAA Weather Alerts to Hubitat Dashboards:</b><br>"
-				paragraph " -Install NOAA Tile Device driver<br>- Create a new Virtual Device and use the NOAA Tile Driver  'NOAA Tile'<br>- Select the new Virtual Device Below<br><br>"
-				paragraph "<b>Add the NOAA Tile device to your dashboard with the following options:</b><br>"
-				paragraph "- Pick a Device: NOAA Tile <br>- Pick a template: attribute<br>- Options - Select Attribute: Alerts"
-			}
-			section() {
-			input(name: "noaaTileDevice", type: "capability.actuator", title: "NOAA Tile Device to send alerts to:", submitOnChange: true, required: false, multiple: false)
-			input name:"noaaTileReset", type: "text", title: "Reset NOAA Tile on dashboard after how many minutes?", require: false, defaultValue: "30", submitOnChange: true
+			section(getFormat("header-blue", " Dashboard Tile")) {
+			    input name:"noaaTileReset", type: "text", title: "Reset NOAA Tile on dashboard after how many minutes?", require: false, defaultValue: "30", submitOnChange: true
 			}
 			section(getFormat("header-blue", " Advanced Configuration")) {
 			paragraph "Use with caution as below settings may cause undesired results.  Reference <a href='https://www.weather.gov/documentation/services-web-api?prevfmt=application%2Fcap%2Bxml/default/get_alerts#/default/get_alerts' target='_blank'>Weather.gov API</a> and use the API response test button below to determine your desired results."
@@ -295,6 +288,8 @@ def mainPage() {
 
 def initialize() {
     unschedule()
+    createChildDevices()
+    tileReset()
     if (logEnable && logMinutes.toInteger() != 0) {
         if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
         runIn((logMinutes.toInteger() * 60),logsOff)
@@ -333,6 +328,9 @@ def updated() {
     initialize()
 }
 
+def uninstalled() {
+    cleanupChildDevices()
+}
 
 // Main Application Routines
 def main() {
@@ -777,15 +775,31 @@ def tileReset() {
 }
 
 def tileNow(alertmsg, resetAlert) {
+    noaaTileDevice = getChildDevice("NOAA")
 	if(noaaTileDevice) {
 		if(logEnable) log.debug "Sending to NOAA Tile - msg: ${alertmsg}"
 		noaaTileDevice.sendNoaaTile(alertmsg)
-        //if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
-		//runIn((60*noaaTileReset.toInteger()),tileReset)
 	}
 }
 
+// Device creation and status updhandlers
+def createChildDevices() {
+    try {
+            if (!getChildDevice("NOAA"))
+                addChildDevice("aaronward", "NOAA Tile", "NOAA", 1234, ["name": "NOAA Tile", isComponent: false])
+    }
+    catch (e) {log.error "Couldn't create child device." }
+}
 
+def cleanupChildDevices()
+{
+    try {
+	    for (device in getChildDevices()) {
+            deleteChildDevice(device.deviceNetworkId)
+	    }
+    }
+    catch (e) { log.error "Couldn't clean up child devices."}
+}
 
 // Common Application Routines and Requirements
 import groovy.json.*
