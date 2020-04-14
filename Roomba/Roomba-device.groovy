@@ -32,6 +32,7 @@
  *
  *  Changes:
  * 
+ *   1.1.6 - fixed CSS layout for smartly dashboards
  *   1.1.5 - removed AppWatchDog
  *   1.1.4 - Roomba driver backup of failed application scheduled events
  *   1.1.3 - fixed on/off states
@@ -183,11 +184,10 @@ def roombaTile(cleaning, batterylevel, cleaningTime) {
             break
     }
     img = "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/Roomba/support/${img}"
-    html = "<style>img.roombaImage { max-width:80%;height:auto;}div#roombaImgWrapper {width=100%}div#roombaWrapper {font-size:13px;margin: 25px auto; text-align:center;}</style><div id='roombaWrapper'>"
-    html += "<div id='roombaImgWrapper'><center><img src='${img}' class='roombaImage'></center></div>"
+    html = "<center><img width=70px height=70px vspace=5px src=${img}><br><font style='font-size:13px'>"
         if(cleaning.contains("docking") || cleaning.contains("cleaning")) html +="${msg} - ${cleaningTime}min<br>Battery: ${batterylevel}%"
         else html+="${msg}<br>Battery: ${batterylevel}%"
-    html += "</div>"
+    html += "</font></center>"
     sendEvent(name: "RoombaTile", value: html, displayed: true)
     if(logEnable) log.debug "Roomba Status of '${msg}' sent to dashboard"
 }
