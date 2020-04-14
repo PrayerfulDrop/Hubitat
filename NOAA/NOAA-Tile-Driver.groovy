@@ -29,6 +29,7 @@
  *
  *  Changes:
  *
+ *  1.2.2 - removed AppWatchDog driver code
  *  1.2.1 - added AppWatchDogDriver2 support
  *  1.2.0 - rewrite of the driver app (again) for better optimization, automate disabling of logging
  *  1.1.0 - Longer alerts will scroll on dashboard for 5 minutes, fixed justification of text alignment
@@ -43,15 +44,10 @@ metadata {
 		importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy"
 		)
 		{
-        command "updateVersion"
 		command "sendNoaaTile", ["string"]
 		capability "Actuator"
 		capability "Refresh"
-		attribute "DriverVersion", "string"
-		attribute "DriverAuthor", "string"
-		attribute "DriverStatus", "string"	
     	attribute "Alerts", "string"
-        attribute "dwDriverInfo", "string"
 		}
 
 	preferences() {    	
@@ -71,7 +67,6 @@ def updated() {
 
 def installed(){
     log.info "NOAA Tile has been Installed."
-	setVersion()
 	sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
@@ -86,17 +81,6 @@ def logsOff(){
     device.updateSetting("logEnable",[value:"false",type:"bool"])
 }
 
-def setVersion(){
-    appName = "NOAATileDriver"
-	version = "1.2.1" 
-    dwInfo = "${appName}:${version}"
-    sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
-}
-
-def updateVersion() {
-    log.info "In updateVersion"
-    setVersion()
-}
 
 def sendNoaaTile(noaaData) {
 	def messageSize = 380
