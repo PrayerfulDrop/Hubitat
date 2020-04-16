@@ -67,7 +67,7 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 def version() {
-    version = "1.3.4"
+    version = "1.3.5"
     return version
 }
 
