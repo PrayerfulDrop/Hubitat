@@ -202,6 +202,7 @@ def mainPage() {
                         }
                     }
                 }
+				input "roombaIgnorePresenceSwitch", "capability.switch", title: "Ignore presence settings if the following switch is turned on"
             }
         }
         section(getFormat("header-blue", " Advanced Options:")) {
@@ -490,7 +491,7 @@ def RoombaSchedStart() {
     
     // If Delay cleaning is selected
     if(debug) log.debug "Current variables:  roombaPresenceDelay: ${roombaPresenceDelay} - presence: ${presence} - state.presence: ${state.presence}"
-    if((roombaPresenceDelay && presence) || state.presence) {
+    if(((roombaPresenceDelay && presence) || state.presence) && (roombaIgnorePresenceSwitch == null || roombaIgnorePresenceSwitch.currentValue("switch") == "off")) {
         if(debug) log.debug "roomba PresenceDelay or Presence leave values equal true"
         
         if(state.presence==true) timer = roombaPresenceCleandelay
@@ -812,6 +813,11 @@ def switchHandler(evt) {
 
 def presenceHandler(evt) {   
     try {
+		if (roombaIgnorePresenceSwitch?.currentValue("switch") == "on") {
+			if(logEnable) log.info "Presence arrived but override switch is on"
+			return
+		}
+			
         def result = executeAction("/api/local/info/state")
 
         if (result && result.data) {
