@@ -5,9 +5,9 @@
  *  ****************  iRobot Scheduler  ****************
  *
  *  Design Usage:
- *  This app is designed to integrate any WiFi enabled Roomba or Brava devices to have direct local connectivity and integration into Hubitat.  This application will create a Roomba/Brava device based on the 
- *  the name you gave your Roomba/Brava device in the cloud app.  With this app you can schedule multiple cleaning times, automate cleaning when presence is away, receive notifications about status
- *  of the Roomba/Brava (stuck, cleaning, died, etc) and also setup continous cleaning mode for non-900 series WiFi Roomba devices.
+ *  This app is designed to integrate any WiFi enabled Roomba or Braava devices to have direct local connectivity and integration into Hubitat.  This application will create a Roomba/Braava device based on the 
+ *  the name you gave your Roomba/Braava device in the cloud app.  With this app you can schedule multiple cleaning times, automate cleaning when presence is away, receive notifications about status
+ *  of the Roomba/Braava (stuck, cleaning, died, etc) and also setup continous cleaning mode for non-900 series WiFi Roomba devices.
  *
  *  Copyright 2019 Aaron Ward
  *
@@ -29,7 +29,8 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
- *   1.3.4 - removed AppWatchDog, added last cleaning visibility, added ability to start a Brava device after successful docking/charging
+ *   1.3.5 - fixed spelling of "Braava" not "Brava". Added a setting to use a switch to override presence settings (great for a global pandemic!)
+ *   1.3.4 - removed AppWatchDog, added last cleaning visibility, added ability to start a Braava device after successful docking/charging
  *   1.3.3 - changed app name to iRobot Scheduler and added contact sensors for cleaning schedule restrictions
  *   1.3.2 - Added basic support for Braava m6 (supports notifications for tank being empty instead of bin being full)
  *   1.3.1 - finalized logic fixes for unique use case scenarios (thx dman2306 for being a patient tester)
@@ -90,7 +91,7 @@ def mainPage() {
     debug=false
 	dynamicPage(name: "mainPage") {
         section(getFormat("title", "${getImage("Blank")}" + " ${app.label}")) {
-				paragraph "<div style='color:#1A77C9'>This application provides iRobot Roomba and Brava local integration and advanced scheduling.</div>"
+				paragraph "<div style='color:#1A77C9'>This application provides iRobot Roomba and Braava local integration and advanced scheduling.</div>"
 			}
 
         section(getFormat("header-blue", " Rest980/Dorita980 Connectivity:")){
@@ -202,6 +203,7 @@ def mainPage() {
                         }
                     }
                 }
+				input "roombaIgnorePresenceSwitch", "capability.switch", title: "Ignore presence settings if the following switch is turned on"
             }
         }
         section(getFormat("header-blue", " Advanced Options:")) {
@@ -256,9 +258,9 @@ def mainPage() {
                 ]                 
                 input "roombaalwaysFinish", "bool", title: "Set Always Finish Option (On/Off):", defaultValue: false, submitOnChange: true                
             }
-            paragraph "<hr><u>Settings for Brava devices:</u>"
-            input "bravaYes", "bool", title: "Start Brava(s) after iRobot is done cleaning?", required: false, defaultValue: false, submitOnChange: true
-            if(bravaYes) input "bravaDevice", "capability.switch", title: "Select Brava robot(s) to turn on after iRobot docks:", required: false, multiple: true, defaultValue: null, submitOnChange: true
+            paragraph "<hr><u>Settings for Braava devices:</u>"
+            input "BraavaYes", "bool", title: "Start Braava(s) after iRobot is done cleaning?", required: false, defaultValue: false, submitOnChange: true
+            if(BraavaYes) input "BraavaDevice", "capability.switch", title: "Select Braava robot(s) to turn on after iRobot docks:", required: false, multiple: true, defaultValue: null, submitOnChange: true
             
         }
         
@@ -490,7 +492,7 @@ def RoombaSchedStart() {
     
     // If Delay cleaning is selected
     if(debug) log.debug "Current variables:  roombaPresenceDelay: ${roombaPresenceDelay} - presence: ${presence} - state.presence: ${state.presence}"
-    if((roombaPresenceDelay && presence) || state.presence) {
+    if(((roombaPresenceDelay && presence) || state.presence) && (roombaIgnorePresenceSwitch == null || roombaIgnorePresenceSwitch.currentValue("switch") == "off")) {
         if(debug) log.debug "roomba PresenceDelay or Presence leave values equal true"
         
         if(state.presence==true) timer = roombaPresenceCleandelay
@@ -669,7 +671,7 @@ def updateDevices() {
                 state.batterydead = false 
                 state.errors = false
                 if(!state.docked) {
-                    if(bravaYes) bravaDevice.on()
+                    if(BraavaYes) BraavaDevice.on()
                     state.docked = true             
                  }
                 // working on
@@ -812,6 +814,11 @@ def switchHandler(evt) {
 
 def presenceHandler(evt) {   
     try {
+		if (roombaIgnorePresenceSwitch?.currentValue("switch") == "on") {
+			if(logEnable) log.info "Presence arrived but override switch is on"
+			return
+		}
+			
         def result = executeAction("/api/local/info/state")
 
         if (result && result.data) {
