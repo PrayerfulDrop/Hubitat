@@ -2,7 +2,6 @@
    "packageName": "NOAA Weather Alerts",
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
-   "version": "2.5.2",
    "dateReleased": "2019-02-01",
    "licenseFile": "",
 	"releaseNotes": "NOAA auto creates child devices.  Removal of existing device is required and changes to dashboards.",
@@ -14,7 +13,7 @@
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
    		"required": true,
    		"oauth": false,
-         "version" : "2.5.2"
+         "version" : "2.5.3"
    	}
    ],
    "drivers" : [
