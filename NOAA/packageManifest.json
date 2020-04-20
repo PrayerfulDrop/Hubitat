@@ -4,7 +4,7 @@
    "author": "Aaron Ward",
    "dateReleased": "2019-02-01",
    "licenseFile": "",
-	"releaseNotes": "NOAA auto creates child devices.  Removal of existing device is required and changes to dashboards.",
+	"releaseNotes": "Fixed repeat issue",
    "apps" : [
    	{
    		"id" : "82a848f3-e61c-429e-b557-2019b559f509",
