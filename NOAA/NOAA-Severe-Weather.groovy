@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.5.3 - fixed repeat issues (thanks CurtisZM)
  *   2.5.2 - removed manual process of creation of NOAA Tile.  App now checks and autocreates device
  *   2.5.1 - added severity alerts option that can ignore current mode or switch restrictions
  *   2.5.0 - fixed alertarea counties dependent on certain weather announcement differences
@@ -101,7 +102,7 @@
 **/
 
 def version() {
-    version = "2.5.2"
+    version = "2.5.3"
     return version
 }
 
@@ -290,6 +291,7 @@ def initialize() {
     unschedule()
     createChildDevices()
     tileReset()
+    state.repeat = false
     if (logEnable && logMinutes.toInteger() != 0) {
         if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
         runIn((logMinutes.toInteger() * 60),logsOff)
@@ -344,7 +346,7 @@ def main() {
 		// play TTS and send PushOver
 		    buildAlertMsg()
             alertNow(state.alertmsg, false)
-            if(repeatYes==true) repeatNow()
+            if(repeatYes) repeatNow()
             else {
             	if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
 			    runIn((60*noaaTileReset.toInteger()),tileReset)
@@ -358,12 +360,12 @@ def main() {
 def repeatNow(){
     if(logEnable) log.debug "In repeatNow subroutine state.repeat: ${state.repeat}, state.count: ${state.count}, state.num: ${state.num}"
    
-//    if(state.repeat) {
+    if(state.repeat) {
         alertNow(state.alertmsg, true)
-        if(logEnable) log.debug "Repeating alert in ${state.frequency} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s). Repeat State: ${state.repeat}"
         state.count = state.count + 1
-//     }
-     state.repeat = true
+        if(logEnable) log.debug "Repeating alert in ${state.frequency} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s). Repeat State: ${state.repeat}"
+     } 
+    
 	 if(state.num > 0){
 	    state.num = state.num - 1
         runIn(state.frequency*60,repeatNow)
