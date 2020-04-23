@@ -23,6 +23,7 @@
  *
  *  Changes:
  *
+ *  1.0.6 - removed AppWatchDog and fixed error with empty icon
  *  1.0.5 - changes to MQTT reconnection and salt level options
  *  1.0.4 - added additional MQTT client response error checking
  *  1.0.3 - fixed dashboard CSS styling issues
@@ -36,12 +37,10 @@ metadata {
         capability "Initialize"
         capability "Switch"
         capability "Actuator"
-        command "updateVersion"
 	command "publishMsg", ["String"]
 	attribute "delay", "number"
 	attribute "distance", "number"
     attribute "Salt Level", "number"
-	attribute "dwDriverInfo", "string"
     attribute "SaltTile", "string"
         attribute "Notification Perc", "string"
 	   }
@@ -65,17 +64,6 @@ def installed() {
     log.info "installed..."
 }
 
-def setVersion(){
-    appName = "SaltTankDriver"
-	version = "1.0.5" 
-    dwInfo = "${appName}:${version}"
-    sendEvent(name: "dwDriverInfo", value: dwInfo, displayed: true)
-}
-
-def updateVersion() {
-    log.info "In updateVersion"
-    setVersion()
-}
 
 // Parse incoming device messages to generate events
 def parse(String description) {
@@ -163,7 +151,7 @@ def tileNow(){
     else perc = perc
     float tanknotify = tank*0.35
     if(logEnable) log.debug "Salt Level: ${saltlevel} Tank: ${tank} Salt Perc: ${perc.round()} - Notify at perc: ${tanknotify.round()}"
-    if(saltlevel < (tank * 0.35)) {img = "salt-low.png"
+    if(saltlevel < (tank * 0.35)) {img = "salt-empty.png"
                                    on()}
     if((saltlevel > (tank *0.35)) && (saltlevel < (tank * 0.75))) img = "salt-half.png"
     if(saltlevel > (tank * 0.75)) img = "salt-full.png"                                               
