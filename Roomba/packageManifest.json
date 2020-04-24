@@ -6,6 +6,8 @@
    "dateReleased": "2019-02-10",
    "licenseFile": "",
    "releaseNotes": "Fixed spelling of Braava. Added an option to override presence settings when a specified switch is turned on (very useful during quarantine).",
+   "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/Roomba/README.md",
+   "communityLink": "https://community.hubitat.com/t/release-irobot-scheduler/22873",
    "apps" : [
    	{
    	"id" : "14d00d83-9eb1-47f2-87ed-07bc81b39f34",
