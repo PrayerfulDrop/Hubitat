@@ -4,7 +4,9 @@
    "author": "Aaron Ward",
    "dateReleased": "2019-02-01",
    "licenseFile": "",
-	"releaseNotes": "Fixed repeat issue",
+   "releaseNotes": "Fixed repeat issue",
+   "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
+   "communityLink": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
    "apps" : [
    	{
    		"id" : "82a848f3-e61c-429e-b557-2019b559f509",
