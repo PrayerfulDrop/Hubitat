@@ -4,6 +4,9 @@
    "author": "Aaron Ward",
    "version": "1.0.6",
    "dateReleased": "2019-06-10",
+   "releaseNotes": "",
+   "documentationLink": "",
+   "communityLink": "https://community.hubitat.com/t/release-you-got-mail/17946",
    "apps" : [
    	{
    		"id" : "094f56a9-44f3-48a2-a698-4de5f1de66e1",
