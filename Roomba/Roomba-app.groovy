@@ -29,6 +29,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   1.3.6 - misc fixes
  *   1.3.5 - fixed spelling of "Braava" not "Brava". Added a setting to use a switch to override presence settings (great for a global pandemic!)
  *   1.3.4 - removed AppWatchDog, added last cleaning visibility, added ability to start a Braava device after successful docking/charging
  *   1.3.3 - changed app name to iRobot Scheduler and added contact sensors for cleaning schedule restrictions
@@ -67,7 +68,7 @@
  *   1.0.0 - Inital concept from Dominick Meglio
 **/
 def version() {
-    version = "1.3.5"
+    version = "1.3.6"
     return version
 }
 
