@@ -2,9 +2,9 @@
    "packageName": "You Got Mail",
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
-   "version": "1.0.6",
+   "version": "1.0.7",
    "dateReleased": "2019-06-10",
-   "releaseNotes": "",
+   "releaseNotes": "Removed AppWatchDog",
    "documentationLink": "",
    "communityLink": "https://community.hubitat.com/t/release-you-got-mail/17946",
    "apps" : [
@@ -15,7 +15,7 @@
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/You%20Got%20Mail/yougotmail.groovy",
    		"required": true,
    		"oauth": false,
-         "version": "1.0.6"
+         "version": "1.0.7"
    	}
    ]
 }
