@@ -30,6 +30,7 @@
  * ------------------------------------------------------------------------------------------------------------------------------
  *
  *  Changes:
+ *   2.5.4 - misc fixes
  *   2.5.3 - fixed repeat issues (thanks CurtisZM)
  *   2.5.2 - removed manual process of creation of NOAA Tile.  App now checks and autocreates device
  *   2.5.1 - added severity alerts option that can ignore current mode or switch restrictions
