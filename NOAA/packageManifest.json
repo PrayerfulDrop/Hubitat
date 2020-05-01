@@ -2,8 +2,8 @@
    "packageName": "NOAA Weather Alerts",
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
-   "version": "2.5.4",
    "dateReleased": "2019-02-01",
+   "licenseFile": "",
    "releaseNotes": "misc fixes",
    "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
    "communityLink": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
@@ -13,7 +13,9 @@
    		"name": "NOAA Weather Alerts",
          "namespace": "aaronward",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
-   		"required": true
+   		"required": true,
+   		"oauth": false,
+         "version" : "2.5.4"
    	}
    ],
    "drivers" : [
@@ -22,7 +24,8 @@
    		"name": "NOAA Tile",
          "namespace": "aaronward",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
-   		"required": true
+   		"required": true,
+         "version": "1.2.2"
    	}
    ]
 }
