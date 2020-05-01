@@ -103,7 +103,7 @@
 **/
 
 def version() {
-    version = "2.5.3"
+    version = "2.5.4"
     return version
 }
 
