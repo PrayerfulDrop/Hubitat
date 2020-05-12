@@ -1,7 +1,28 @@
-//** NOAA Weather Alerts 3.0 **//
+/*  **************** NOAA Weather Alerts 3.0 ****************
+ *
+ *  Hubitat Import URL: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy
+ *
+ *  Copyright 2019 Aaron Ward
+ *
+ *-------------------------------------------------------------------------------------------------------------------
+ *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ *  in compliance with the License. You may obtain a copy of the License at:
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+ *  for the specific language governing permissions and limitations under the License.
+ *
+ *
+ * ------------------------------------------------------------------------------------------------------------------------------
+ *              Donations are always appreciated: https://www.paypal.me/aaronmward
+ * ------------------------------------------------------------------------------------------------------------------------------
+ *
+ */
 
 def version() {
-    version = "3.0.0"
+    version = "3.0"
     return version
 }
 
@@ -701,6 +722,7 @@ def getResponseURL() {
 	state.wxURI = wxURI
 	if (logEnable) log.debug "URI: ${wxURI}"
 
+wxURI = "https://api.weather.gov/alerts?point=44.302018%2C-92.674947&status=actual&message_type=alert&severity=minor,moderate,severe,extreme"
 
     if (logEnable) log.debug "Connecting to weather.gov service."
     def requestParams =	[ 
@@ -802,7 +824,7 @@ def UIsupport(type, txt) {
             return "<div style='color:#ffffff;font-weight: bold;background-color:#1A7BC7;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${txt}</div>"
             break
         case "footer":
-            return "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>v${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
+            return "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>App/Driver v${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
             break
     }
 }
