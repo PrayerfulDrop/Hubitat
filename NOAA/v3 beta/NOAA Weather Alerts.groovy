@@ -722,8 +722,6 @@ def getResponseURL() {
 	state.wxURI = wxURI
 	if (logEnable) log.debug "URI: ${wxURI}"
 
-wxURI = "https://api.weather.gov/alerts?point=44.302018%2C-92.674947&status=actual&message_type=alert&severity=minor,moderate,severe,extreme"
-
     if (logEnable) log.debug "Connecting to weather.gov service."
     def requestParams =	[ 
         uri: wxURI,
