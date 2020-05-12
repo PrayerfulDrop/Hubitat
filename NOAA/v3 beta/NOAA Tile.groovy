@@ -52,45 +52,37 @@ def logsOff(){
 
 
 def sendNoaaTile(noaaData) {
-    count = true
-    if(noaaData=="" || noaaData==null) alertmsg = "No weather alerts to report."
-	else alertmsg = "${noaaData}"
-    
-	if(logEnable) log.info "Received weather alert from NOAA App."
-    
-	if (logEnable) log.debug "Length of Alert: ${alertmsg.length()}"
-	if(alertmsg.length() > messageSize) {
-		//determine how many pages will the alert is
-		def m = alertmsg =~ /(.|[\r\n]){1,380}\W/
-		state.index = 0
-		def x = 0
-		state.fullmsg = []
-		while (m.find()) {
-		   state.fullmsg << m.group()
-		   state.index = state.index +1
-		}
-    }
-	if(noaaData.length() < messageSize) { 
+    if(logEnable) log.info "Received weather alert from NOAA App."
+    if(noaaData==null || noaaData=="") {
         noaaTile = "<center><table width='90%' height='90%'><tr>"
-        noaaTile += "<td style='text-align: center;'>"
-	    noaaTile += "<div style='font-size: ${fontSize}px'> ${alertmsg}</div>"
-		noaaTile += "<div align='right' style='font-size: ${fontSize}px'></div>" 
- 		noaaTile += "</td></tr></table>"
-		sendEvent(name: "Alerts", value: noaaTile, displayed: true)  
-		if(logEnable) log.info "NOAA Weather Alert displayed on dashboard."                
+		noaaTile += "<td style='text-align:center;'>"
+        noaaTile += "<div style='font-size: 15px'>No weather alerts to report.</div>" 
+	    noaaTile += "</td></tr></table>"
+		sendEvent(name: "Alerts", value: noaaTile, displayed: true)         
     } else {
-        if(logEnable) log.info "NOAA Weather Alert rotating on dashboard."
-	    while(count){
-	        noaaTile = "<center><table width='90%' height='90%'><tr>"
-		    noaaTile += "<td style='text-align: justify;'>"
-		    if(x==(state.index-1)) { noaaTile += "<div style='font-size: 15px'> ${state.fullmsg[x]}</div>" }
-		    else { noaaTile += "<div style='font-size: 15px'> ${state.fullmsg[x]}...</div>" }
-		    noaaTile += "<div align='right' style='font-size: 15px'>${x+1}/${state.index}</div>"
-		    noaaTile += "</td></tr></table>"
-		    sendEvent(name: "Alerts", value: noaaTile, displayed: true)
-		    if(x == (state.index-1)) {x=0} else {x=x+1}
-		    pauseExecution(8000)
-		}
+        count = true
+        messageSize=300
+        fullalert = []
+        log.error noaaData
+        while(count) {
+            for(x=0;x<noaaData.alertmsg.size();x++) {
+                log.debug noaaData[x].alertmsg
+	    		def m = noaaData[x].alertmsg =~ /(.|[\r\n]){1,380}\W/
+		    	fullmsg = []
+			    while (m.find()) {
+    			   fullmsg << m.group()
+                }
+                for(i=0;i<fullmsg.size();i++) {
+                    noaaTile = "<center><table width='90%' height='90%'><tr>"
+				    noaaTile += "<td style='text-align: justify;'>"
+                    noaaTile += "<div style='font-size: 15px'> ${fullmsg[i]}</div>" 
+	    			noaaTile += "</td></tr></table>"
+		    		sendEvent(name: "Alerts", value: noaaTile, displayed: true)                
+                    pauseExecution(8000)
+                }
+            }   
+            count = false
+        }
     }
 }
 
