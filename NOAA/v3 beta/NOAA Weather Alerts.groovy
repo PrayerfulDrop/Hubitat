@@ -11,6 +11,7 @@ import java.util.regex.*
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
 import java.util.Date;
+import groovy.time.*
 
 definition(
     name:"NOAA Weather Alerts",
@@ -105,7 +106,7 @@ def ConfigPage() {
 			}
 			input name:"useAlertIntro", type: "bool", title: "Use a pre-notification message for TTS device(s)?", require: false, defaultValue: false, submitOnChange: true
 			if(useAlertIntro) input name:"AlertIntro", type: "text", title: "Alert pre-notification message:", require: false, defaultValue:"Attention, Attention"              
-            input name: "alertCustomMsg", type: "text", title: "Custom Alert Message (use customization instructions):", require: false, defaultValue: "{alertseverity} Weather Alert for the following counties: {alertarea} {alertheadline} This is the end of this Weather Announcement.", submitOnChange: true
+            input name: "alertCustomMsg", type: "text", title: "Custom Alert Message (use customization instructions):", require: false, defaultValue: "{alertseverity} Weather Alert for the following counties: {alertarea} {alertdescription} This is the end of this Weather Announcement.", submitOnChange: true
         }	
         section("Alert Message Customization Instructions:", hideable: true, hidden: true) {
           	paragraph "<b>Alert message variables:</b>"
@@ -241,9 +242,14 @@ def main() {
 		    if (logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
         } else {
              alertNow(state.ListofAlerts[0].alertmsg, false)
-             if(repeatYes) repeatNow()
+            if(repeatYes && state.ListofAlerts[0].alertrepeat==false) {
+                state.repeatmsg = state.ListofAlerts[0].alertmsg
+                state.ListofAlerts[0].alertrepeat=true
+                repeatNow()
+            } else state.repeatmsg = null
+                
 	    }
-    }
+    } else if (logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
     tileNow()
 }
 
@@ -256,7 +262,7 @@ def alertNow(alertmsg, repeatCheck){
    
     // no restrictions
     if(!(result || result2) || result3) {  
-            log.info "Sending alert: ${state.alertmsg}"
+            log.info "Sending alert: ${alertmsg}"
             pushNow(alertmsg, repeatCheck)
 		    if(alertSwitch) { alertSwitch.on() }
 		    talkNow(alertmsg, repeatCheck)  
@@ -270,13 +276,11 @@ def alertNow(alertmsg, repeatCheck){
 }
 
 def repeatNow(){
-    if(logEnable) log.debug "In repeatNow subroutine state.repeat: ${state.repeat}, state.count: ${state.count}, state.num: ${state.num}"
-   
     if(state.repeat) {
-        alertNow(state.alertmsg, true)
+        alertNow(state.repeatmsg, true)
         state.count = state.count + 1
-        if(logEnable) log.debug "Repeating alert in ${state.frequency} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s). Repeat State: ${state.repeat}"
-     } 
+     } else state.repeat = true
+     if(logEnable) log.debug "Repeating alert in ${state.frequency} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s). Repeat State: ${state.repeat}"
     
 	 if(state.num > 0){
 	    state.num = state.num - 1
@@ -292,49 +296,65 @@ def repeatNow(){
 def getAlertMsg() {
     def ListofAlerts = []
     def result = getResponseURL()
-    def date = new Date()
-    SimpleDateFormat objSDF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
-    String timestamp = date.format("yyyy-MM-dd'T'HH:mm:ssXXX")
-    Date currentTS = objSDF.parse(timestamp)
-    state.previousTS = currentTS
-   
-    for(i=0; i<result.data.features.size();i++) {
-        Date alertsent = objSDF.parse(result.data.features[i].properties.sent)
-        Date alerteffective = objSDF.parse(result.data.features[i].properties.effective)
-        Date alertexpires = objSDF.parse(result.data.features[i].properties.expires)
-        if(alertexpires.compareTo(currentTS)>=0) {
-            alertarea = alertFormatArea(result.data.features[i].properties.areaDesc)
-            alertheadline = alertFormatHeadline(result.data.features[i].properties.headline)
-            alertdescription = result.data.features[i].properties.description
-            if(result.data.features[i].properties.instruction==null) alertinstruction = result.data.features[i].properties.description 
-			else alertinstruction = result.data.features[i].properties.instruction      
-            alertmsg = alertCustomMsg
-	        try {alertmsg = alertmsg.replace("{alertarea}","${alertarea}") }
-	        catch (any) {}
-	        try {alertmsg = alertmsg.replace("{alertseverity}","${result.data.features[i].properties.severity}") }
-	        catch (any) {}
-	        try {alertmsg = alertmsg.replace("{alertcertainty}","${result.data.features[i].properties.certainty}") }
-	        catch (any) {}
-	        try {alertmsg = alertmsg.replace("{alerturgency}","${result.data.features[i].properties.urgency}") }
-	        catch (any) {}
-	        try {alertmsg = alertmsg.replace("{alertheadline}","${alertheadline}") }
-	        catch (any) {}
-	        try {alertmsg = alertmsg.replace("{alertdescription}","${alertdescription}") }
-	        catch (any) {}
-	        try {alertmsg = alertmsg.replace("{alertinstruction}","${alertinstruction}") }
-	        catch (any) {}
-	        try {alertmsg = alertmsg.replace("{alertevent}","${result.data.features[i].properties.event}") }
-	        catch (any) {}					
-	        try {alertmsg = alertmsg.replaceAll("\n"," ") }
-	        catch (any) {}
-            try {alertmsg = alertmsg.trim().replaceAll("[ ]{2,}", ", ") }
-            catch (any) {}
-            alertmsg = alertmsg.replaceAll("\\s+", " ")
-            ListofAlerts << [alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:result.data.features[i].properties.description, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]
+    if(result) {
+        def date = new Date()
+        SimpleDateFormat objSDF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
+        String timestamp = date.format("yyyy-MM-dd'T'HH:mm:ssXXX")
+        Date currentTS = objSDF.parse(timestamp)
+        state.previousTS = currentTS
+    
+        for(i=0; i<result.data.features.size();i++) {       
+            found=false
+            Date alertsent = objSDF.parse(result.data.features[i].properties.sent)
+            Date alerteffective = objSDF.parse(result.data.features[i].properties.effective)
+            Date alertexpires = objSDF.parse(result.data.features[i].properties.expires)
+            //if alert has expired ignore alert
+            if(alertexpires.compareTo(currentTS)>=0) {
+            //check to see if alert exists in current alert list.  If so retain alertrepeat information
+                for(x=0;x<state.ListofAlerts.size();x++) {
+                    if(state.ListofAlerts[x].alertid.contains(result.data.features[i].properties.id)) {
+                        found=true
+                        tempalertrepeat=state.ListofAlerts[x].alertrepeat
+                       }
+                 }
+                //build new entry for map
+                alertarea = alertFormatArea(result.data.features[i].properties.areaDesc)
+                alertheadline = alertFormatHeadline(result.data.features[i].properties.headline)
+                alertdescription = result.data.features[i].properties.description
+                if(result.data.features[i].properties.instruction==null) alertinstruction = result.data.features[i].properties.description 
+			    else alertinstruction = result.data.features[i].properties.instruction      
+                alertmsg = alertCustomMsg
+	            try {alertmsg = alertmsg.replace("{alertarea}","${alertarea}") }
+	            catch (any) {}
+	            try {alertmsg = alertmsg.replace("{alertseverity}","${result.data.features[i].properties.severity}") }
+	            catch (any) {}
+	            try {alertmsg = alertmsg.replace("{alertcertainty}","${result.data.features[i].properties.certainty}") }
+	            catch (any) {}
+	            try {alertmsg = alertmsg.replace("{alerturgency}","${result.data.features[i].properties.urgency}") }
+	            catch (any) {}
+	            try {alertmsg = alertmsg.replace("{alertheadline}","${alertheadline}") }
+	            catch (any) {}
+	            try {alertmsg = alertmsg.replace("{alertdescription}","${alertdescription}") }
+	            catch (any) {}
+	            try {alertmsg = alertmsg.replace("{alertinstruction}","${alertinstruction}") }
+	            catch (any) {}
+	            try {alertmsg = alertmsg.replace("{alertevent}","${result.data.features[i].properties.event}") }
+	            catch (any) {}					
+	            try {alertmsg = alertmsg.replaceAll("\n"," ") }
+	            catch (any) {}
+                try {alertmsg = alertmsg.trim().replaceAll("[ ]{2,}", ", ") }
+                catch (any) {}
+                alertmsg = alertmsg.replaceAll("\\s+", " ")
+            
+                if(found) ListofAlerts << [alertrepeat:tempalertrepeat, alertid:result.data.features[i].properties.id, alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:result.data.features[i].properties.description, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]                  
+                else ListofAlerts << [alertrepeat:false, alertid:result.data.features[i].properties.id, alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:result.data.features[i].properties.description, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]
+            }
         }
+        if(ListofAlerts==null) state.ListofAlerts = null
+        else state.ListofAlerts = ListofAlerts        
     }
-    if(ListofAlerts==null) state.ListofAlerts = null
-    else state.ListofAlerts = ListofAlerts
+    
+
 }                    
 
 def alertFormatHeadline(alertheadline) {
@@ -626,16 +646,10 @@ def pushNow(alertmsg, repeatCheck) {
 def tileNow() {
     noaaTileDevice = getChildDevice("NOAA")
 	if(noaaTileDevice) {
-        if(!state.ListofAlerts==null) {
-            log.debug "creating tile msg"
-            int count = 1
-            int size = state.ListofAlerts.size()
-            size = size
-            def msg = ""
+        if(state.ListofAlerts) {
+            msg = []
             for(x=0;x<state.ListofAlerts.size();x++) {
-                //msg += msg + "${state.ListofAlerts[x].alertmsg}\nAlert ${count}/${size}"
-                msg += "Alert ${count}/${size} - ${state.ListofAlerts[x].alertmsg}\n"
-                count = count + 1
+                msg << [alertmsg:state.ListofAlerts[x].alertmsg]
             }
         } 
         if (logEnable) log.info "Message sent to NOAA Tile device."
@@ -677,7 +691,7 @@ def getResponseURL() {
 		state.latitude = "${location.latitude}"
 		state.longitude = "${location.longitude}"
 	}
-    
+
 	// Build out the API options
 	if(whatAlertUrgency != null) wxURI = wxURI + "&urgency=${whatAlertUrgency.join(",")}"
     if(whatAlertSeverity != null) wxURI = wxURI + "&severity=${whatAlertSeverity.join(",")}"
@@ -686,7 +700,7 @@ def getResponseURL() {
 	if(myWeatherAlert != null) wxURI = wxURI + "&code=${myWeatherAlert.join(",")}"
 	state.wxURI = wxURI
 	if (logEnable) log.debug "URI: ${wxURI}"
-    wxURI = "https://api.weather.gov/alerts?point=44.302018%2C-92.674947&status=actual&message_type=alert&severity=minor,moderate,severe,extreme"
+
 
     if (logEnable) log.debug "Connecting to weather.gov service."
     def requestParams =	[ 
@@ -699,7 +713,7 @@ def getResponseURL() {
 	try {
         httpGet(requestParams)	{ response -> result = response }
     }
-    catch (e) { log.error "${e}" }
+    catch (e) { log.error "Could not connect to weather.gov API - ${e}" }
     return result
 }
 
