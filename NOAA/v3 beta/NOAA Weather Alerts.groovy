@@ -1,4 +1,4 @@
-/*  **************** NOAA Weather Alerts 3.0 ****************
+/*  **************** NOAA Weather Alerts ****************
  *
  *  Hubitat Import URL: https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy
  *
