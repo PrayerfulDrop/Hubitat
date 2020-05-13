@@ -45,7 +45,7 @@ metadata {
 
 def initialize() {
 	log.info "NOAA Tile Driver Initializing."
-	refresh()
+	refresh()  
     sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
@@ -63,6 +63,7 @@ def refresh() {
     log.info "NOAA Tile has been updated."
 	state.clear()
     state.noaaDataPast=null
+    state.looper = false
     sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
