@@ -31,6 +31,7 @@ metadata {
 		)
 		{
 		command "sendNoaaTile", ["string"]
+        command "initialize"
 		capability "Actuator"
 		capability "Refresh"
     	attribute "Alerts", "string"
@@ -45,6 +46,7 @@ metadata {
 def initialize() {
 	log.info "NOAA Tile Driver Initializing."
 	refresh()
+    sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
 def updated() {
@@ -60,6 +62,8 @@ def refresh() {
 	if (logEnable) runIn(900,logsOff)
     log.info "NOAA Tile has been updated."
 	state.clear()
+    state.noaaDataPast=null
+    sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
 def logsOff(){
@@ -70,37 +74,32 @@ def logsOff(){
 
 def sendNoaaTile(noaaData) {
     if(logEnable) log.info "Received weather alert from NOAA App."
-    
-    if(noaaData==null || noaaData=="") {
-        noaaTile = "<center><table width='90%' height='90%'><tr>"
-		noaaTile += "<td style='text-align:center;'>"
-        noaaTile += "<div style='font-size: 15px'>No weather alerts to report.</div>" 
-	    noaaTile += "</td></tr></table>"
-		sendEvent(name: "Alerts", value: noaaTile, displayed: true)         
-    } else {
-        count = true
-        messageSize=300
-        fullalert = []
-        log.error noaaData
-        while(count) {
-            for(x=0;x<noaaData.size();x++) {
-                log.debug noaaData[x].alertmsg
-	    		def m = noaaData[x].alertmsg =~ /(.|[\r\n]){1,380}\W/
+
+    if(!noaaData.contains(state.noaaDataPast) || !state.looper) {
+        if(noaaData == null || noaaData == "") sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)       
+        else {
+            state.looper = true
+            state.noaaDataPast = noaaData
+            messageSize = 300
+            fullalert = []
+            for(x=0;x<state.noaaDataPast.size();x++) {
+	    		m = state.noaaDataPast[x].alertmsg =~ /(.|[\r\n]){1,300}\W/
 		    	fullmsg = []
 			    while (m.find()) {
     			   fullmsg << m.group()
                 }
                 for(i=0;i<fullmsg.size();i++) {
-                    noaaTile = "<center><table border=0 width='90%' height='90%'><thead><tr><th style='vertical-align:bottot;text-align: left;'><font style='font-size:15px;text-decoration:underline;'>"
-                    if(i==0) noaaTile += "Alert ${x}/${noaaData.size()}"
-                    else "Alert ${x}/${noaaData.size()} (continued)"
-				    noaaTile += "</font></th></tr></thead><tbody><tr><td style='text-align: justify;'><font style='font-size: 15px'> ${fullmsg[i]}</font>"
-	    			noaaTile += "</td></tr></tbody></table>"
-		    		sendEvent(name: "Alerts", value: noaaTile, displayed: true)                
-                    pauseExecution(8000)
+                    noaaTile = "<center><table><tr style='border-bottom: 1px solid #FFFFFF'><td style='height:16px;vertical-align:bottom;text-align: left;'><font style='font-size:15px;'>"
+                    if(i==0) noaaTile += "Alert ${x+1}/${state.noaaDataPast.size()}"
+                    else noaaTile += "Alert ${x+1}/${state.noaaDataPast.size()} (continued)"
+				    noaaTile += "</font></td></tr><tr><td style='heigh:80px;text-align: left;'><font style='font-size: 15px'> ${fullmsg[i]}</font>"
+	    			noaaTile += "</td></tr></table></center>"
+		    		sendEvent(name: "Alerts", value: noaaTile, displayed: true)      
+                    pauseExecution(7000)
                 }
-            }   
-            count = false
+            } 
+            sendEvent(name: "Alerts", value: "End of Alerts", displayed: true)
+            state.looper = false
         }
     }
 }
