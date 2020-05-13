@@ -332,12 +332,14 @@ def getAlertMsg() {
             //if alert has expired ignore alert
             if(alertexpires.compareTo(currentTS)>=0) {
             //check to see if alert exists in current alert list.  If so retain alertrepeat information
+            if(state.ListofAlerts) {
                 for(x=0;x<state.ListofAlerts.size();x++) {
                     if(state.ListofAlerts[x].alertid.contains(result.data.features[i].properties.id)) {
                         found=true
                         tempalertrepeat=state.ListofAlerts[x].alertrepeat
                        }
                  }
+            }
                 //build new entry for map
                 alertarea = alertFormatArea(result.data.features[i].properties.areaDesc)
                 alertheadline = alertFormatHeadline(result.data.features[i].properties.headline)
@@ -738,9 +740,12 @@ def getResponseURL() {
 }
 
 def checkState() {
-    if(whatPoll==null) whatPoll=5
+    if(whatPoll==null) whatPoll = 5
     if(logEnable==null) logEnable = true
-    if(logMinutes==null) logMinutes=15
+    if(logMinutes==null) logMinutes = 15
+    //if(whatAlertSeverity==null) whatAlertSeverity = "Severe"
+    //if(alertCustomMsg==null) alertCustomMsg = "{alertseverity} Weather Alert for the following counties: {alertarea} {alertdescription} This is the end of this Weather Announcement."
+    
     if(repeatTimes==null || repeatMinutes==null) {
         if(repeatTimes==null) { state.num = 1 
                              } else { state.num = repeatTimes.toInteger()
