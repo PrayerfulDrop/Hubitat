@@ -45,7 +45,7 @@ metadata {
 
 def initialize() {
 	log.info "NOAA Tile Driver Initializing."
-	refresh()  
+	refresh()
     sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
@@ -63,7 +63,6 @@ def refresh() {
     log.info "NOAA Tile has been updated."
 	state.clear()
     state.noaaDataPast=null
-    state.looper = false
     sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
@@ -75,10 +74,9 @@ def logsOff(){
 
 def sendNoaaTile(noaaData) {
     if(logEnable) log.info "Received weather alert from NOAA App."
-
-    if(!noaaData.contains(state.noaaDataPast) || !state.looper) {
-        if(noaaData == null || noaaData == "") sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)       
-        else {
+    if(noaaData == null || noaaData == "") sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
+    else {
+        if(!noaaData.contains(state.noaaDataPast) || !state.looper) {
             state.looper = true
             state.noaaDataPast = noaaData
             messageSize = 300
