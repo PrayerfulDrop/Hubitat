@@ -227,12 +227,15 @@ def SettingsPage() {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
                     runtestAlert()
 				}
- 				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
+ 				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: false, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true 
             
-            input "init", "bool", title: "Initialize?", required: false, defaultValue: false, submitOnChange: true
+            input "init", "bool", title: "Reset current application state?", required: false, defaultValue: false, submitOnChange: true
             if(init) {
                 app?.updateSetting("init",[value:"false",type:"bool"])
+                atomicState.ListofAlerts = ""
+                state.repeat = false
+                log.warn "NOAA Weather Alerts application state has been reset."
                 initialize()
             }
                 
@@ -258,14 +261,14 @@ def SettingsPage() {
 def main() {
     // Get the alert message
 	getAlertMsg()	
-    if(state.ListofAlerts) {
-	    if(state.ListofAlerts[0].alertAnnounced) { 
+    if(atomicState.ListofAlerts) {
+	    if(atomicState.ListofAlerts[0].alertAnnounced) { 
 		    if (logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
         } else {
-             state.ListofAlerts[0].alertAnnounced=true
-             alertNow(state.ListofAlerts[0].alertmsg, false)
-            if(repeatYes && state.ListofAlerts[0].alertrepeat==false) {
-                state.repeatmsg = state.ListofAlerts[0].alertmsg
+             atomicState.ListofAlerts[0].alertAnnounced=true
+             alertNow(atomicState.ListofAlerts[0].alertmsg, false)
+            if(repeatYes && atomicState.ListofAlerts[0].alertrepeat==false) {
+                state.repeatmsg = atomicState.ListofAlerts[0].alertmsg
                 repeatNow()
             } else state.repeatmsg = null
                 
@@ -333,11 +336,11 @@ def getAlertMsg() {
             //if alert has expired ignore alert
             if(alertexpires.compareTo(currentTS)>=0) {
             //check to see if alert exists in current alert list.  If so retain alertrepeat information
-            if(state.ListofAlerts) {
-                for(x=0;x<state.ListofAlerts.size();x++) {
-                    if(state.ListofAlerts[x].alertid.contains(result.data.features[i].properties.id)) {
+            if(atomicState.ListofAlerts) {
+                for(x=0;x<atomicState.ListofAlerts.size();x++) {
+                    if(atomicState.ListofAlerts[x].alertid.contains(result.data.features[i].properties.id)) {
                         found=true
-                        tempalertAnnounced=state.ListofAlerts[x].alertAnnounced
+                        tempalertAnnounced=atomicState.ListofAlerts[x].alertAnnounced
                        }
                  }
             }
@@ -353,7 +356,6 @@ def getAlertMsg() {
                 alertdescription = alertFormatStates(alertdescription)
                 alertdescription = alertRemoveTimeZone(alertdescription)
                 alertdescription = alertFormatText(alertdescription)
-            log.debug alertdescription
                 if(result.data.features[i].properties.instruction==null) alertinstruction = alertdescription
                 else { 
                     alertinstruction = result.data.features[i].properties.instruction
@@ -388,8 +390,8 @@ def getAlertMsg() {
                 else ListofAlerts << [alertAnnounced:false, alertid:result.data.features[i].properties.id, alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:alertdescription, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]
             }
         }
-        if(ListofAlerts==null) state.ListofAlerts = null
-        else state.ListofAlerts = ListofAlerts        
+        if(ListofAlerts==null) atomicState.ListofAlerts = null
+        else atomicState.ListofAlerts = ListofAlerts        
     }
     
 
@@ -603,6 +605,7 @@ def talkNow(alertmsg, repeatCheck) {
 
 def pushNow(alertmsg, repeatCheck) {
 	if (pushovertts) {
+        fullalert = []
 	    if (logEnable) log.debug "Sending Pushover message."
         if(repeatCheck) {
             if(repeatTimes.toInteger()>1){ 
@@ -612,22 +615,14 @@ def pushNow(alertmsg, repeatCheck) {
             }
         }
 	    def m = alertmsg =~ /(.|[\r\n]){1,1023}\W/
-	    def n = alertmsg =~ /(.|[\r\n]){1,1023}\W/
-	    def index = 0
-	    def index2 = 1
 	   	while (m.find()) {
-	   	   index = index + 1
+            fullalert << m.group()
 	    }
 
-		while(n.find()) {
-			fullMsg1 = n.group()
-            if(index>1) {
-			    pushoverdevice.deviceNotification("(${index2}/${index}) ${fullMsg1}")
-            } else {
-                pushoverdevice.deviceNotification("${fullMsg1}")
-            }
-			index2 = index2 + 1
-			pauseExecution(1000)
+		for(x=0;x<fullalert.size();x++) {
+            if(fullalert.size()>1) pushoverdevice.deviceNotification("(${x+1}/${fullalert.size()}) ${fullalert[x]}")
+            else pushoverdevice.deviceNotification("${fullalert[x]}")
+            pauseExecution(1000)
         } 
 	}
 }
@@ -638,9 +633,9 @@ def tileNow(testmsg) {
         msg = []
         if(testmsg) msg << [alertmsg:state.repeatmsg]
         else {
-            if(state.ListofAlerts) {
-                for(x=0;x<state.ListofAlerts.size();x++) {
-                    msg << [alertmsg:state.ListofAlerts[x].alertmsg]
+            if(atomicState.ListofAlerts) {
+                for(x=0;x<atomicState.ListofAlerts.size();x++) {
+                    msg << [alertmsg:atomicState.ListofAlerts[x].alertmsg]
                 }   
             }
         }
@@ -673,8 +668,6 @@ def cleanupChildDevices()
 
 // Application Support Routines
 def getResponseURL() {
-    def result = null
-    
 	// Determine if custom coordinates have been selected
 	if(useCustomCords) {
 		latitude = "${customlatitude}"
@@ -699,15 +692,14 @@ def getResponseURL() {
     def requestParams =	[ 
         uri: wxURI,
         requestContentType: "application/json",
-        contentType: "application/json",
-        timeout: 300
+        contentType: "application/json"
     ]
 	
 	try {
-        httpGet(requestParams)	{ response -> result = response }
+        httpGet(requestParams)	{ response -> }
     }
-    catch (e) { log.error "Could not connect to weather.gov API - ${e}" }
-    return result
+    catch (e) { log.warn "Weather.gov API did not respond to JSON request." }
+    return response
 }
 
 def checkState() {
@@ -728,8 +720,7 @@ def checkState() {
         state.frequency = repeatMinutes.toInteger()
     }
     state.count = 0
-    state.repeat = false
-    state.resettileAlert = false
+    if(!state.repeat) state.repeatmsg = ""
 }
 
 def installCheck(){     
