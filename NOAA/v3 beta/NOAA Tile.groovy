@@ -74,8 +74,7 @@ def logsOff(){
 
 def sendNoaaTile(noaaData) {
     if(logEnable) log.info "Received weather alert from NOAA App."
-    log.debug noaaData
-    if(noaaData == null || noaaData == "") {
+    if(!noaaData) {
         state.noaaDataPast = noaaData
         sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
     } else {
