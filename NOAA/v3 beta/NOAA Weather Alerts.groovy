@@ -674,16 +674,18 @@ def cleanupChildDevices()
 // Application Support Routines
 def getResponseURL() {
     def result = null
-	def wxURI = "https://api.weather.gov/alerts?point=${state.latitude}%2C${state.longitude}&status=actual&message_type=alert"
     
 	// Determine if custom coordinates have been selected
+    log.debug useCustomCords
 	if(useCustomCords) {
-		state.latitude = "${customlatitude}"
-		state.longitude = "${customlongitude}"
+		latitude = "${customlatitude}"
+		longitude = "${customlongitude}"
 	} else {
-		state.latitude = "${location.latitude}"
-		state.longitude = "${location.longitude}"
+		latitude = "${location.latitude}"
+		longitude = "${location.longitude}"
 	}
+    
+	def wxURI = "https://api.weather.gov/alerts?point=${latitude}%2C${longitude}&status=actual&message_type=alert"    
 
 	// Build out the API options
 	if(whatAlertUrgency != null) wxURI = wxURI + "&urgency=${whatAlertUrgency.join(",")}"
