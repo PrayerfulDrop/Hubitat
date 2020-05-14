@@ -230,7 +230,7 @@ def SettingsPage() {
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true 
             
-            input "init", "bool", title: "Initialize?", required: false, defaultValue: false, submitOnChange: true
+            //input "init", "bool", title: "Initialize?", required: false, defaultValue: false, submitOnChange: true
             if(init) {
                 app?.updateSetting("init",[value:"false",type:"bool"])
                 initialize()
@@ -265,13 +265,12 @@ def main() {
              alertNow(state.ListofAlerts[0].alertmsg, false)
             if(repeatYes && state.ListofAlerts[0].alertrepeat==false) {
                 state.repeatmsg = state.ListofAlerts[0].alertmsg
-                state.ListofAlerts[0].alertrepeat=true
                 repeatNow()
             } else state.repeatmsg = null
                 
 	    }
     } else if (logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
-    tileNow()
+    tileNow(false)
 }
 
 def alertNow(alertmsg, repeatCheck){
@@ -301,11 +300,11 @@ def repeatNow(){
         alertNow(state.repeatmsg, true)
         state.count = state.count + 1
      } else state.repeat = true
-     if(logEnable) log.debug "Repeating alert in ${state.frequency} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s). Repeat State: ${state.repeat}"
+     if(logEnable) log.debug "Repeating alert in ${repeatMinutes} minute(s).  This is ${state.count}/${repeatTimes} repeated alert(s). Repeat State: ${state.repeat}"
     
 	 if(state.num > 0){
 	    state.num = state.num - 1
-        runIn(state.frequency*60,repeatNow)
+        runIn(repeatMinutes.toInteger()*60,repeatNow)
      } else { 
         if(logEnable) log.debug "Finished repeating alerts."
         state.count = 0
@@ -520,13 +519,10 @@ def alertFormatArea(alertarea) {
 //Test Alert Section
 def runtestAlert() {
     if (logEnable) log.debug "Initiating a test alert."
-    state.alertmsg=buildTestAlert()
-    alertNow(state.alertmsg, false)
+    state.repeatmsg=buildTestAlert()
+    alertNow(state.repeatmsg, false)
     if(repeatYes==true) repeatNow()
-     else {
-       	if (logEnable) log.debug "Resetting NOAA Tile in ${noaaTileReset} minutes."
-	    runIn((60*noaaTileReset.toInteger()),tileReset)
-     }
+    tileNow(true)
 }
 
 def buildTestAlert() {
@@ -666,18 +662,22 @@ def pushNow(alertmsg, repeatCheck) {
 	}
 }
 
-def tileNow() {
+def tileNow(testmsg) {
     noaaTileDevice = getChildDevice("NOAA")
 	if(noaaTileDevice) {
-        if(state.ListofAlerts) {
-            msg = []
-            for(x=0;x<state.ListofAlerts.size();x++) {
-                msg << [alertmsg:state.ListofAlerts[x].alertmsg]
-            }
-        } 
+        msg = []
+        if(testmsg) msg << [alertmsg:state.repeatmsg]
+        else {
+            if(state.ListofAlerts) {
+                for(x=0;x<state.ListofAlerts.size();x++) {
+                    msg << [alertmsg:state.ListofAlerts[x].alertmsg]
+                }
+            } 
+        }
         if (logEnable) log.info "Message sent to NOAA Tile device."
 		noaaTileDevice.sendNoaaTile(msg)
-	}
+
+    }
 }
 
 // Device creation and status updhandlers
@@ -743,8 +743,8 @@ def checkState() {
     if(whatPoll==null) whatPoll = 5
     if(logEnable==null) logEnable = true
     if(logMinutes==null) logMinutes = 15
-    //if(whatAlertSeverity==null) whatAlertSeverity = "Severe"
-    //if(alertCustomMsg==null) alertCustomMsg = "{alertseverity} Weather Alert for the following counties: {alertarea} {alertdescription} This is the end of this Weather Announcement."
+    if(whatAlertSeverity==null) whatAlertSeverity = "Severe"
+    if(alertCustomMsg==null) alertCustomMsg = "{alertseverity} Weather Alert for the following counties: {alertarea} {alertdescription} This is the end of this Weather Announcement."
     
     if(repeatTimes==null || repeatMinutes==null) {
         if(repeatTimes==null) { state.num = 1 
