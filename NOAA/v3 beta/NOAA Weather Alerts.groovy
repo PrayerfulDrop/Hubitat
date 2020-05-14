@@ -676,7 +676,6 @@ def getResponseURL() {
     def result = null
     
 	// Determine if custom coordinates have been selected
-    log.debug useCustomCords
 	if(useCustomCords) {
 		latitude = "${customlatitude}"
 		longitude = "${customlongitude}"
