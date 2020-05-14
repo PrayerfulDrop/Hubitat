@@ -82,10 +82,10 @@ def sendNoaaTile(noaaData) {
         if(!noaaData.contains(state.noaaDataPast) || !state.looper) {
             state.looper = true
             state.noaaDataPast = noaaData
-            messageSize = 300
+            messageSize = 380
             fullalert = []
             for(x=0;x<state.noaaDataPast.size();x++) {
-	    		m = state.noaaDataPast[x].alertmsg =~ /(.|[\r\n]){1,300}\W/
+	    		m = state.noaaDataPast[x].alertmsg =~ /(.|[\r\n]){1,380}\W/
 		    	fullmsg = []
 			    while (m.find()) {
     			   fullmsg << m.group()
