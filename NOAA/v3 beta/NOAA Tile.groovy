@@ -74,9 +74,12 @@ def logsOff(){
 
 def sendNoaaTile(noaaData) {
     if(logEnable) log.info "Received weather alert from NOAA App."
-    
-    if(noaaData == null || noaaData == "") sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
-    else {
+    log.debug noaaData
+    if(noaaData == null || noaaData == "") {
+        state.noaaDataPast = noaaData
+        sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
+    } else {
+        if(state.noaaDataPast==null || state.noaaDataPast=="") state.noaaDataPast=[]
         if(!noaaData.contains(state.noaaDataPast) || !state.looper) {
             state.looper = true
             state.noaaDataPast = noaaData
@@ -99,7 +102,6 @@ def sendNoaaTile(noaaData) {
                     pauseExecution(7000)
                 }
             } 
-            sendEvent(name: "Alerts", value: "End of Alerts", displayed: true)
             state.looper = false
         }
     }
