@@ -230,7 +230,7 @@ def SettingsPage() {
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: true, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true 
             
-            //input "init", "bool", title: "Initialize?", required: false, defaultValue: false, submitOnChange: true
+            input "init", "bool", title: "Initialize?", required: false, defaultValue: false, submitOnChange: true
             if(init) {
                 app?.updateSetting("init",[value:"false",type:"bool"])
                 initialize()
@@ -671,8 +671,8 @@ def tileNow(testmsg) {
             if(state.ListofAlerts) {
                 for(x=0;x<state.ListofAlerts.size();x++) {
                     msg << [alertmsg:state.ListofAlerts[x].alertmsg]
-                }
-            } 
+                }   
+            }
         }
         if (logEnable) log.info "Message sent to NOAA Tile device."
 		noaaTileDevice.sendNoaaTile(msg)
