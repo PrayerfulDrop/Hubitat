@@ -74,6 +74,7 @@ def logsOff(){
 
 def sendNoaaTile(noaaData) {
     if(logEnable) log.info "Received weather alert from NOAA App."
+    
     if(noaaData == null || noaaData == "") sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
     else {
         if(!noaaData.contains(state.noaaDataPast) || !state.looper) {
@@ -88,11 +89,12 @@ def sendNoaaTile(noaaData) {
     			   fullmsg << m.group()
                 }
                 for(i=0;i<fullmsg.size();i++) {
-                    noaaTile = "<center><table><tr style='border-bottom: 1px solid #FFFFFF'><td style='height:16px;vertical-align:bottom;text-align: left;'><font style='font-size:15px;'>"
+                    noaaTile = "<div style='position: absolute;top:2px; left:10px; right:10px;width:100%; height:100px;' ><table style='width:97%'><tr><td valign='bottom' style='text-align:left; border-bottom: medium solid #FFFFFF;width: 100%; height:16px'><font style='font-size:15px;'>"
                     if(i==0) noaaTile += "Alert ${x+1}/${state.noaaDataPast.size()}"
                     else noaaTile += "Alert ${x+1}/${state.noaaDataPast.size()} (continued)"
-				    noaaTile += "</font></td></tr><tr><td style='heigh:80px;text-align: left;'><font style='font-size: 15px'> ${fullmsg[i]}</font>"
-	    			noaaTile += "</td></tr></table></center>"
+				    noaaTile += "</font></td></tr><tr><td valign='top' style='width:90%; height:100px; text-align:left; border-top-style:none; border-top-width:medium;'><font style='font-size: 15px'>"
+                    noaaTile += "${fullmsg[i]}"
+	    			noaaTile += "</font></td></tr></table></center>"
 		    		sendEvent(name: "Alerts", value: noaaTile, displayed: true)      
                     pauseExecution(7000)
                 }
