@@ -221,21 +221,21 @@ def SettingsPage() {
             paragraph UIsupport("header", " Settings")
        			label title: "Custom Application Name (for multiple instances of NOAA):", required: false            
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
-				if(runTest) {
-					app?.updateSetting("runTest",[value:"false",type:"bool"])
-                    runtestAlert()
-				}
+
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: false, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true 
-            
-            input "init", "bool", title: "Reset current application state?", required: false, defaultValue: false, submitOnChange: true
-            if(init) {
-                app?.updateSetting("init",[value:"false",type:"bool"])
-                atomicState.ListofAlerts = ""
-                state.repeat = false
-                log.warn "NOAA Weather Alerts application state has been reset."
-                initialize()
-            }
+ 				if(runTest) {
+					app?.updateSetting("runTest",[value:"false",type:"bool"])
+                    runtestAlert()
+				}           
+                input "init", "bool", title: "Reset current application state?", required: false, defaultValue: false, submitOnChange: true
+                if(init) {
+                    app?.updateSetting("init",[value:"false",type:"bool"])
+                    atomicState.ListofAlerts = ""
+                    state.repeat = false
+                    log.warn "NOAA Weather Alerts application state has been reset."
+                    initialize()
+                }
                 
 				input "getAPI", "bool", title: "Test above configuration and display current weather.gov API response?", required: false, defaultValue: false, submitOnChange: true
 				if(getAPI) {
