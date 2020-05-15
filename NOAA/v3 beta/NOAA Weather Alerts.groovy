@@ -52,10 +52,17 @@ def mainPage() {
         installCheck()
         if(state.appInstalled == 'COMPLETE') {
             section(UIsupport("logo","")) {
-                href(name: "NotificationPage", title: "Setup Notification Device(s)", required: false, page: "NotificationPage", description: "Select TTS and PushOver Devices")
-			    href(name: "ConfigPage", title: "Weather Alert Settings", required: false, page: "ConfigPage", description: "Change default settings for weather alerts to monitor")
-			    href(name: "AdvConfigPage", title: "Advanced Alert Settings", required: false, page: "AdvConfigPage", description: "Add additional detailed weather settings to monitor")
-			    href(name: "RestrictionsPage", title: "Restrictions", required: false, page: "RestrictionsPage", description: "Setup restriction options")
+                if(pushovertts || musicmode || speechmode || echoSpeaks2) href(name: "NotificationPage", title: "${UIsupport("configured","")} Setup Notification Device(s)", required: false, page: "NotificationPage", description: "Select TTS and PushOver Devices")
+                else href(name: "NotificationPage", title: "${UIsupport("attention","")} Setup Notification Device(s)", required: false, page: "NotificationPage", description: "Select TTS and PushOver Devices")
+			    
+                if(whatAlertSeverity || whatPoll || alertCustomMsg) href(name: "ConfigPage", title: "${UIsupport("configured","")} Weather Alert Settings", required: false, page: "ConfigPage", description: "Change default settings for weather alerts to monitor")
+                else  href(name: "ConfigPage", title: "${UIsupport("attention","")} Weather Alert Settings", required: false, page: "ConfigPage", description: "Change default settings for weather alerts to monitor")
+			    
+                if(myWeatherAlert || whatAlertUrgency || whatAlertCertainty) href(name: "AdvConfigPage", title: "${UIsupport("configured","")} Advanced Alert Settings", required: false, page: "AdvConfigPage", description: "Add additional detailed weather settings to monitor")
+                else href(name: "AdvConfigPage", title: "Advanced Alert Settings", required: false, page: "AdvConfigPage", description: "Add additional detailed weather settings to monitor")
+			    
+                if(modeYes || switchYes || modeSeverityYes || pushoverttsalways) href(name: "RestrictionsPage", title: "${UIsupport("configured","")} Restrictions", required: false, page: "RestrictionsPage", description: "Setup restriction options")
+                else href(name: "RestrictionsPage", title: "Restrictions", required: false, page: "RestrictionsPage", description: "Setup restriction options")
                 href(name: "SettingsPage", title: "Settings", required: false, page: "SettingsPage", description: "Modify NOAA Weather Alerts Application Settings")
                 paragraph UIsupport("line","")
                 paragraph UIsupport("footer","")
@@ -196,8 +203,8 @@ def RestrictionsPage() {
             if(modesYes) input(name:"modes", type: "mode", title: "Restrict notifications when current mode is:", multiple: true, required: false, submitOnChange: true)
             input "switchYes", "bool", title: "Restrict notifications using a switch?", required: true, defaultValue: false, submitOnChange: true
             if(switchYes) input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict notfications?", required: false, multiple: false, defaultValue: null, submitOnChange: true
-            input "modeSeverityYes", "bool", title: "Ignore restrictions for certain severity types?", required: true, defaultValue: false, submitOnChange: true	          
             if(pushovertts) input "pushoverttsalways ", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
+            input "modeSeverityYes", "bool", title: "Ignore restrictions for certain severity types?", required: true, defaultValue: false, submitOnChange: true	          
             if (modeSeverityYes) input name: "modeSeverity", type: "enum", title: "Severity option(s) that will ignore restrictions: ", 
 		        options: [
 						"minor": "Minor",
@@ -751,6 +758,12 @@ def UIsupport(type, txt) {
             break
         case "footer":
             return "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>App/Driver v${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
+            break
+        case "configured":
+            return "<img border=0 style='max-width:15px' src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/support/images/Checked.svg'>"
+            break
+        case "attention":
+            return "<img border=0 style='max-width:15px' src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/support/images/Attention.svg'>"
             break
     }
 }
