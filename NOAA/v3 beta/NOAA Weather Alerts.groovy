@@ -26,14 +26,6 @@ def version() {
     return version
 }
 
-import groovy.transform.Field
-import groovy.json.*
-import java.util.regex.*
-import java.text.SimpleDateFormat;
-import java.text.ParseException;
-import java.util.Date;
-import groovy.time.*
-
 definition(
     name:"NOAA Weather Alerts",
     namespace: "aaronward",
@@ -58,7 +50,7 @@ preferences {
 def mainPage() {
     dynamicPage(name: "mainPage") {
         installCheck()
-        if(state.appInstalled == 'COMPLETE'){
+        if(state.appInstalled == 'COMPLETE') {
             section(UIsupport("logo","")) {
                 href(name: "NotificationPage", title: "Setup Notification Device(s)", required: false, page: "NotificationPage", description: "Select TTS and PushOver Devices")
 			    href(name: "ConfigPage", title: "Weather Alert Settings", required: false, page: "ConfigPage", description: "Change default settings for weather alerts to monitor")
@@ -98,7 +90,6 @@ def NotificationPage() {
 				
 				// Switch to set when alert active
 				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false, submitOnChange: true)
-
         }
     }
 }
@@ -263,26 +254,26 @@ def main() {
 	getAlertMsg()	
     if(atomicState.ListofAlerts) {
 	    if(atomicState.ListofAlerts[0].alertAnnounced) { 
-		    if (logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+		    if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
         } else {
-             atomicState.ListofAlerts[0].alertAnnounced=true
+             atomicState.ListofAlerts[0].alertAnnounced = true
              alertNow(atomicState.ListofAlerts[0].alertmsg, false)
-            if(repeatYes && atomicState.ListofAlerts[0].alertrepeat==false) {
+            if(repeatYes && atomicState.ListofAlerts[0].alertrepeat == false) {
                 state.repeatmsg = atomicState.ListofAlerts[0].alertmsg
                 repeatNow()
             } else state.repeatmsg = null
                 
 	    }
-    } else if (logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+    } else if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
     tileNow(false)
 }
 
 def alertNow(alertmsg, repeatCheck){
 	// check restrictions based on Modes and Switches
     def result = (switchYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
-    def result2 =    ( modesYes && modes !=null && modes.contains(location.mode)) ? true : false
+    def result2 = (modesYes && modes !=null && modes.contains(location.mode)) ? true : false
     def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(state.alertseverity.toLowerCase())) ? true : false
-    if (logEnable) log.debug "Restrictions on?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}"
+    if(logEnable) log.debug "Restrictions on?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}"
    
     // no restrictions
     if(!(result || result2) || result3) {  
@@ -326,10 +317,9 @@ def getAlertMsg() {
         SimpleDateFormat objSDF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
         String timestamp = date.format("yyyy-MM-dd'T'HH:mm:ssXXX")
         Date currentTS = objSDF.parse(timestamp)
-        state.previousTS = currentTS
     
         for(i=0; i<result.data.features.size();i++) {       
-            found=false
+            found = false
             Date alertsent = objSDF.parse(result.data.features[i].properties.sent)
             Date alerteffective = objSDF.parse(result.data.features[i].properties.effective)
             Date alertexpires = objSDF.parse(result.data.features[i].properties.expires)
@@ -339,8 +329,8 @@ def getAlertMsg() {
             if(atomicState.ListofAlerts) {
                 for(x=0;x<atomicState.ListofAlerts.size();x++) {
                     if(atomicState.ListofAlerts[x].alertid.contains(result.data.features[i].properties.id)) {
-                        found=true
-                        tempalertAnnounced=atomicState.ListofAlerts[x].alertAnnounced
+                        found = true
+                        tempalertAnnounced = atomicState.ListofAlerts[x].alertAnnounced
                        }
                  }
             }
@@ -490,7 +480,7 @@ def alertFormatArea(msg) {
 
 //Test Alert Section
 def runtestAlert() {
-    if (logEnable) log.debug "Initiating a test alert."
+    if(logEnable) log.debug "Initiating a test alert."
     state.repeatmsg=buildTestAlert()
     alertNow(state.repeatmsg, false)
     if(repeatYes==true) repeatNow()
@@ -498,124 +488,92 @@ def runtestAlert() {
 }
 
 def buildTestAlert() {
-					alertmsg = alertCustomMsg
-					try {alertmsg = alertmsg.replace("{alertarea}","Springfield County.") }
-						 catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertseverity}","Severe") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertcertainty}","Likely") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alerturgency}","Immediate") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertheadline}","The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertdescription}","The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console.  Also a notorius yellow haired boy is terrorizing animals with spit wads.  Be on the look out for suspicious activity.") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertinstruction}","Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console.") }
-						catch (any) {}
-					try {alertmsg = alertmsg.replace("{alertevent}","Nuclear Power Plant Warning") }
-						catch (any) {}
-					return alertmsg
+    alertmsg = alertCustomMsg
+	try { alertmsg = alertmsg.replace("{alertarea}","Springfield County.") }
+	catch (any) {}
+	try { alertmsg = alertmsg.replace("{alertseverity}","Severe") }
+	catch (any) {}
+	try { alertmsg = alertmsg.replace("{alertcertainty}","Likely") }
+	catch (any) {}
+	try { alertmsg = alertmsg.replace("{alerturgency}","Immediate") }
+	catch (any) {}
+	try { alertmsg = alertmsg.replace("{alertheadline}","The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.") }
+	catch (any) {}
+	try { alertmsg = alertmsg.replace("{alertdescription}","The founder, Jebediah Springfield has spotted a cloud above the nuclear power plant towers.  Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console.  Also a notorius yellow haired boy is terrorizing animals with spit wads.  Be on the look out for suspicious activity.") }
+	catch (any) {}
+	try { alertmsg = alertmsg.replace("{alertinstruction}","Expect heavy polution, possible fish with three eyes, and a Simpson asleep at the console.") }
+	catch (any) {}
+	try { alertmsg = alertmsg.replace("{alertevent}","Nuclear Power Plant Warning") }
+	catch (any) {}
+	return alertmsg
 }
-
-def buildAlertMsg() {
-		if (logEnable) log.debug "Building alert message."
-		// build the alertmsg
-		alertmsg = alertCustomMsg
-		try {alertmsg = alertmsg.replace("{alertarea}","${state.alertarea}") }
-			 catch (any) {}
-		try {alertmsg = alertmsg.replace("{alertseverity}","${state.alertseverity}") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace("{alertcertainty}","${state.alertcertainty}") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace("{alerturgency}","${state.alerturgency}") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace("{alertheadline}","${state.alertheadline}") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace("{alertdescription}","${state.alertdescription}") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace("{alertinstruction}","${state.alertinstruction}") }
-			catch (any) {}
-		try {alertmsg = alertmsg.replace("{alertevent}","${state.alertevent}") }
-			catch (any) {}					
-		try {alertmsg = alertmsg.replaceAll("\n"," ") }
-			catch (any) {}
-        try {alertmsg = alertmsg.trim().replaceAll("[ ]{2,}", ", ") }
-            catch (any) {}
-		state.alertmsg = alertmsg
-		if (logEnable) log.debug "alertMsg built: ${state.alertmsg}"
-} 
-
 
 // Common Notifcation Routines
 def talkNow(alertmsg, repeatCheck) {			
-        if(repeatCheck) {
-            if(useAlertIntro) { alertmsg = "Repeating previous alert,, ${AlertIntro}" + alertmsg
-                              } else { alertmsg = "Repeating previous alert,," + alertmsg }
-        } else { if(useAlertIntro) alertmsg = "${AlertIntro}, " + alertmsg }
+    if(repeatCheck) {
+        if(useAlertIntro) alertmsg = "Repeating previous alert,, ${AlertIntro}" + alertmsg
+        else alertmsg = "Repeating previous alert,," + alertmsg
+    } else if(useAlertIntro) alertmsg = "${AlertIntro}, " + alertmsg
         
-		speechDuration = Math.max(Math.round(alertmsg.length()/12),2)+3		
-		atomicState.speechDuration2 = speechDuration * 1000
+	speechDuration = Math.max(Math.round(alertmsg.length()/12),2)+3		
+	atomicState.speechDuration2 = speechDuration * 1000
 	
-  		if (musicmode){ 
-				try {
-					musicspeaker.playTextAndRestore(alertmsg.toLowerCase(), speakervolume)
-                    if (logEnable) log.debug "Sending alert to Music Speaker(s)."
-				}
-				catch (any) {log.warn "Music Player device(s) has not been selected or not supported."}
-  		}   
-	
-		if(echoSpeaks2) {
-			try {
-				echospeaker.setVolumeSpeakAndRestore(speakervolume, alertmsg.toLowerCase())
-                if (logEnable) log.debug "Sending alert to Echo Speaks device(s)."
-				}
-			catch (any) {log.warn "Echo Speaks device(s) has not been selected or are not supported."}
+  	if(musicmode) { 
+    	try {
+	    	musicspeaker.playTextAndRestore(alertmsg.toLowerCase(), speakervolume)
+            if(logEnable) log.debug "Sending alert to Music Speaker(s)."
 		}
+	    catch (any) { log.warn "Music Player device(s) has not been selected or not supported." }
+  	}   
 	
-		if (speechmode){ 
-			try {
-                speechspeaker.initialize() 
-                if (logEnable) log.debug "Initializing Speech Speaker"
-                pauseExecution(2500)
-            }
-            catch (any) { if(logEnable) log.debug "Speech device doesn't support initialize command" }
-            try { 
-                speechspeaker.setVolume(speakervolume)
-                if (logEnable) log.debug "Setting Speech Speaker to volume level: ${speakervolume}"
-				pauseExecution(2000)
-            }
-            catch (any) { if (logEnable) log.debug "Speech speaker doesn't support volume level command" }
+	if(echoSpeaks2) {
+		try {
+			echospeaker.setVolumeSpeakAndRestore(speakervolume, alertmsg.toLowerCase())
+            if(logEnable) log.debug "Sending alert to Echo Speaks device(s)."
+		}
+		catch (any) { log.warn "Echo Speaks device(s) has not been selected or are not supported." }
+	}
+	
+	if(speechmode) { 
+		try {
+            speechspeaker.initialize() 
+            if(logEnable) log.debug "Initializing Speech Speaker"
+            pauseExecution(2500)
+        }
+        catch (any) { if(logEnable) log.debug "Speech device doesn't support initialize command" }
+        try { 
+            speechspeaker.setVolume(speakervolume)
+            if(logEnable) log.debug "Setting Speech Speaker to volume level: ${speakervolume}"
+			pauseExecution(2000)
+        }
+        catch (any) { if (logEnable) log.debug "Speech speaker doesn't support volume level command" }
                 
-			if (logEnable) log.debug "Sending alert to Speech Speaker(s)"
-            alertmsg = alertmsg.toLowerCase()
-            speechspeaker.speak(alertmsg)
+		if(logEnable) log.debug "Sending alert to Speech Speaker(s)"
+        alertmsg = alertmsg.toLowerCase()
+        speechspeaker.speak(alertmsg)
             
-            try {
-				if (speakervolRestore) {
-					pauseExecution(atomicState.speechDuration2)
-					speechspeaker.setVolume(speakervolRestore)	
-                    if (logEnable) log.debug "Restoring Speech Speaker to volume level: ${speakervolRestore}"
-                }
+        try {
+		    if(speakervolRestore) {
+				pauseExecution(atomicState.speechDuration2)
+				speechspeaker.setVolume(speakervolRestore)	
+                if(logEnable) log.debug "Restoring Speech Speaker to volume level: ${speakervolRestore}"
             }
-                catch (any) { if (logEnable) log.debug "Speech speaker doesn't support restore volume command" }
-		}
-	
+        }
+            catch (any) { if (logEnable) log.debug "Speech speaker doesn't support restore volume command" }
+	}
 }
 
 def pushNow(alertmsg, repeatCheck) {
 	if (pushovertts) {
         fullalert = []
-	    if (logEnable) log.debug "Sending Pushover message."
+	    if(logEnable) log.debug "Sending Pushover message."
         if(repeatCheck) {
-            if(repeatTimes.toInteger()>1){ 
-                alertmsg = "[Alert Repeat ${state.count}/${repeatTimes}] " + alertmsg
-            } else {
-                alertmsg = "[Alert Repeat] " + alertmsg
-            }
+            if(repeatTimes.toInteger()>1) alertmsg = "[Alert Repeat ${state.count}/${repeatTimes}] " + alertmsg
+            else alertmsg = "[Alert Repeat] " + alertmsg
         }
+
 	    def m = alertmsg =~ /(.|[\r\n]){1,1023}\W/
-	   	while (m.find()) {
+	   	while(m.find()) {
             fullalert << m.group()
 	    }
 
@@ -641,7 +599,6 @@ def tileNow(testmsg) {
         }
         if (logEnable) log.info "Message sent to NOAA Tile device."
 		noaaTileDevice.sendNoaaTile(msg)
-
     }
 }
 
@@ -649,21 +606,18 @@ def tileNow(testmsg) {
 def createChildDevices() {
     try {
         if (!getChildDevice("NOAA")) {
-                if (logEnable) log.info "Creating device: NOAA Tile"
-                addChildDevice("aaronward", "NOAA Tile", "NOAA", 1234, ["name": "NOAA Tile", isComponent: false])
+            if (logEnable) log.info "Creating device: NOAA Tile"
+            addChildDevice("aaronward", "NOAA Tile", "NOAA", 1234, ["name": "NOAA Tile", isComponent: false])
         }
     }
     catch (e) { log.error "Couldn't create child device. ${e}" }
 }
 
-def cleanupChildDevices()
-{
+def cleanupChildDevices() {
     try {
-	    for (device in getChildDevices()) {
-            deleteChildDevice(device.deviceNetworkId)
-	    }
+	    for(device in getChildDevices()) deleteChildDevice(device.deviceNetworkId)
     }
-    catch (e) { log.error "Couldn't clean up child devices."}
+    catch (e) { log.error "Couldn't clean up child devices." }
 }
 
 // Application Support Routines
@@ -682,14 +636,19 @@ def getResponseURL() {
     
 	// Build out the API options
 	if(whatAlertUrgency != null) wxURI = wxURI + "&urgency=${whatAlertUrgency.join(",")}"
+    
     if(whatAlertSeverity != null) wxURI = wxURI + "&severity=${whatAlertSeverity.join(",")}"
-	 else wxURI = wxURI + "&severity=severe"
+	else wxURI = wxURI + "&severity=severe"
+    
 	if(whatAlertCertainty !=null) wxURI = wxURI + "&certainty=${whatAlertCertainty.join(",")}"
+    
 	if(myWeatherAlert != null) wxURI = wxURI + "&code=${myWeatherAlert.join(",")}"
+    
 	state.wxURI = wxURI
-	if (logEnable) log.debug "URI: ${wxURI}"
+	if(logEnable) log.debug "URI: ${wxURI}"
+    
 
-    if (logEnable) log.debug "Connecting to weather.gov service."
+    if(logEnable) log.debug "Connecting to weather.gov service."
     def requestParams =	[ 
         uri: wxURI,
         requestContentType: "application/json",
@@ -711,11 +670,12 @@ def checkState() {
     if(alertCustomMsg==null) alertCustomMsg = "{alertseverity} Weather Alert for the following counties: {alertarea} {alertdescription} This is the end of this Weather Announcement."
     
     if(repeatTimes==null || repeatMinutes==null) {
-        if(repeatTimes==null) { state.num = 1 
-                             } else { state.num = repeatTimes.toInteger()
-                                      state.repeatTime = repeatTimes.toInteger()}
-        if(repeatMinutes==null) { state.frequency = 15
-                                } else { state.frequency = repeatMinutes.toInteger() }
+        if(repeatTimes==null) state.num = 1 
+        else { state.num = repeatTimes.toInteger()
+               state.repeatTime = repeatTimes.toInteger()
+        }
+        if(repeatMinutes==null)state.frequency = 15
+        else state.frequency = repeatMinutes.toInteger() 
     } else {
         state.num = repeatTimes.toInteger()
         state.frequency = repeatMinutes.toInteger()
@@ -736,15 +696,15 @@ def initialize() {
     unschedule()
     createChildDevices()
     state.repeat = false
-    if (logEnable && logMinutes.toInteger() != 0) {
+    if(logEnable && logMinutes.toInteger() != 0) {
         if(logMinutes.toInteger() !=0) log.warn "Debug messages set to automatically disable in ${logMinutes} minute(s)."
         runIn((logMinutes.toInteger() * 60),logsOff)
     }
-    else { if(logEnable && logMinutes.toInteger() == 0) {log.warn "Debug logs set to not automatically disable." } 
-          else {log.info "Debug logs disabled."}
-         }
-     switch (whatPoll.toInteger()) {
-		case 1: 
+    else if(logEnable && logMinutes.toInteger() == 0) log.warn "Debug logs set to not automatically disable."  
+         else log.info "Debug logs disabled."
+
+    switch(whatPoll.toInteger()) {
+	    case 1: 
 			runEvery1Minute(main)
 			break
 		case 5: 
@@ -760,16 +720,16 @@ def initialize() {
 			runEvery5Minutes(main)
 			break
 	}
-    runIn(5, main)
+    main()
 }
 
 def installed() {
-    if (logEnable) log.debug "Installed with settings: ${settings}"
+    if(logEnable) log.debug "Installed with settings: ${settings}"
     initialize()
 }
 
 def updated() {
-    if (logEnable) log.debug "Updated with settings: ${settings}"
+    if(logEnable) log.debug "Updated with settings: ${settings}"
     initialize()
 }
 
@@ -799,3 +759,11 @@ def logsOff(){
     log.warn "Debug logging disabled."
     app?.updateSetting("logEnable",[value:"false",type:"bool"])
 }
+
+import groovy.transform.Field
+import groovy.json.*
+import java.util.regex.*
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
+import java.util.Date;
+import groovy.time.*
