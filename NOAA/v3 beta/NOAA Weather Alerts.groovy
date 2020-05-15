@@ -672,7 +672,7 @@ def getResponseURL() {
 
 def checkState() {
     if(whatPoll==null) whatPoll = 5
-    if(logEnable==null) logEnable = true
+    if(logEnable==null) logEnable = false
     if(logMinutes==null) logMinutes = 15
     if(whatAlertSeverity==null) whatAlertSeverity = "Severe"
     if(alertCustomMsg==null) alertCustomMsg = "{alertseverity} Weather Alert for the following counties: {alertarea} {alertdescription} This is the end of this Weather Announcement."
