@@ -678,7 +678,8 @@ def getResponseURL() {
 	}
     
 	def wxURI = "https://api.weather.gov/alerts?point=${latitude}%2C${longitude}&status=actual&message_type=alert"    
-
+    def result = null
+    
 	// Build out the API options
 	if(whatAlertUrgency != null) wxURI = wxURI + "&urgency=${whatAlertUrgency.join(",")}"
     if(whatAlertSeverity != null) wxURI = wxURI + "&severity=${whatAlertSeverity.join(",")}"
@@ -696,10 +697,10 @@ def getResponseURL() {
     ]
 	
 	try {
-        httpGet(requestParams)	{ response -> }
+        httpGet(requestParams)	{ response -> result = response }
     }
     catch (e) { log.warn "Weather.gov API did not respond to JSON request." }
-    return response
+    return result
 }
 
 def checkState() {
