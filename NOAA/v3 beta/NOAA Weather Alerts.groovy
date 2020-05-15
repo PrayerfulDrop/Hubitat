@@ -658,7 +658,7 @@ def getResponseURL() {
 	if(myWeatherAlert != null) wxURI = wxURI + "&code=${myWeatherAlert.join(",")}"
     
 	state.wxURI = wxURI
-	if(logEnable) log.debug "URI: ${wxURI}"
+    if(logEnable) log.debug "URI: <a href='${wxURI}'>${wxURI}</a>"
     
 
     if(logEnable) log.debug "Connecting to weather.gov service."
