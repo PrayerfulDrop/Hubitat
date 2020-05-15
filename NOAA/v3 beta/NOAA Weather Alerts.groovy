@@ -241,15 +241,21 @@ def SettingsPage() {
 				if(getAPI) {
 					app?.updateSetting("getAPI",[value:"false",type:"bool"])
 					getAlertMsg()
-                    buildAlertMsg()
-                    def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
-                    def result2 =    ( modesYes && modes !=null && modes.contains(location.mode)) ? true : false
-                    def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(state.alertseverity.toLowerCase())) ? true : false
-                    def testresult = (!(result || result2) || result3) ? true : false
-					def date = new Date()
-					sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
-					if(state.alertJSON) {paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${state.alertmsg}<br><br>Restrictions enabled?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}<br><br><table border=1px><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${state.alertseverity}</td></tr><tr><td>Area</td><td>${state.alertarea}</td></tr><tr><td>Sent</td><td>${state.alertsent}</td></tr><tr><td>Effective</td><td>${state.alerteffective}</td></tr><tr><td>Expires</td><td>${state.alertexpires}</td></tr><tr><td>Status</td><td>${state.alertstatus}</td></tr><tr><td>Message Type</td><td>${state.alertmessagetype}</td></tr><tr><td>Category</td><td>${state.alertcategory}</td></tr><tr><td>Certainty</td><td>${state.alertcertainty}</td></tr><tr><td>Urgency</td><td>${state.alerturgency}</td></tr><tr><td>Sender Name</td><td>${state.alertsendername}</td></tr><tr><td>Event Type</td><td>${state.alertevent}</td></tr><tr><td>Headline</td><td>${state.alertheadline}</td></tr><tr><td>Description</td><td>${state.alertdescription}</td></tr><tr><td>Instruction</td><td>${state.alertinstruction}</td></tr></table>"}
-					else { paragraph "No JSON feed currently available for your coordinates.  Either there are no weather alerts in your area or you need to change options above to acquire desired results."}
+					if(atomicState.ListofAlerts) {                    
+                        def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
+                        def result2 =    ( modesYes && modes !=null && modes.contains(location.mode)) ? true : false
+                        def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity.toLowerCase())) ? true : false
+                        def testresult = (!(result || result2) || result3) ? true : false
+					    def date = new Date()
+					    sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
+                        def testConfig = ""
+                        
+                        paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${alertCustomMsg}<br><br>Restrictions enabled?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}"
+
+                        for(x=0;x<atomicState.ListofAlerts.size();x++) testConfig =+"<table border=1px><tr colspan='2'><td>Alert ${x+1}/${atomicState.ListofAlerts.size()}</td></tr><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${atomicState.ListofAlerts[x].alertseverity}</td></tr><tr><td>Area</td><td>${atomicState.ListofAlerts[x].alertarea}</td></tr><tr><td>Sent</td><td>${atomicState.ListofAlerts[x].alertsent}</td></tr><tr><td>Effective</td><td>${atomicState.ListofAlerts[x].alerteffective}</td></tr><tr><td>Expires</td><td>${atomicState.ListofAlerts[x].alertexpires}</td></tr><tr><td>Status</td><td>${atomicState.ListofAlerts[x].alertstatus}</td></tr><tr><td>Message Type</td><td>${atomicState.ListofAlerts[x].alertmessagetype}</td></tr><tr><td>Category</td><td>${atomicState.ListofAlerts[x].alertcategory}</td></tr><tr><td>Certainty</td><td>${atomicState.ListofAlerts[x].alertcertainty}</td></tr><tr><td>Urgency</td><td>${atomicState.ListofAlerts[x].alerturgency}</td></tr><tr><td>Sender Name</td><td>${atomicState.ListofAlerts[x].alertsendername}</td></tr><tr><td>Event Type</td><td>${atomicState.ListofAlerts[x].alertevent}</td></tr><tr><td>Headline</td><td>${atomicState.ListofAlerts[x].alertheadline}</td></tr><tr><td>Description</td><td>${atomicState.ListofAlerts[x].alertdescription}</td></tr><tr><td>Instruction</td><td>${atomicState.ListofAlerts[x].alertinstruction}</td></tr></table>"
+                        paragraph testConfig
+                    }
+					else paragraph "There are no reported weather alerts in your area, the api.weather.gov api is not available, or you need to change NOAA Weather Alert options to acquire desired results.<br><br>Current URI: <a href='${state.wxURI}'>${state.wxURI}</a>"
 				}
 			}
 		}
@@ -280,7 +286,7 @@ def alertNow(alertmsg, repeatCheck){
 	// check restrictions based on Modes and Switches
     def result = (switchYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
     def result2 = (modesYes && modes !=null && modes.contains(location.mode)) ? true : false
-    def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(state.alertseverity.toLowerCase())) ? true : false
+    def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity.toLowerCase())) ? true : false
     if(logEnable) log.debug "Restrictions on?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}"
    
     // no restrictions
@@ -459,7 +465,7 @@ def alertRemoveStates(msg) {
 }
 
 def alertFormatText(msg) {
-    if(msg.contains("NWS")) msg = msg.replaceAll("NWS","the National Weather Service of") 
+    msg = msg.replaceAll(/NWS/,"the National Weather Service of") 
     msg = msg.replaceAll(/(WHAT|WHEN|IMPACT|IMPACTS|WHERE|INCLUDE|HAZARDS|INCLUDES|HAZARD|TEMPERATURE)/, "")
     msg = msg.replaceAll(/\.{2,}/, "")
     msg = msg.replaceAll(/\*/, "")
@@ -472,7 +478,7 @@ def alertFormatText(msg) {
 }
     
 def alertFormatArea(msg) {
-    if(msg.contains("NWS")) msg = msg.replaceAll("NWS","the National Weather Service of")
+    msg.replaceAll(/NWS/,"the National Weather Service of")
     msg = msg.replaceAll(", ","")
     msg = msg.replaceAll(",","")
     msg = msg.replaceAll(";",",")                    
