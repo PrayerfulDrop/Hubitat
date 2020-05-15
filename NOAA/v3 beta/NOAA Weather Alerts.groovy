@@ -220,11 +220,10 @@ def SettingsPage() {
         section(UIsupport("logo","")) {
             paragraph UIsupport("header", " Settings")
        			label title: "Custom Application Name (for multiple instances of NOAA):", required: false            
-				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
-
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: false, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true 
- 				if(runTest) {
+				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
+                if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
                     runtestAlert()
 				}           
