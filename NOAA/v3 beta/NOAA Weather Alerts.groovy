@@ -263,13 +263,14 @@ def main() {
 	    if(atomicState.ListofAlerts[0].alertAnnounced) { 
 		    if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
         } else {
-             atomicState.ListofAlerts[0].alertAnnounced = true
-             alertNow(atomicState.ListofAlerts[0].alertmsg, false)
-            if(repeatYes && atomicState.ListofAlerts[0].alertrepeat == false) {
-                state.repeatmsg = atomicState.ListofAlerts[0].alertmsg
-                repeatNow()
-            } else state.repeatmsg = null
-                
+            if(pushovertts || musicmode || speechmode || echoSpeaks2) {
+                 atomicState.ListofAlerts[0].alertAnnounced = true
+                 alertNow(atomicState.ListofAlerts[0].alertmsg, false)
+                if(repeatYes && atomicState.ListofAlerts[0].alertrepeat == false) {
+                    state.repeatmsg = atomicState.ListofAlerts[0].alertmsg
+                    repeatNow()
+                } else state.repeatmsg = null
+            }   
 	    }
     } else if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
     tileNow(false)
