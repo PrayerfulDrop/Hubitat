@@ -672,7 +672,7 @@ def getResponseURL() {
 	try {
         httpGet(requestParams)	{ response -> result = response }
     }
-    catch (e) { log.warn "Weather.gov API did not respond to JSON request." }
+    catch (e) { if(logEnable) log.warn "api.weather.gov did not return a response." }
     return result
 }
 
