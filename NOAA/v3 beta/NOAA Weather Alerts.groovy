@@ -265,11 +265,16 @@ def main() {
     // Get the alert message
 	getAlertMsg()	
     if(atomicState.ListofAlerts) {
-	    if(atomicState.ListofAlerts[0].alertAnnounced) { 
+        def date = new Date()
+        SimpleDateFormat objSDF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
+        String timestamp = date.format("yyyy-MM-dd'T'HH:mm:ssXXX")
+        alertexpires = atomicState.ListofAlerts[0].alertexpires
+
+	    if(alertexpires.compareTo(timestamp)<0 || state.alertAnnounced) { 
 		    if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
         } else {
             if(pushovertts || musicmode || speechmode || echoSpeaks2) {
-                 atomicState.ListofAlerts[0].alertAnnounced = true
+                 state.alertAnnounced = true
                  alertNow(atomicState.ListofAlerts[0].alertmsg, false)
                 if(repeatYes && atomicState.ListofAlerts[0].alertrepeat == false) {
                     state.repeatmsg = atomicState.ListofAlerts[0].alertmsg
@@ -332,21 +337,11 @@ def getAlertMsg() {
         Date currentTS = objSDF.parse(timestamp)
     
         for(i=0; i<result.data.features.size();i++) {       
-            found = false
             Date alertsent = objSDF.parse(result.data.features[i].properties.sent)
             Date alerteffective = objSDF.parse(result.data.features[i].properties.effective)
             Date alertexpires = objSDF.parse(result.data.features[i].properties.expires)
             //if alert has expired ignore alert
             if(alertexpires.compareTo(currentTS)>=0) {
-            //check to see if alert exists in current alert list.  If so retain alertrepeat information
-            if(atomicState.ListofAlerts) {
-                for(x=0;x<atomicState.ListofAlerts.size();x++) {
-                    if(atomicState.ListofAlerts[x].alertid.contains(result.data.features[i].properties.id)) {
-                        found = true
-                        tempalertAnnounced = atomicState.ListofAlerts[x].alertAnnounced
-                       }
-                 }
-            }
                 //build new entry for map
                 alertarea = (result.data.features[i].properties.areaDesc)
                 alertarea = alertRemoveStates(alertarea)
@@ -388,13 +383,12 @@ def getAlertMsg() {
                 try {alertmsg = alertmsg.trim().replaceAll("[ ]{2,}", ", ") }
                 catch (any) {}
                 alertmsg = alertmsg.replaceAll("\\s+", " ")
-            
-                if(found) ListofAlerts << [alertAnnounced:tempalertAnnounced, alertid:result.data.features[i].properties.id, alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:alertdescription, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]                  
-                else ListofAlerts << [alertAnnounced:false, alertid:result.data.features[i].properties.id, alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:alertdescription, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]
+                
+                ListofAlerts << [alertid:result.data.features[i].properties.id, alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:alertdescription, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]
             }
         }
-        if(ListofAlerts==null) atomicState.ListofAlerts = null
-        else atomicState.ListofAlerts = ListofAlerts        
+        if(ListofAlerts == null) state.alertAnnounced = false
+        atomicState.ListofAlerts = ListofAlerts        
     }
     
 
@@ -676,6 +670,7 @@ def getResponseURL() {
 }
 
 def checkState() {
+    state.alertAnnounced = false
     if(whatPoll==null) whatPoll = 5
     if(logEnable==null) logEnable = false
     if(logMinutes==null) logMinutes = 15
