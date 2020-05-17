@@ -230,6 +230,8 @@ def SettingsPage() {
                 input "init", "bool", title: "Reset current application state?", required: false, defaultValue: false, submitOnChange: true
                 if(init) {
                     app?.updateSetting("init",[value:"false",type:"bool"])
+                    unschedule()
+                    atomicState.alertAnnounced = false
                     atomicState.ListofAlerts = ""
                     state.repeat = false
                     log.warn "NOAA Weather Alerts application state has been reset."
@@ -265,16 +267,17 @@ def main() {
     // Get the alert message
 	getAlertMsg()	
     if(atomicState.ListofAlerts) {
+        atomicState.alertAnnounced
         def date = new Date()
         SimpleDateFormat objSDF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
         String timestamp = date.format("yyyy-MM-dd'T'HH:mm:ssXXX")
         alertexpires = atomicState.ListofAlerts[0].alertexpires
 
-	    if(alertexpires.compareTo(timestamp)<0 || state.alertAnnounced) { 
+	    if(alertexpires.compareTo(timestamp)<0 || atomicState.alertAnnounced) { 
 		    if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
         } else {
             if(pushovertts || musicmode || speechmode || echoSpeaks2) {
-                 state.alertAnnounced = true
+                 atomicState.alertAnnounced = true
                  alertNow(atomicState.ListofAlerts[0].alertmsg, false)
                 if(repeatYes && atomicState.ListofAlerts[0].alertrepeat == false) {
                     state.repeatmsg = atomicState.ListofAlerts[0].alertmsg
@@ -339,7 +342,8 @@ def getAlertMsg() {
         for(i=0; i<result.data.features.size();i++) {       
             Date alertsent = objSDF.parse(result.data.features[i].properties.sent)
             Date alerteffective = objSDF.parse(result.data.features[i].properties.effective)
-            Date alertexpires = objSDF.parse(result.data.features[i].properties.expires)
+            Date alertexpires = objSDF.parse(result.data.features[i].properties.ends)
+            //Date alertends = objSDF.parse(result.data.features[i].properties.ends)
             //if alert has expired ignore alert
             if(alertexpires.compareTo(currentTS)>=0) {
                 //build new entry for map
@@ -387,7 +391,7 @@ def getAlertMsg() {
                 ListofAlerts << [alertid:result.data.features[i].properties.id, alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:alertdescription, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]
             }
         }
-        if(ListofAlerts == null) state.alertAnnounced = false
+        if(ListofAlerts == null) atomicState.alertAnnounced = false
         atomicState.ListofAlerts = ListofAlerts        
     }
     
@@ -670,7 +674,6 @@ def getResponseURL() {
 }
 
 def checkState() {
-    state.alertAnnounced = false
     if(whatPoll==null) whatPoll = 5
     if(logEnable==null) logEnable = false
     if(logMinutes==null) logMinutes = 15
