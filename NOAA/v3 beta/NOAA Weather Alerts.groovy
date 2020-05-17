@@ -557,11 +557,12 @@ def talkNow(alertmsg, repeatCheck) {
             if(logEnable) log.debug "Setting Speech Speaker to volume level: ${speakervolume}"
 			pauseExecution(2000)
         }
-        catch (any) { if (logEnable) log.debug "Speech speaker doesn't support volume level command" }
+        catch (any) { if(logEnable) log.debug "Speech speaker doesn't support volume level command" }
                 
 		if(logEnable) log.debug "Sending alert to Speech Speaker(s)"
         alertmsg = alertmsg.toLowerCase()
-        speechspeaker.speak(alertmsg)
+        try { speechspeaker.speak(alertmsg) }
+        catch (any) { log.warn "Speech or Echo Speaks device(s) has not been selected or not supported." }
             
         try {
 		    if(speakervolRestore) {
