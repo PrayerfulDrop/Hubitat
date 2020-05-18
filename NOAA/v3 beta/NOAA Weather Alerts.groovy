@@ -267,13 +267,12 @@ def main() {
     // Get the alert message
 	getAlertMsg()	
     if(atomicState.ListofAlerts) {
-        atomicState.alertAnnounced
         def date = new Date()
         SimpleDateFormat objSDF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
         String timestamp = date.format("yyyy-MM-dd'T'HH:mm:ssXXX")
         alertexpires = atomicState.ListofAlerts[0].alertexpires
 
-	    if(alertexpires.compareTo(timestamp)<0 || atomicState.alertAnnounced) { 
+	    if(atomicState.alertAnnounced) { 
 		    if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
         } else {
             if(pushovertts || musicmode || speechmode || echoSpeaks2) {
@@ -286,6 +285,7 @@ def main() {
             }   
 	    }
     } else if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+    //log.warn "Alert Announced: ${atomicState.alertAnnounced}"
     tileNow(false)
 }
 
@@ -332,6 +332,7 @@ def repeatNow(){
 
 def getAlertMsg() {
     def ListofAlerts = []
+    def newList = false
     def result = getResponseURL()
     if(result) {
         def date = new Date()
@@ -346,6 +347,7 @@ def getAlertMsg() {
             //Date alertends = objSDF.parse(result.data.features[i].properties.ends)
             //if alert has expired ignore alert
             if(alertexpires.compareTo(currentTS)>=0) {
+                if(!(atomicState.ListofAlerts.alertid.contains(result.data.features[i].properties.id))) newList = true
                 //build new entry for map
                 alertarea = (result.data.features[i].properties.areaDesc)
                 alertarea = alertRemoveStates(alertarea)
@@ -391,7 +393,8 @@ def getAlertMsg() {
                 ListofAlerts << [alertid:result.data.features[i].properties.id, alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:alertdescription, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]
             }
         }
-        if(ListofAlerts == null) atomicState.alertAnnounced = false
+
+        if(ListofAlerts==null || newList) atomicState.alertAnnounced = false
         atomicState.ListofAlerts = ListofAlerts        
     }
     
