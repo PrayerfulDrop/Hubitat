@@ -27,9 +27,7 @@ metadata {
 		name: "NOAA Tile",
 		namespace: "aaronward",
 		author: "Aaron Ward",
-		importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy"
-		)
-		{
+		importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy") {
 		command "sendNoaaTile", ["string"]
         command "initialize"
 		capability "Actuator"
@@ -91,7 +89,7 @@ def sendNoaaTile(noaaData) {
     			   fullmsg << m.group()
                 }
                 for(i=0;i<fullmsg.size();i++) {
-                    noaaTile = "<div style='position:relative;top:-28px; left:10px; right:10px;width:100%; height:100px;line-height: normal;' ><table border=0 style='width:97%'><tr style='border-bottom: medium solid #FFFFFF;'><td valign='bottom' style='text-align:left; width:50%; border-bottom: medium solid #FFFFFF; height:13px'><font style='font-size:12px;'>"
+                    noaaTile = "<div style='position:relative;top:-28px; left:10px; right:10px;width:100%; height:100px;line-height: normal;' ><table style='border-collapse: collapse;width:97%'><tr style='border-bottom: medium solid #FFFFFF;'><td valign='bottom' style='text-align:left; width:50%; border-bottom: medium solid #FFFFFF; height:13px'><font style='font-size:12px;'>"
                     noaaTile += "Alert ${x+1}/${state.noaaDataPast.size()}"
                     noaaTile += "</font></td><td valign='bottom' style='text-align:right; border-bottom: medium solid #FFFFFF;width: 50%; height:13px'><font style='font-size:12px;'>Page: ${i+1}/${fullmsg.size()}</font></td></tr>"
                     noaaTile += "<tr><td colspan=2 valign='top' style='line-height: normal; width:90%; height:100px; text-align:left; border-top-style:none; border-top-width:medium;'><font style='font-size: 13px'>${fullmsg[i]}"
