@@ -38,14 +38,14 @@ metadata {
 		}
 
 	preferences() {    	
-			//input("timeExpire", "text", title: "Minutes to scroll alert?", required: true, defaultValue: "5")
-            input("logEnable", "bool", title: "Enable logging", required: false, defaultValue: true)
+        input("logEnable", "bool", title: "Enable logging", required: false, defaultValue: false)
     }
 }
 
 def initialize() {
 	log.info "NOAA Tile Driver Initializing."
 	refresh()
+    state.looper = false
     sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
@@ -79,7 +79,7 @@ def sendNoaaTile(noaaData) {
         sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
     } else {
         if(state.noaaDataPast==null || state.noaaDataPast=="") state.noaaDataPast=[]
-        if(!noaaData.contains(state.noaaDataPast) || !state.looper) {
+        if(!state.looper) {
             state.looper = true
             state.noaaDataPast = noaaData
             messageSize = 380
@@ -98,7 +98,7 @@ def sendNoaaTile(noaaData) {
                     noaaTile += "${fullmsg[i]}"
 	    			noaaTile += "</font></td></tr></table></center>"
 		    		sendEvent(name: "Alerts", value: noaaTile, displayed: true)      
-                    pauseExecution(7000)
+                    pauseExecution(10000)
                 }
             } 
             state.looper = false
