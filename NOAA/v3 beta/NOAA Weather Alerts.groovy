@@ -347,7 +347,7 @@ def getAlertMsg() {
             //Date alertends = objSDF.parse(result.data.features[i].properties.ends)
             //if alert has expired ignore alert
             if(alertexpires.compareTo(currentTS)>=0) {
-                if(!(atomicState.ListofAlerts.alertid.contains(result.data.features[i].properties.id))) newList = true
+                if(atomicState.ListofAlerts) if(!(atomicState.ListofAlerts.alertid.contains(result.data.features[i].properties.id))) newList = true
                 //build new entry for map
                 alertarea = (result.data.features[i].properties.areaDesc)
                 alertarea = alertRemoveStates(alertarea)
