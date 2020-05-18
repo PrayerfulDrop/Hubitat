@@ -111,7 +111,7 @@ def ConfigPage() {
 						"moderate": "Moderate", 
 						"severe": "Severe", 
 						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"
-			input name: "whatPoll", type: "enum", title: "Poll Frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "5 Minutes"
+			input name: "whatPoll", type: "enum", title: "Poll Frequency: ", options: ["1": "1 Minute", "5": "5 Minutes", "10": "10 Minutes", "15": "15 Minutes"], required: true, multiple: false, defaultValue: "1 Minute"
 			input "repeatYes", "bool", title: "Repeat Alert?", require: false, defaultValue: false, submitOnChange: true
 			if(repeatYes) {
                 input name:"repeatTimes", type: "text", title: "Number of times to repeat the alert?", require: false, defaultValue: "1", submitOnChange:true
@@ -208,10 +208,10 @@ def RestrictionsPage() {
             input "modeSeverityYes", "bool", title: "Ignore restrictions for certain severity types?", required: false, defaultValue: false, submitOnChange: true	          
             if(modeSeverityYes) input name: "modeSeverity", type: "enum", title: "Severity option(s) that will ignore restrictions: ", 
 		        options: [
-						"minor": "Minor",
-						"moderate": "Moderate", 
-						"severe": "Severe", 
-						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"             
+						"Minor": "Minor",
+						"Moderate": "Moderate", 
+						"Severe": "Severe", 
+						"Extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"             
      
             input "modeWeatherType", "bool", title: "Ignore restrictions for certain weather types?", required: false, defaultValue: false, submitOnChange: true
             
@@ -281,8 +281,8 @@ def SettingsPage() {
 					if(atomicState.ListofAlerts) {                    
                         def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
                         def result2 =    ( modesYes && modes !=null && modes.contains(location.mode)) ? true : false
-                        def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity.toLowerCase())) ? true : false
-                        def result4 = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent.toLowerCase())) ? true : false
+                        def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity)) ? true : false
+                        def result4 = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
                         def testresult = (!(result || result2) || result3 || result4) ? true : false
 					    def date = new Date()
 					    sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
@@ -345,8 +345,8 @@ def alertNow(alertmsg, repeatCheck){
 	// check restrictions based on Modes and Switches
     def result = (switchYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
     def result2 = (modesYes && modes !=null && modes.contains(location.mode)) ? true : false
-    def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.toLowerCase().contains(atomicState.ListofAlerts[0].alertseverity.toLowerCase())) ? true : false
-    def result4 = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent.toLowerCase())) ? true : false
+    def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity)) ? true : false
+    def result4 = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
     if(logEnable) log.debug "Restrictions on?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}"
    
     // no restrictions
@@ -389,17 +389,17 @@ def getAlertMsg() {
     def result = getResponseURL()
     if(result) {
         def date = new Date()
-        SimpleDateFormat objSDF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
         String timestamp = date.format("yyyy-MM-dd'T'HH:mm:ssXXX")
-        Date currentTS = objSDF.parse(timestamp)
-    
+
         for(i=0; i<result.data.features.size();i++) {       
-            Date alertsent = objSDF.parse(result.data.features[i].properties.sent)
-            Date alerteffective = objSDF.parse(result.data.features[i].properties.effective)
-            Date alertexpires = objSDF.parse(result.data.features[i].properties.ends)
-            //Date alertends = objSDF.parse(result.data.features[i].properties.ends)
+            alertsent = result.data.features[i].properties.sent
+            alerteffective = result.data.features[i].properties.effective
+
+            if(result.data.features[i].properties.ends) alertexpires = result.data.features[i].properties.ends
+            else alertexpires = result.data.features[i].properties.expires
+            
             //if alert has expired ignore alert
-            if(alertexpires.compareTo(currentTS)>=0) {
+            if(alertexpires.compareTo(timestamp)>=0) {
                 if(atomicState.ListofAlerts) if(!(atomicState.ListofAlerts.alertid.contains(result.data.features[i].properties.id))) newList = true
                 //build new entry for map
                 alertarea = (result.data.features[i].properties.areaDesc)
@@ -526,7 +526,6 @@ def alertFormatText(msg) {
     msg = msg.replaceAll("","")
     msg = msg.replaceAll("\n"," ")
     msg = msg.replaceAll("\\s+", " ")
-    msg = msg + "."
     return msg
 }
     
