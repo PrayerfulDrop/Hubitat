@@ -199,19 +199,55 @@ def RestrictionsPage() {
     dynamicPage(name: "RestrictionsPage") {
         section(UIsupport("logo","")) {
             paragraph UIsupport("header", " Restrictions")
+            paragraph "Restrict ALL notifications based on current mode or if a switch is ON."
  			input "modesYes", "bool", title: "Enable restriction of notifications by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
             if(modesYes) input(name:"modes", type: "mode", title: "Restrict notifications when current mode is:", multiple: true, required: false, submitOnChange: true)
             input "switchYes", "bool", title: "Restrict notifications using a switch?", required: true, defaultValue: false, submitOnChange: true
             if(switchYes) input "restrictbySwitch", "capability.switch", title: "Use a switch to restrict notfications?", required: false, multiple: false, defaultValue: null, submitOnChange: true
-            if(pushovertts) input "pushoverttsalways ", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
-            input "modeSeverityYes", "bool", title: "Ignore restrictions for certain severity types?", required: true, defaultValue: false, submitOnChange: true	          
-            if (modeSeverityYes) input name: "modeSeverity", type: "enum", title: "Severity option(s) that will ignore restrictions: ", 
+            paragraph "<hr><br>Below settings will ignore restrictions above based on either weather severity type or weather type."
+            input "modeSeverityYes", "bool", title: "Ignore restrictions for certain severity types?", required: false, defaultValue: false, submitOnChange: true	          
+            if(modeSeverityYes) input name: "modeSeverity", type: "enum", title: "Severity option(s) that will ignore restrictions: ", 
 		        options: [
 						"minor": "Minor",
 						"moderate": "Moderate", 
 						"severe": "Severe", 
 						"extreme": "Extreme"], required: true, multiple: true, defaultValue: "Severe"             
-    	}           
+     
+            input "modeWeatherType", "bool", title: "Ignore restrictions for certain weather types?", required: false, defaultValue: false, submitOnChange: true
+            
+            if(modeWeatherType) input name: "WeatherType", type: "enum", title: "Select weather type to ignore restrictions: ", required: true, multiple:true, submitOnChange: true,                 
+                options: [
+							"blizzard warning":"Blizzard Warning",
+                            "coastal flood watch":"Coastal Flood Watch",
+                            "coastal flood warning":"Coastal Flood Warning",
+                            "dust storm warning":"Dust Storm Warning",
+                            "extreme wind warning":"Extreme Wind Warning",
+                            "flash flood watch":"Flash Flood Watch",
+                            "flash flood warning":"Flash Flood Warning",
+                            "flood watch":"Flood Watch",
+                            "flood warning":"Flood Warning",
+                            "high wind watch":"High Wind Watch",
+                            "high wind warning":"High Wind Warning",
+                            "hurricane watch":"Hurricane Watch",
+	                        "hurricane warning":"Hurricane Warning",
+                            "severe thunderstorm watch":"Severe Thunderstorm Watch",
+                            "severe thunderstorm warning":"Severe Thunderstorm Warning",
+                            "snow squall warning":"Snow Squall Warning",
+                            "special marine warning":"Special Marine Warning",
+                            "storm surge watch":"Storm Surge Watch",
+                            "storm surge warning":"Storm Surge Warning",
+                            "tornado watch":"Tornado Watch",
+                            "tornado warning":"Tornado Warning",
+                            "tropical storm watch":"Tropical Storm Watch",
+                            "tropical storm warning":"Tropical Storm Warning",   
+							"tsunami watch":"Tsunami Watch",
+                            "tsunami warning":"Tsunami Warning",
+                            "winter storm watch":"Winter Storm Watch",
+                            "winter storm warning":"Winter Storm Warning"
+                        ]
+            paragraph "<hr>"
+            if(pushovertts) input "pushoverttsalways ", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
+                }
     }
 }
 
@@ -246,14 +282,30 @@ def SettingsPage() {
                         def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
                         def result2 =    ( modesYes && modes !=null && modes.contains(location.mode)) ? true : false
                         def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity.toLowerCase())) ? true : false
-                        def testresult = (!(result || result2) || result3) ? true : false
+                        def result4 = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent.toLowerCase())) ? true : false
+                        def testresult = (!(result || result2) || result3 || result4) ? true : false
 					    def date = new Date()
 					    sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
                         def testConfig = ""
-                        
-                        paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${alertCustomMsg}<br><br>Restrictions enabled?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}"
-
-                        for(x=0;x<atomicState.ListofAlerts.size();x++) testConfig =+"<table border=1px><tr colspan='2'><td>Alert ${x+1}/${atomicState.ListofAlerts.size()}</td></tr><tr><th>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${atomicState.ListofAlerts[x].alertseverity}</td></tr><tr><td>Area</td><td>${atomicState.ListofAlerts[x].alertarea}</td></tr><tr><td>Sent</td><td>${atomicState.ListofAlerts[x].alertsent}</td></tr><tr><td>Effective</td><td>${atomicState.ListofAlerts[x].alerteffective}</td></tr><tr><td>Expires</td><td>${atomicState.ListofAlerts[x].alertexpires}</td></tr><tr><td>Status</td><td>${atomicState.ListofAlerts[x].alertstatus}</td></tr><tr><td>Message Type</td><td>${atomicState.ListofAlerts[x].alertmessagetype}</td></tr><tr><td>Category</td><td>${atomicState.ListofAlerts[x].alertcategory}</td></tr><tr><td>Certainty</td><td>${atomicState.ListofAlerts[x].alertcertainty}</td></tr><tr><td>Urgency</td><td>${atomicState.ListofAlerts[x].alerturgency}</td></tr><tr><td>Sender Name</td><td>${atomicState.ListofAlerts[x].alertsendername}</td></tr><tr><td>Event Type</td><td>${atomicState.ListofAlerts[x].alertevent}</td></tr><tr><td>Headline</td><td>${atomicState.ListofAlerts[x].alertheadline}</td></tr><tr><td>Description</td><td>${atomicState.ListofAlerts[x].alertdescription}</td></tr><tr><td>Instruction</td><td>${atomicState.ListofAlerts[x].alertinstruction}</td></tr></table>"
+                        paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${alertCustomMsg}<br><br>Restrictions enabled?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}, Weather Type Override: ${result4}"
+                        for(y=0;y<atomicState.ListofAlerts.size();y++) {
+                            testConfig +="<table border=1px><tr><td colspan='2'>Alert ${y+1}/${atomicState.ListofAlerts.size()}</td></tr>"
+                            testConfig += "<tr><td>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${atomicState.ListofAlerts[y].alertseverity}</td></tr>"
+                            testConfig += "<tr><td>Area</td><td>${atomicState.ListofAlerts[y].alertarea}</td></tr>"
+                            testConfig += "<tr><td>Sent</td><td>${atomicState.ListofAlerts[y].alertsent}</td></tr>"
+                            testConfig += "<tr><td>Effective</td><td>${atomicState.ListofAlerts[y].alerteffective}</td></tr>"
+                            testConfig += "<tr><td>Expires</td><td>${atomicState.ListofAlerts[y].alertexpires}</td></tr>"
+                            testConfig += "<tr><td>Status</td><td>${atomicState.ListofAlerts[y].alertstatus}</td></tr>"
+                            testConfig += "<tr><td>Message Type</td><td>${atomicState.ListofAlerts[y].alertmessagetype}</td></tr>"
+                            testConfig += "<tr><td>Category</td><td>${atomicState.ListofAlerts[y].alertcategory}</td></tr>"
+                            testConfig += "<tr><td>Certainty</td><td>${atomicState.ListofAlerts[y].alertcertainty}</td></tr>"
+                            testConfig += "<tr><td>Urgency</td><td>${atomicState.ListofAlerts[y].alerturgency}</td></tr>"
+                            testConfig += "<tr><td>Sender Name</td><td>${atomicState.ListofAlerts[y].alertsendername}</td></tr>"
+                            testConfig += "<tr><td>Event Type</td><td>${atomicState.ListofAlerts[y].alertevent}</td></tr>"
+                            testConfig += "<tr><td>Headline</td><td>${atomicState.ListofAlerts[y].alertheadline}</td></tr>"
+                            testConfig += "<tr><td>Description</td><td>${atomicState.ListofAlerts[y].alertdescription}</td></tr>"
+                            testConfig += "<tr><td>Instruction</td><td>${atomicState.ListofAlerts[y].alertinstruction}</td></tr></table>"
+                        }
                         paragraph testConfig
                     }
 					else paragraph "There are no reported weather alerts in your area, the api.weather.gov api is not available, or you need to change NOAA Weather Alert options to acquire desired results.<br><br>Current URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a>"
@@ -293,11 +345,12 @@ def alertNow(alertmsg, repeatCheck){
 	// check restrictions based on Modes and Switches
     def result = (switchYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
     def result2 = (modesYes && modes !=null && modes.contains(location.mode)) ? true : false
-    def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity.toLowerCase())) ? true : false
+    def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.toLowerCase().contains(atomicState.ListofAlerts[0].alertseverity.toLowerCase())) ? true : false
+    def result4 = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent.toLowerCase())) ? true : false
     if(logEnable) log.debug "Restrictions on?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}"
    
     // no restrictions
-    if(!(result || result2) || result3) {  
+    if(!(result || result2) || result3 || result4) {  
             log.info "Sending alert: ${alertmsg}"
             pushNow(alertmsg, repeatCheck)
 		    if(alertSwitch) { alertSwitch.on() }
