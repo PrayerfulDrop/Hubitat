@@ -527,7 +527,7 @@ def alertFormatText(msg) {
     msg = msg.replaceAll("\n"," ")
     msg = msg.replaceAll("\\s+", " ")
     // Fix time format
-    m = s =~ /\d{3,4}\s?(?i:am|pm)/
+    m = msg =~ /\d{3,4}\s?(?i:am|pm)/
     (0..<m.count).each {
         String temp = m[it][0]
         temp.replaceAll(/\\s/,"")
