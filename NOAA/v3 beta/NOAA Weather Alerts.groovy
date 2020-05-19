@@ -526,6 +526,15 @@ def alertFormatText(msg) {
     msg = msg.replaceAll("","")
     msg = msg.replaceAll("\n"," ")
     msg = msg.replaceAll("\\s+", " ")
+    // Fix time format
+    m = s =~ /d{3,4}\s?(?:am|pm)/
+    (0..<m.count).each {
+        String temp = m[it][0]
+        StringBuilder time = new StringBuilder(temp)
+        if(temp.length() == 5) time.insert(1,":")
+        else time.insert(2,":")
+        msg.replaceFirst(m[it][0],time.toString())
+    }       
     return msg
 }
     
