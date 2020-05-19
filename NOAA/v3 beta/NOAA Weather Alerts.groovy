@@ -530,6 +530,7 @@ def alertFormatText(msg) {
     m = s =~ /d{3,4}\s?(?:am|pm|AM|PM)/
     (0..<m.count).each {
         String temp = m[it][0]
+        temp.replaceAll(/\\s/,"")
         StringBuilder time = new StringBuilder(temp)
         if(temp.length() == 5) time.insert(1,":")
         else time.insert(2,":")
