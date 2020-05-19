@@ -399,7 +399,7 @@ def getAlertMsg() {
             else alertexpires = result.data.features[i].properties.expires
             
             //if alert has expired ignore alert
-            if(alertexpires.compareTo(timestamp)>=0) {
+            //if(alertexpires.compareTo(timestamp)>=0) {
                 if(atomicState.ListofAlerts) if(!(atomicState.ListofAlerts.alertid.contains(result.data.features[i].properties.id))) newList = true
                 //build new entry for map
                 alertarea = (result.data.features[i].properties.areaDesc)
@@ -444,7 +444,7 @@ def getAlertMsg() {
                 alertmsg = alertmsg.replaceAll("\\s+", " ")
                 
                 ListofAlerts << [alertid:result.data.features[i].properties.id, alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:alertdescription, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]
-            }
+            //}
         }
 
         if(ListofAlerts==null || newList) atomicState.alertAnnounced = false
@@ -527,15 +527,19 @@ def alertFormatText(msg) {
     msg = msg.replaceAll("\n"," ")
     msg = msg.replaceAll("\\s+", " ")
     // Fix time format
-    m = msg =~ /\d{3,4}\s?(?i:am|pm)/
-    (0..<m.count).each {
-        String temp = m[it][0]
-        temp.replaceAll(/\\s/,"")
-        StringBuilder time = new StringBuilder(temp)
-        if(temp.length() == 5) time.insert(1,":")
-        else time.insert(2,":")
-        msg.replaceFirst(m[it][0],time.toString())
-    }       
+//    m = msg =~ /\d{3,4}\s?(?i:am|pm)/
+//    log.debug msg
+//    log.debug m
+//    (0..<m.count).each {
+//        log.debug m[it][0]
+
+//        temp.replaceAll(/\\s/,"")
+
+//        StringBuilder time = new StringBuilder(temp)
+//        if(temp.length() == 5) time.insert(1,":")
+//        else time.insert(2,":")
+//        msg.replaceFirst(m[it][0],time.toString())
+//    }       
     return msg
 }
     
