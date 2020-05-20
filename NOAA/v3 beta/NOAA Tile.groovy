@@ -72,7 +72,6 @@ def getTile() {
         if(logEnable) log.info "Requesting current weather alert from NOAA App."
         noaaData = []
         noaaData = parent.getTile()
-        log.debug noaaData
         if(!noaaData) { 
             sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
             runIn(60, getTile)
