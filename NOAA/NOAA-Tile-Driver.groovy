@@ -3,18 +3,9 @@
  *
  *  importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy"
  *
- *  Design Usage:
- *  This driver formats the NOAA data to be used with Hubitat's Dashboards.
- *
  *  Copyright 2019 Aaron Ward
- *  
- *  This driver is free and you may do as you likr with it.  I give huge KUDDOS to bptworld for supplying v1.0.0 of this driver
  *
- *  Remember...I am not a programmer, everything I do takes a lot of time and research (then MORE research)!
- *  Donations are never necessary but always appreciated.  Donations to support development efforts are accepted via: 
- *
- *
- * ------------------------------------------------------------------------------------------------------------------------------
+ *-------------------------------------------------------------------------------------------------------------------
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
  *
@@ -24,16 +15,11 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
+ *
+ * ------------------------------------------------------------------------------------------------------------------------------
+ *              Donations are always appreciated: https://www.paypal.me/aaronmward
  * ------------------------------------------------------------------------------------------------------------------------------
  *
- *
- *  Changes:
- *
- *  1.2.2 - removed AppWatchDog driver code
- *  1.2.1 - added AppWatchDogDriver2 support
- *  1.2.0 - rewrite of the driver app (again) for better optimization, automate disabling of logging
- *  1.1.0 - Longer alerts will scroll on dashboard for 5 minutes, fixed justification of text alignment
- *  1.0.0 - Initial release thanks to bptworld!
  */
 
 metadata {
@@ -41,18 +27,17 @@ metadata {
 		name: "NOAA Tile",
 		namespace: "aaronward",
 		author: "Aaron Ward",
-		importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy"
-		)
-		{
+		importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy") {
 		command "sendNoaaTile", ["string"]
+        command "initialize"
+        command "getTile"
 		capability "Actuator"
 		capability "Refresh"
     	attribute "Alerts", "string"
 		}
 
 	preferences() {    	
-			input("timeExpire", "text", title: "Minutes to scroll alert?", required: true, defaultValue: "5")
-            input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
+        input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: false)
     }
 }
 
@@ -71,9 +56,10 @@ def installed(){
 }
 
 def refresh() {
-	if (logEnable) runIn(900,logsOff)
-    log.info "NOAA Tile has been updated."
-	state.clear()
+	if(logEnable) runIn(900,logsOff)
+    count = true
+    getTile()
+    sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
 def logsOff(){
@@ -82,60 +68,31 @@ def logsOff(){
 }
 
 
-def sendNoaaTile(noaaData) {
-	def messageSize = 380
-	alertmsg =  "${noaaData}"
-	log.info "Received weather alert from NOAA App."
-	if (logEnable) log.debug "Length of Alert: ${alertmsg.length()}"
-		if(alertmsg.length() > messageSize) {
-			if (logEnable) log.debug "Scrolling alert on dashboard for ${timeExpire} minutes."
-  	  		def now = new Date()
-			long unxNow = now.getTime()
-			//long unxEnd = now.getTime() + (timeExpire.toInteger()*60*1000)
-			long unxEnd = now.getTime() + (timeExpire.toInteger()*15*1000)
-			unxNow = unxNow/1000
-    		unxEnd = unxEnd/1000
-			//determine how many pages will the alert is
-			def m = alertmsg =~ /(.|[\r\n]){1,380}\W/
-			state.index = 0
-			def x = 0
-			state.fullmsg = []
-			while (m.find()) {
-			   state.fullmsg << m.group()
-			   state.index = state.index +1
-			}
-			
-			while(unxNow < unxEnd){
-				noaaTile = "<center><table width='90%' height='90%'><tr>"
-				noaaTile += "<td style='text-align: justify;'>"
-				if(x==(state.index-1)) { noaaTile += "<div style='font-size: 15px'> ${state.fullmsg[x]}</div>" }
-				else { noaaTile += "<div style='font-size: 15px'> ${state.fullmsg[x]}...</div>" }
-				noaaTile += "<div align='right' style='font-size: 15px'>${x+1}/${state.index}</div>"
-				noaaTile += "</td></tr></table>"
-				sendEvent(name: "Alerts", value: noaaTile, displayed: true)
-				if(x == (state.index-1)) {x=0} else {x=x+1}
-				pauseExecution(8000)
-				now = new Date()
-				unxNow = now.getTime()
-				unxNow = unxNow/1000
-			}
-			if (logEnable) log.debug "End scrolling of alerts."
-		}
-		
-		//build final alert to display
-		noaaTile = "<center><table width='90%' height='90%'><tr>"
-		if(noaaData.length() < messageSize) { 
-				noaaTile += "<td style='text-align: center;'>"
-				noaaTile += "<div style='font-size: ${fontSize}px'> ${alertmsg}</div>"
-				noaaTile += "<div align='right' style='font-size: ${fontSize}px'></div>" 
-		}
-			else { 
-				noaaTile += "<td style='text-align: justify;'>"
-				noaaTile += "<div style='font-size: 15px'> ${state.fullmsg[0]}...</div>" 
-				noaaTile += "<div align='right' style='font-size: 15px'>1/${state.index}</div>"
-			}
-		noaaTile += "</td></tr></table>"
-		sendEvent(name: "Alerts", value: noaaTile, displayed: true)
-		log.info "NOAA Weather Alert displayed on dashboard."
+def getTile() {
+    while(count) {
+        if(logEnable) log.info "Requesting current weather alert from NOAA App."
+        noaaData = []
+        noaaData = parent.getTile()
+        log.debug noaaData
+        if(!noaaData) sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
+        else {
+            fullalert = []
+            for(x=0;x<noaaData.size();x++) {
+    	        m = noaaData[x].alertmsg =~ /(.|[\r\n]){1,378}\W/
+	    	    fullmsg = []
+		    	while (m.find()) {
+    		        fullmsg << m.group()
+                }
+                for(i=0;i<fullmsg.size();i++) {
+                    noaaTile = "<table style='position:relative;top:-10px;left:10px;border-collapse:collapse;width:97%'><tr style='border-bottom:medium solid #FFFFFF;'><td valign='bottom' style='text-align:left;width:50%;border-bottom:medium solid #FFFFFF;height:13px'><font style='font-size:12px;'>"
+                    noaaTile += "Alert: ${x+1}/${noaaData.size()}"
+                    noaaTile += "</font></td><td valign='bottom' style='text-align:right;border-bottom:medium solid #FFFFFF;width:50%;height:13px'><font style='font-size:12px;'>Page: ${i+1}/${fullmsg.size()}</font></td></tr>"
+                    noaaTile += "<tr><td colspan=2 valign='top' style='line-height:normal;width:90%;height:100px;text-align:left;border-top-style:none;border-top-width:medium;'><font style='font-size:13px'>${fullmsg[i]}"
+	        		noaaTile += "</font></td></tr></table>"
+		        	sendEvent(name: "Alerts", value: noaaTile, displayed: true)      
+                    pauseExecution(8000)
+                }
+            }
+        }
+    }
 }
-
