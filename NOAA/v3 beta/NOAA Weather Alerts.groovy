@@ -261,6 +261,7 @@ def SettingsPage() {
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
                 if(runTest) {
 					app?.updateSetting("runTest",[value:"false",type:"bool"])
+                    atomicState.testmsg = true
                     runtestAlert()
 				}           
                 input "init", "bool", title: "Reset current application state?", required: false, defaultValue: false, submitOnChange: true
@@ -337,8 +338,6 @@ def main() {
             }   
 	    }
     } else if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
-    //log.warn "Alert Announced: ${atomicState.alertAnnounced}"
-    tileNow(false)
 }
 
 def alertNow(alertmsg, repeatCheck){
@@ -347,7 +346,7 @@ def alertNow(alertmsg, repeatCheck){
     def result2 = (modesYes && modes !=null && modes.contains(location.mode)) ? true : false
     def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity)) ? true : false
     def result4 = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
-    if(logEnable) log.debug "Restrictions on?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}"
+    if(logEnable) log.debug "Restrictions on?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}, Weather Type Override: ${result4}"
    
     // no restrictions
     if(!(result || result2) || result3 || result4) {  
@@ -385,7 +384,6 @@ def repeatNow(){
 
 def getAlertMsg() {
     def ListofAlerts = []
-    def newList = false
     def result = getResponseURL()
     if(result) {
         def date = new Date()
@@ -400,7 +398,7 @@ def getAlertMsg() {
             
             //if alert has expired ignore alert
             if(alertexpires.compareTo(timestamp)>=0) {
-                if(atomicState.ListofAlerts) if(!(atomicState.ListofAlerts.alertid.contains(result.data.features[i].properties.id))) newList = true
+                if(atomicState.ListofAlerts) if(!(atomicState.ListofAlerts.alertid.contains(result.data.features[i].properties.id))) atomicState.newList = true
                 //build new entry for map
                 alertarea = (result.data.features[i].properties.areaDesc)
                 alertarea = alertRemoveStates(alertarea)
@@ -447,7 +445,8 @@ def getAlertMsg() {
             }
         }
 
-        if(ListofAlerts==null || newList) atomicState.alertAnnounced = false
+        if(ListofAlerts==null || atomicState.newList) atomicState.alertAnnounced = false
+        else atomicState.newList = false
         atomicState.ListofAlerts = ListofAlerts        
     }
     
@@ -519,23 +518,14 @@ def alertRemoveStates(msg) {
 
 def alertFormatText(msg) {
     msg = msg.replaceAll(/NWS/,"the National Weather Service of") 
-    msg = msg.replaceAll(/(WHAT|WHEN|IMPACT|IMPACTS|WHERE|INCLUDE|HAZARDS|INCLUDES|HAZARD|TEMPERATURE)/, "")
+    msg = msg.replaceAll(/(WHAT|WHEN|IMPACT|IMPACTS|WHERE|INCLUDE|HAZARDS|INCLUDES|HAZARD|TEMPERATURE|SOURCE)/, "")
     msg = msg.replaceAll(/\.{2,}/, "")
     msg = msg.replaceAll(/\*/, "")
     msg = msg.replaceAll(/MPH/, "miles per hour")
     msg = msg.replaceAll("","")
     msg = msg.replaceAll("\n"," ")
     msg = msg.replaceAll("\\s+", " ")
-    // Fix time format
-    m = s =~ /d{3,4}\s?(?:am|pm|AM|PM)/
-    (0..<m.count).each {
-        String temp = m[it][0]
-        temp.replaceAll(/\\s/,"")
-        StringBuilder time = new StringBuilder(temp)
-        if(temp.length() == 5) time.insert(1,":")
-        else time.insert(2,":")
-        msg.replaceFirst(m[it][0],time.toString())
-    }       
+    msg = msg.replaceAll(/(?:(\d{2})(\d{2}))|(?:(\d(?!\d{3}))(\d{2}))(?=\s?(?i:am|pm))/,'$1$3:$2$4')
     return msg
 }
     
@@ -662,21 +652,20 @@ def pushNow(alertmsg, repeatCheck) {
 	}
 }
 
-def tileNow(testmsg) {
-    noaaTileDevice = getChildDevice("NOAA")
-	if(noaaTileDevice) {
-        msg = []
-        if(testmsg) msg << [alertmsg:state.repeatmsg]
-        else {
-            if(atomicState.ListofAlerts) {
-                for(x=0;x<atomicState.ListofAlerts.size();x++) {
-                    msg << [alertmsg:atomicState.ListofAlerts[x].alertmsg]
-                }   
-            }
+
+def getTile() {
+    msg = []
+    if(atomicState.testmsg) {
+        msg << [alertmsg:state.repeatmsg]
+        atomicState.testmsg = false
+    } else {
+        if(atomicState.ListofAlerts) {
+            for(x=0;x<atomicState.ListofAlerts.size();x++) {
+                msg << [alertmsg:atomicState.ListofAlerts[x].alertmsg]
+            }   
         }
-        if (logEnable) log.info "Message sent to NOAA Tile device."
-		noaaTileDevice.sendNoaaTile(msg)
     }
+    return msg
 }
 
 // Device creation and status updhandlers
@@ -740,6 +729,7 @@ def getResponseURL() {
 }
 
 def checkState() {
+    atomicState.testmsg = false
     if(whatPoll==null) whatPoll = 5
     if(logEnable==null) logEnable = false
     if(logMinutes==null) logMinutes = 15
