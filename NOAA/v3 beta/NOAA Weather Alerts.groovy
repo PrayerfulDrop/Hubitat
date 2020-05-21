@@ -550,7 +550,6 @@ def runtestAlert() {
     state.repeatmsg=buildTestAlert()
     alertNow(state.repeatmsg, false)
     if(repeatYes==true) repeatNow()
-    tileNow(true)
 }
 
 def buildTestAlert() {
