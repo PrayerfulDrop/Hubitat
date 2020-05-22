@@ -3,29 +3,31 @@
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
    "dateReleased": "2019-02-01",
+   "version": "2.5.4",
+   "betaVersion": "3.0",
    "licenseFile": "",
-   "releaseNotes": "misc fixes",
+   "releaseNotes": "Beta v3 available for testing",
    "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
    "communityLink": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
    "apps" : [
    	{
    		"id" : "82a848f3-e61c-429e-b557-2019b559f509",
    		"name": "NOAA Weather Alerts",
-         "namespace": "aaronward",
+                "namespace": "aaronward",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Severe-Weather.groovy",
+                "betaLocation": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/v3%20beta/NOAA%20Weather%20Alerts.groovy",
    		"required": true,
-   		"oauth": false,
-         "version" : "2.5.4"
+   		"oauth": false
    	}
    ],
    "drivers" : [
    	{
    		"id": "68115e5c-d300-430e-afb3-277b61554946",
    		"name": "NOAA Tile",
-         "namespace": "aaronward",
+                "namespace": "aaronward",
    		"location": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy",
-   		"required": true,
-         "version": "1.2.2"
+                "betaLocation": "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/v3%20beta/NOAA%20Tile.groovy",
+   		"required": true
    	}
    ]
 }
