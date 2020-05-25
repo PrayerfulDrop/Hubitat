@@ -22,7 +22,7 @@
  */
 
 def version() {
-    version = "3.0"
+    version = "3.0.100"
     return version
 }
 
@@ -320,11 +320,6 @@ def main() {
     // Get the alert message
 	getAlertMsg()	
     if(atomicState.ListofAlerts) {
-        def date = new Date()
-        SimpleDateFormat objSDF = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
-        String timestamp = date.format("yyyy-MM-dd'T'HH:mm:ssXXX")
-        alertexpires = atomicState.ListofAlerts[0].alertexpires
-
 	    if(atomicState.alertAnnounced) { 
 		    if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
         } else {
@@ -398,7 +393,10 @@ def getAlertMsg() {
             
             //if alert has expired ignore alert
             if(alertexpires.compareTo(timestamp)>=0) {
-                if(atomicState.ListofAlerts) if(!(atomicState.ListofAlerts.alertid.contains(result.data.features[i].properties.id))) atomicState.newList = true
+                if(atomicState.ListofAlerts) {
+                    if(!(atomicState.ListofAlerts.alertid.contains(result.data.features[i].properties.id))) IsnewList = true
+                    if(logEnable) log.debug "${result.data.features[i].properties.id} is new in ListofAlerts: ${IsnewList}"
+                }
                 //build new entry for map
                 alertarea = (result.data.features[i].properties.areaDesc)
                 alertarea = alertRemoveStates(alertarea)
@@ -445,8 +443,7 @@ def getAlertMsg() {
             }
         }
 
-        if(ListofAlerts==null || atomicState.newList) atomicState.alertAnnounced = false
-        else atomicState.newList = false
+        if(ListofAlerts==null || IsnewList) atomicState.alertAnnounced = false
         atomicState.ListofAlerts = ListofAlerts        
     }
     
