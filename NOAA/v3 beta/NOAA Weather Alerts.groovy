@@ -21,10 +21,7 @@
  *
  */
 
-def version() {
-    version = "3.0.002"
-    return version
-}
+String version() { return "3.0.002" }
 
 definition(
     name:"NOAA Weather Alerts",
