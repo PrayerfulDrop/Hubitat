@@ -4,9 +4,9 @@
    "author": "Aaron Ward",
    "dateReleased": "2019-02-01",
    "version": "2.5.4",
-   "betaVersion": "3.0.002",
+   "betaVersion": "3.0.003",
    "licenseFile": "",
-   "releaseNotes": "Beta v3 - fixed repeat issue",
+   "releaseNotes": "Beta v3 - minor UI bug fixes",
    "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
    "communityLink": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
    "apps" : [
