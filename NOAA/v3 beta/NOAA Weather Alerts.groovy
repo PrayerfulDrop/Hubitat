@@ -21,7 +21,7 @@
  *
  */
 
-String version() { return "3.0.003" }
+String version() { return "3.0.004" }
 
 definition(
     name:"NOAA Weather Alerts",
