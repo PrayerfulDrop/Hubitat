@@ -69,12 +69,13 @@ def logsOff(){
 
 
 def getTile() {
-    while(count) {
         if(logEnable) log.info "Requesting current weather alert from NOAA App."
         noaaData = []
         noaaData = parent.getTile()
-        log.debug noaaData
-        if(!noaaData) sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
+        if(!noaaData) { 
+            sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
+            runIn(60, getTile)
+        }
         else {
             fullalert = []
             for(x=0;x<noaaData.size();x++) {
@@ -94,5 +95,4 @@ def getTile() {
                 }
             }
         }
-    }
 }
