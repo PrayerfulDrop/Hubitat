@@ -3,9 +3,9 @@
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
    "dateReleased": "2019-02-01",
-   "version": "3.0.004",
+   "version": "3.0.005",
    "licenseFile": "",
-   "releaseNotes": "Release v3.0.004",
+   "releaseNotes": "App is pausable, removed ability of multiple instances due to code changes.",
    "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
    "communityLink": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
    "apps" : [
