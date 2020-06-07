@@ -21,7 +21,7 @@
  *
  */
 
-String version() { return "3.0.004" }
+String version() { return "3.0.005" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -32,7 +32,10 @@ definition(
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
     iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
     iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png",
-	documentationLink: "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md")
+	documentationLink: "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
+    singleInstance: true,
+    oauth: false,
+    pausable: true)
 
 preferences { 
     page name: "mainPage", title: "", install: true, uninstall: false
