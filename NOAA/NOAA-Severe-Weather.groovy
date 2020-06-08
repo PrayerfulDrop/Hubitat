@@ -19,9 +19,10 @@
  *              Donations are always appreciated: https://www.paypal.me/aaronmward
  * ------------------------------------------------------------------------------------------------------------------------------
  *
+ * Last Update: 6/8/2020 : 6:08AM
  */
 
-String version() { return "3.0.005" }
+String version() { return "3.0.006" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -650,18 +651,21 @@ def pushNow(alertmsg, repeatCheck) {
 
 
 def getTile() {
-    msg = []
-    if(atomicState.testmsg) {
-        msg << [alertmsg:state.repeatmsg]
-        atomicState.testmsg = false
-    } else {
-        if(atomicState.ListofAlerts) {
-            for(x=0;x<atomicState.ListofAlerts.size();x++) {
-                msg << [alertmsg:atomicState.ListofAlerts[x].alertmsg]
-            }   
+    try {
+        msg = []
+        if(atomicState.testmsg) {
+            msg << [alertmsg:state.repeatmsg]
+            atomicState.testmsg = false
+        } else {
+            if(atomicState.ListofAlerts) {
+                for(x=0;x<atomicState.ListofAlerts.size();x++) {
+                    msg << [alertmsg:atomicState.ListofAlerts[x].alertmsg]
+                }   
+            }
         }
+        return msg
     }
-    return msg
+    catch (e) {}
 }
 
 // Device creation and status updhandlers
