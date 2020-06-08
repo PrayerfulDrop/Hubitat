@@ -22,7 +22,7 @@
  * Last Update: 6/8/2020 : 6:08AM
  */
 
-String version() { return "3.0.007" }
+String version() { return "3.0.008" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -217,36 +217,41 @@ def RestrictionsPage() {
      
             input "modeWeatherType", "bool", title: "Ignore restrictions for certain weather types?", required: false, defaultValue: false, submitOnChange: true
             
-            if(modeWeatherType) input name: "WeatherType", type: "enum", title: "Select weather type to ignore restrictions: ", required: true, multiple:true, submitOnChange: true,                 
-                options: [
-							"blizzard warning":"Blizzard Warning",
-                            "coastal flood watch":"Coastal Flood Watch",
-                            "coastal flood warning":"Coastal Flood Warning",
-                            "dust storm warning":"Dust Storm Warning",
-                            "extreme wind warning":"Extreme Wind Warning",
-                            "flash flood watch":"Flash Flood Watch",
-                            "flash flood warning":"Flash Flood Warning",
-                            "flood watch":"Flood Watch",
-                            "flood warning":"Flood Warning",
-                            "high wind watch":"High Wind Watch",
-                            "high wind warning":"High Wind Warning",
-                            "hurricane watch":"Hurricane Watch",
-	                        "hurricane warning":"Hurricane Warning",
-                            "severe thunderstorm watch":"Severe Thunderstorm Watch",
-                            "severe thunderstorm warning":"Severe Thunderstorm Warning",
-                            "snow squall warning":"Snow Squall Warning",
-                            "special marine warning":"Special Marine Warning",
-                            "storm surge watch":"Storm Surge Watch",
-                            "storm surge warning":"Storm Surge Warning",
-                            "tornado watch":"Tornado Watch",
-                            "tornado warning":"Tornado Warning",
-                            "tropical storm watch":"Tropical Storm Watch",
-                            "tropical storm warning":"Tropical Storm Warning",   
-							"tsunami watch":"Tsunami Watch",
-                            "tsunami warning":"Tsunami Warning",
-                            "winter storm watch":"Winter Storm Watch",
-                            "winter storm warning":"Winter Storm Warning"
-                        ]
+            if(modeWeatherType) { input name: "WeatherType", type: "enum", title: "Select weather type to ignore restrictions: ", required: true, multiple:true, submitOnChange: true,                 
+                                    options: [
+                    							"blizzard warning":"Blizzard Warning",
+                                                "coastal flood watch":"Coastal Flood Watch",
+                                                "coastal flood warning":"Coastal Flood Warning",
+                                                "dust storm warning":"Dust Storm Warning",
+                                                "extreme wind warning":"Extreme Wind Warning",
+                                                "flash flood watch":"Flash Flood Watch",
+                                                "flash flood warning":"Flash Flood Warning",
+                                                "flood watch":"Flood Watch",
+                                                "flood warning":"Flood Warning",
+                                                "high wind watch":"High Wind Watch",
+                                                "high wind warning":"High Wind Warning",
+                                                "hurricane watch":"Hurricane Watch",
+	                                            "hurricane warning":"Hurricane Warning",
+                                                "severe thunderstorm watch":"Severe Thunderstorm Watch",
+                                                "severe thunderstorm warning":"Severe Thunderstorm Warning",
+                                                "snow squall warning":"Snow Squall Warning",
+                                                "special marine warning":"Special Marine Warning",
+                                                "storm surge watch":"Storm Surge Watch",
+                                                "storm surge warning":"Storm Surge Warning",
+                                                "tornado watch":"Tornado Watch",
+                                                "tornado warning":"Tornado Warning",
+                                                "tropical storm watch":"Tropical Storm Watch",
+                                                "tropical storm warning":"Tropical Storm Warning",   
+							                    "tsunami watch":"Tsunami Watch",
+                                                "tsunami warning":"Tsunami Warning",
+                                                "winter storm watch":"Winter Storm Watch",
+                                                "winter storm warning":"Winter Storm Warning"
+                                              ]
+                                 if(alertSwitchOff) { 
+                                     paragraph "Alert Switch '<b>${alertSwitch}</b>' has been selected to be turned off."
+                                     input name: "alertSwitchWeatherType", type: "bool", title: "Turn off switch: '${alertSwitch}' when above weather type has expired?", required: false, submitOnChange: true
+                                 }
+                                }
             paragraph "<hr>"
             if(pushovertts) input "pushoverttsalways ", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
                 }
@@ -349,13 +354,14 @@ def alertNow(alertmsg, repeatCheck){
     if(!(result || result2) || result3 || result4) {  
             log.info "Sending alert: ${alertmsg}"
             pushNow(alertmsg, repeatCheck)
-		    if(alertSwitch) { alertSwitch.on() }
+		    if(alertSwitch) alertSwitch.on()
 		    talkNow(alertmsg, repeatCheck)  
      } else {
             if(pushoverttsalways) {	
                 log.info "Restrictions are enabled but PushoverTTS enabled.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
                 pushNow(alertmsg, repeatCheck) 
             }
+            if(result4 && alertSwitch && alertSwitchWeatherType) alertSwitch.off()
             else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
     }
 }
@@ -446,7 +452,7 @@ def getAlertMsg() {
         }
 
         if(ListofAlerts==null || IsnewList) atomicState.alertAnnounced = false
-        if(ListofAlerts==null) alertSwitch.off()
+        if(ListofAlerts==null && alertSwitch) alertSwitch.off()
         atomicState.ListofAlerts = ListofAlerts        
     }
     
