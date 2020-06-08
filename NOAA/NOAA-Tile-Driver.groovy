@@ -20,6 +20,7 @@
  *              Donations are always appreciated: https://www.paypal.me/aaronmward
  * ------------------------------------------------------------------------------------------------------------------------------
  *
+ * Last Update: 6/8/2020 : 6:08AM
  */
 
 metadata {
@@ -30,14 +31,14 @@ metadata {
 		importUrl: "https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/NOAA/NOAA-Tile-Driver.groovy") {
 		command "sendNoaaTile", ["string"]
         command "initialize"
-        command "getTile"
+        command "refreshTile"
 		capability "Actuator"
 		capability "Refresh"
     	attribute "Alerts", "string"
 		}
 
 	preferences() {    	
-        input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: false)
+        input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
     }
 }
 
@@ -57,8 +58,7 @@ def installed(){
 
 def refresh() {
 	if(logEnable) runIn(900,logsOff)
-    count = true
-    getTile()
+    refreshTile()
     sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
@@ -68,13 +68,14 @@ def logsOff(){
 }
 
 
-def getTile() {
+def refreshTile() {
         if(logEnable) log.info "Requesting current weather alert from NOAA App."
         noaaData = []
-        noaaData = parent.getTile()
+        try { noaaData = parent.getTile() }
+        catch (e) {}
         if(!noaaData) { 
             sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true) 
-            runIn(60, getTile)
+            runIn(60, refreshTile)
         }
         else {
             fullalert = []
@@ -94,5 +95,6 @@ def getTile() {
                     pauseExecution(8000)
                 }
             }
+            runIn(5, refreshTile)
         }
 }
