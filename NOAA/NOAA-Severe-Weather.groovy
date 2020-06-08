@@ -22,7 +22,7 @@
  * Last Update: 6/8/2020 : 6:08AM
  */
 
-String version() { return "3.0.006" }
+String version() { return "3.0.007" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -98,6 +98,7 @@ def NotificationPage() {
 				
 				// Switch to set when alert active
 				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false, submitOnChange: true)
+                if(alertSwitch) input (name:"alertSwitchOff", type: "bool", title: "Turn off switch when Alerts expire?", required: false, defaultValue: false, submitOnChange: true)
         }
     }
 }
@@ -445,6 +446,7 @@ def getAlertMsg() {
         }
 
         if(ListofAlerts==null || IsnewList) atomicState.alertAnnounced = false
+        if(ListofAlerts==null) alertSwitch.off()
         atomicState.ListofAlerts = ListofAlerts        
     }
     
