@@ -97,7 +97,7 @@ def NotificationPage() {
 				input "speakervolRestore", "number", title: "Restore Volume Level:", description: "0-100", required: false, defaultValue: "60", submitOnChange: true
 				
 				// Switch to set when alert active
-                input (name: "UsealertSwitch", type: "bool", title: "Use a switch to turn ON with Alert? (optional)", required: false, defaultValue: false, submitOnChange: true)
+                input (name: "UsealertSwitch", type: "bool", title: "Use a switch to turn ON with Alert?", required: false, defaultValue: false, submitOnChange: true)
                 if(UsealertSwitch) {
 				    input (name: "alertSwitch", type: "capability.switch", title: "Select a switch to turn ON with Alert?", multiple: false, required: false, defaultValue: false, submitOnChange: true) 
                     input (name:"alertSwitchOff", type: "bool", title: "Turn off switch when all Alerts expire?", required: false, defaultValue: false, submitOnChange: true)
