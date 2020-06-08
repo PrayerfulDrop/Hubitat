@@ -22,7 +22,7 @@
  * Last Update: 6/8/2020 : 6:08AM
  */
 
-String version() { return "3.0.008" }
+String version() { return "3.0.009" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -97,8 +97,13 @@ def NotificationPage() {
 				input "speakervolRestore", "number", title: "Restore Volume Level:", description: "0-100", required: false, defaultValue: "60", submitOnChange: true
 				
 				// Switch to set when alert active
-				input (name: "alertSwitch", type: "capability.switch", title: "Switch to turn ON with Alert? (optional)", required: false, defaultValue: false, submitOnChange: true)
-                if(alertSwitch) input (name:"alertSwitchOff", type: "bool", title: "Turn off switch when Alerts expire?", required: false, defaultValue: false, submitOnChange: true)
+                input (name: "UsealertSwitch", type: "bool", title: "Use a switch to turn ON with Alert? (optional)", required: false, defaultValue: false, submitOnChange: true)
+                if(UsealertSwitch) {
+				    input (name: "alertSwitch", type: "capability.switch", title: "Select a switch to turn ON with Alert?", multiple: false, required: false, defaultValue: false, submitOnChange: true) 
+                    input (name:"alertSwitchOff", type: "bool", title: "Turn off switch when all Alerts expire?", required: false, defaultValue: false, submitOnChange: true)
+                    input (name:"alertSwitchWeatherType", type: "bool", title: "Turn off switch when the ignored restrictions for weather alert types have expired?", required: false, defaultValue: false, submitOnChange: true)
+                    if(alertSwitchWeatherType) paragraph "<b>** Note:</b> Ensure you setup your '<u>weather types to ignore</u>' in the restrictions section of this app. <b>**</b>"
+                }
         }
     }
 }
@@ -247,11 +252,8 @@ def RestrictionsPage() {
                                                 "winter storm watch":"Winter Storm Watch",
                                                 "winter storm warning":"Winter Storm Warning"
                                               ]
-                                 if(alertSwitchOff) { 
-                                     paragraph "Alert Switch '<b>${alertSwitch}</b>' has been selected to be turned off."
-                                     input name: "alertSwitchWeatherType", type: "bool", title: "Turn off switch: '${alertSwitch}' when above weather type has expired?", required: false, submitOnChange: true
-                                 }
                                 }
+            if(alertSwitchWeatherType) paragraph "<b>** Note:</b> Alert switch '${alertSwitch}' will be turned off when the above weather types have expired. <b>**</b>"
             paragraph "<hr>"
             if(pushovertts) input "pushoverttsalways ", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
                 }
