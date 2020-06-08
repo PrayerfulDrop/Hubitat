@@ -3,9 +3,9 @@
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
    "dateReleased": "2019-02-01",
-   "version": "3.0.005",
+   "version": "3.0.006",
    "licenseFile": "",
-   "releaseNotes": "App is pausable, removed ability of multiple instances due to code changes.",
+   "releaseNotes": "Additional error handling, found bug in Dashboard Tile Driver",
    "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
    "communityLink": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
    "apps" : [
