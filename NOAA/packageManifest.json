@@ -3,9 +3,9 @@
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
    "dateReleased": "2019-02-01",
-   "version": "3.0.012",
+   "version": "3.0.013",
    "licenseFile": "",
-   "releaseNotes": "Event types polled from weather.gov api - no more missing new alert event types",
+   "releaseNotes": "Fixed backwards compatibility error.  Event types polled from weather.gov api - no more missing new alert event types",
    "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
    "communityLink": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
    "apps" : [
