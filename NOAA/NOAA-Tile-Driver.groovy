@@ -38,7 +38,7 @@ metadata {
 		}
 
 	preferences() {    	
-        input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: true)
+        input("logEnable", "bool", title: "Enable logging", required: true, defaultValue: false)
     }
 }
 
