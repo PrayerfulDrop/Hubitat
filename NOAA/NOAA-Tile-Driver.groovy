@@ -45,6 +45,7 @@ metadata {
 def initialize() {
 	log.info "NOAA Tile Driver Initializing."
 	refresh()
+    refreshTile()
 }
 
 def updated() {
@@ -58,8 +59,6 @@ def installed(){
 
 def refresh() {
 	if(logEnable) runIn(900,logsOff)
-    refreshTile()
-    sendEvent(name: "Alerts", value: "No weather alerts to report.", displayed: true)
 }
 
 def logsOff(){
