@@ -77,6 +77,7 @@ def refreshTile() {
             runIn(60, refreshTile)
         }
         else {
+            if(logEnable) log.info "Received the from NOAA Alerts: ${noaaData}"
             fullalert = []
             for(x=0;x<noaaData.size();x++) {
     	        m = noaaData[x].alertmsg =~ /(.|[\r\n]){1,378}\W/
