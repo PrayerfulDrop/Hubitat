@@ -3,9 +3,9 @@
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
    "dateReleased": "2019-02-01",
-   "version": "3.0.009",
+   "version": "3.0.010",
    "licenseFile": "",
-   "releaseNotes": "Added to have 'ignored weather types' that expire to turn off alert switch",
+   "releaseNotes": "Fixed Advanced Weather Alert Event Types",
    "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
    "communityLink": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
    "apps" : [
