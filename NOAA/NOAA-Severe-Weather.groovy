@@ -22,7 +22,7 @@
  * Last Update: 6/8/2020 : 6:08AM
  */
 
-String version() { return "3.0.012" }
+String version() { return "3.0.013" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -73,6 +73,7 @@ def mainPage() {
 }
 
 def NotificationPage() {
+    if(atomicState.eventTypes==null || atomicState.eventTypes=="") buildEventsList() 
     dynamicPage(name: "NotificationPage") {
         section(UIsupport("logo","")) {
             paragraph UIsupport("header", " Setup Notification Device(s)")
