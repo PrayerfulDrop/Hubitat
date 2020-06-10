@@ -101,8 +101,137 @@ def NotificationPage() {
                 if(UsealertSwitch) {
 				    input (name: "alertSwitch", type: "capability.switch", title: "Select a switch to turn ON with Alert?", multiple: false, required: false, defaultValue: false, submitOnChange: true) 
                     input (name:"alertSwitchOff", type: "bool", title: "Turn off switch when all Alerts expire?", required: false, defaultValue: false, submitOnChange: true)
-                    input (name:"alertSwitchWeatherType", type: "bool", title: "Turn off switch when the ignored restrictions for weather alert types have expired?", required: false, defaultValue: false, submitOnChange: true)
-                    if(alertSwitchWeatherType) paragraph "<b>** Note:</b> Ensure you setup your '<u>weather types to ignore</u>' in the restrictions section of this app. <b>**</b>"
+                    input (name:"alertSwitchWeatherType", type: "bool", title: "Turn off switch if certain weather alert types expire?", required: false, defaultValue: false, submitOnChange: true)
+                    if(alertSwitchWeatherType) input "alertSwitchWeatherTypeWatch", "enum", title: "Watch for a specific Weather event(s)?", required: false, multiple: true, submitOnChange: true,
+                                    options: [
+                                        "911 Telephone Outage Emergency",
+                                        "Administrative Message",
+                                        "Air Quality Alert",
+                                        "Air Stagnation Advisory",
+                                        "Arroyo And Small Stream Flood Advisory",
+                                        "Ashfall Advisory",
+                                        "Ashfall Warning",
+                                        "Avalanche Advisory",
+                                        "Avalanche Warning",
+                                        "Avalanche Watch",
+                                        "Beach Hazards Statement",
+                                        "Blizzard Warning",
+                                        "Blizzard Watch",
+                                        "Blowing Dust Advisory",
+                                        "Blowing Dust Warning",
+                                        "Brisk Wind Advisory",
+                                        "Child Abduction Emergency",
+                                        "Civil Danger Warning",
+                                        "Civil Emergency Message",
+                                        "Coastal Flood Advisory",
+                                        "Coastal Flood Statement",
+                                        "Coastal Flood Warning",
+                                        "Coastal Flood Watch",
+                                        "Dense Fog Advisory",
+                                        "Dense Smoke Advisory",
+                                        "Dust Advisory",
+                                        "Dust Storm Warning",
+                                        "Earthquake Warning",
+                                        "Evacuation - Immediate",
+                                        "Excessive Heat Warning",
+                                        "Excessive Heat Watch",
+                                        "Extreme Cold Warning",
+                                        "Extreme Cold Watch",
+                                        "Extreme Fire Danger",
+                                        "Extreme Wind Warning",
+                                        "Fire Warning",
+                                        "Fire Weather Watch",
+                                        "Flash Flood Statement",
+                                        "Flash Flood Warning",
+                                        "Flash Flood Watch",
+                                        "Flood Advisory",
+                                        "Flood Statement",
+                                        "Flood Warning",
+                                        "Flood Watch",
+                                        "Freeze Warning",
+                                        "Freeze Watch",
+                                        "Freezing Fog Advisory",
+                                        "Freezing Rain Advisory",
+                                        "Freezing Spray Advisory",
+                                        "Frost Advisory",
+                                        "Gale Warning",
+                                        "Gale Watch",
+                                        "Hard Freeze Warning",
+                                        "Hard Freeze Watch",
+                                        "Hazardous Materials Warning",
+                                        "Hazardous Seas Warning",
+                                        "Hazardous Seas Watch",
+                                        "Hazardous Weather Outlook",
+                                        "Heat Advisory",
+                                        "Heavy Freezing Spray Warning",
+                                        "Heavy Freezing Spray Watch",
+                                        "High Surf Advisory",
+                                        "High Surf Warning",
+                                        "High Wind Warning",
+                                        "High Wind Watch",
+                                        "Hurricane Force Wind Warning",
+                                        "Hurricane Force Wind Watch",
+                                        "Hurricane Local Statement",
+                                        "Hurricane Warning",
+                                        "Hurricane Watch",
+                                        "Hydrologic Advisory",
+                                        "Hydrologic Outlook",
+                                        "Ice Storm Warning",
+                                        "Lake Effect Snow Advisory",
+                                        "Lake Effect Snow Warning",
+                                        "Lake Effect Snow Watch",
+                                        "Lake Wind Advisory",
+                                        "Lakeshore Flood Advisory",
+                                        "Lakeshore Flood Statement",
+                                        "Lakeshore Flood Warning",
+                                        "Lakeshore Flood Watch",
+                                        "Law Enforcement Warning",
+                                        "Local Area Emergency",
+                                        "Low Water Advisory",
+                                        "Marine Weather Statement",
+                                        "Nuclear Power Plant Warning",
+                                        "Radiological Hazard Warning",
+                                        "Red Flag Warning",
+                                        "Rip Current Statement",
+                                        "Severe Thunderstorm Warning",
+                                        "Severe Thunderstorm Watch",
+                                        "Severe Weather Statement",
+                                        "Shelter In Place Warning",
+                                        "Short Term Forecast",
+                                        "Small Craft Advisory",
+                                        "Small Craft Advisory For Hazardous Seas",
+                                        "Small Craft Advisory For Rough Bar",
+                                        "Small Craft Advisory For Winds",
+                                        "Small Stream Flood Advisory",
+                                        "Snow Squall Warning",
+                                        "Special Marine Warning",
+                                        "Special Weather Statement",
+                                        "Storm Surge Warning",
+                                        "Storm Surge Watch",
+                                        "Storm Warning",
+                                        "Storm Watch",
+                                        "Tornado Warning",
+                                        "Tornado Watch",
+                                        "Tropical Depression Local Statement",
+                                        "Tropical Storm Local Statement",
+                                        "Tropical Storm Warning",
+                                        "Tropical Storm Watch",
+                                        "Tsunami Advisory",
+                                        "Tsunami Warning",
+                                        "Tsunami Watch",
+                                        "Typhoon Local Statement",
+                                        "Typhoon Warning",
+                                        "Typhoon Watch",
+                                        "Urban And Small Stream Flood Advisory",
+                                        "Volcano Warning",
+                                        "Wind Advisory",
+                                        "Wind Chill Advisory",
+                                        "Wind Chill Warning",
+                                        "Wind Chill Watch",
+                                        "Winter Storm Warning",
+                                        "Winter Storm Watch",
+                                        "Winter Weather Advisory"
+                                    ]
                 }
         }
     }
@@ -453,7 +582,6 @@ def RestrictionsPage() {
                                         "Winter Weather Advisory"
                                     ]
                                 }
-            if(alertSwitchWeatherType) paragraph "<b>** Note:</b> Alert switch '${alertSwitch}' will be turned off when the above weather types have expired. <b>**</b>"
             paragraph "<hr>"
             if(pushovertts) input "pushoverttsalways ", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
                 }
@@ -550,6 +678,7 @@ def alertNow(alertmsg, repeatCheck){
     def result2 = (modesYes && modes !=null && modes.contains(location.mode)) ? true : false
     def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity)) ? true : false
     def result4 = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
+    def result5 = (alertSwitchWeatherType && alertSwitchWeatherTypeWatch != null && alertSwitchWeatherTypeWatch.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
     if(logEnable) log.debug "Restrictions on?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}, Weather Type Override: ${result4}"
    
     // no restrictions
@@ -563,7 +692,7 @@ def alertNow(alertmsg, repeatCheck){
                 log.info "Restrictions are enabled but PushoverTTS enabled.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
                 pushNow(alertmsg, repeatCheck) 
             }
-            if(result4 && alertSwitch && alertSwitchWeatherType) alertSwitch.off()
+            if(!result5 && alertSwitch && alertSwitchWeatherType) alertSwitch.off()
             else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
     }
 }
