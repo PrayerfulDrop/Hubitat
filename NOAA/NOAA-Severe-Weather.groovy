@@ -19,10 +19,10 @@
  *              Donations are always appreciated: https://www.paypal.me/aaronmward
  * ------------------------------------------------------------------------------------------------------------------------------
  *
- * Last Update: 6/8/2020 : 6:08AM
+ * Last Update: 6/11/2020 : 6:30PM
  */
 
-String version() { return "3.0.015" }
+String version() { return "3.0.016" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -227,11 +227,13 @@ def SettingsPage() {
                     log.warn "NOAA Weather Alerts application state has been reset."
                     initialize()
                 }
-                
-				input "getAPI", "bool", title: "Test above configuration and display current weather.gov API response?", required: false, defaultValue: false, submitOnChange: true
+                input "debug", "bool", title: "Debug alert configuration - if expired alerts are available, use those alerts? (only enable this with the test config option below)", required: false, defaultValue: false, submitOnChange: true
+				input "getAPI", "bool", title: "Test alert configuration and display weather.gov API response?", required: false, defaultValue: false, submitOnChange: true
 				if(getAPI) {
+                    getAlertMsg()
 					app?.updateSetting("getAPI",[value:"false",type:"bool"])
-					getAlertMsg()
+                    app?.updateSetting("debug",[value:"false",type:"bool"])
+					
 					if(atomicState.ListofAlerts) {                    
                         def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
                         def result2 =    ( modesYes && modes !=null && modes.contains(location.mode)) ? true : false
@@ -348,7 +350,8 @@ def getAlertMsg() {
             else alertexpires = result.data.features[i].properties.expires
 
             //if alert has expired ignore alert
-            if(alertexpires.compareTo(timestamp)>=0) {
+            if((alertexpires.compareTo(timestamp)>=0) || app?.debug) {
+                
             //if specific weatheralerts is chosen
                 if(myWeatherAlert==null || myWeatherAlert=="") msg = buildAlertMsg(result.data.features[i])   
                 else if(myWeatherAlert.contains(result.data.features[i].properties.event)) msg = buildAlertMsg(result.data.features[i])
@@ -477,7 +480,7 @@ def alertRemoveTimeZone(msg) {
 }
 
 def alertRemoveStates(msg) {
-    return msg.replaceAll(/(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IA|KS|KY|LA|ME|MA|MD|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)/, "")
+    return msg.replaceAll(/(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IA|IN|KS|KY|LA|ME|MA|MD|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)/, "")
 }
 
 def alertFormatText(msg) {
