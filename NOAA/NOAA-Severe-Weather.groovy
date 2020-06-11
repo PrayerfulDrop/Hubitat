@@ -22,7 +22,7 @@
  * Last Update: 6/8/2020 : 6:08AM
  */
 
-String version() { return "3.0.014" }
+String version() { return "3.0.015" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -77,6 +77,7 @@ def NotificationPage() {
     dynamicPage(name: "NotificationPage") {
         section(UIsupport("logo","")) {
             paragraph UIsupport("header", " Setup Notification Device(s)")
+            paragraph "Select a communication(s) method, notification and restore volume levels, use a switch with advanced settings."
 				// PushOver Devices
 			    input "pushovertts", "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true 
 			    if(pushovertts == true){ input "pushoverdevice", "capability.notification", title: "PushOver Device", required: true, multiple: true}
@@ -113,6 +114,7 @@ def ConfigPage() {
     dynamicPage(name: "ConfigPage") {
         section(UIsupport("logo","")) {
             paragraph UIsupport("header", " Alert Settings")
+            paragraph "Configure NOAA to look for specific alert severities, how often to poll for weather information, repeat you alert, use custom coordinates and customize the alert message sent to notification device(s)."
 			input name: "whatAlertSeverity", type: "enum", title: "Weather Severity to monitor: ", 
 				options: [
 						"minor": "Minor",
@@ -155,7 +157,7 @@ def AdvConfigPage() {
     dynamicPage(name: "AdvConfigPage") {
         section(UIsupport("logo","")) {
             paragraph UIsupport("header", " Advanced Alert Settings")
-            paragraph "Use with caution as below settings may cause undesired results.  Reference <a href='https://www.weather.gov/documentation/services-web-api?prevfmt=application%2Fcap%2Bxml/default/get_alerts#/default/get_alerts' target='_blank'>Weather.gov API</a> and use the API response test button below to determine your desired results."
+            paragraph "Use with caution as below settings may cause undesired results.  Only select what you would like to refine in your alerts.  Reference <a href='https://www.weather.gov/documentation/services-web-api?prevfmt=application%2Fcap%2Bxml/default/get_alerts#/default/get_alerts' target='_blank'>Weather.gov API</a> and use the API response test button below to determine your desired results."
 			input "myWeatherAlert", "enum", title: "Watch for a specific Weather event(s)?", required: false, multiple: true, submitOnChange: true, options: atomicState.eventTypes 
 			input name: "whatAlertUrgency", type: "enum", title: "Watch for a specific Alert Urgency: ", multiple: true, submitOnChange: true, 
 						options: [
@@ -178,7 +180,7 @@ def RestrictionsPage() {
     dynamicPage(name: "RestrictionsPage") {
         section(UIsupport("logo","")) {
             paragraph UIsupport("header", " Restrictions")
-            paragraph "Restrict ALL notifications based on current mode or if a switch is ON."
+            paragraph "Restrict notifications based on modes or a switch.  Override restrictions if the alert is a certain severity or weather type.  For notifications that are restricted, if a PushOver device is enabled alerts can still be sent but not over TTS."
  			input "modesYes", "bool", title: "Enable restriction of notifications by current mode(s)?", required: true, defaultValue: false, submitOnChange: true	
             if(modesYes) input(name:"modes", type: "mode", title: "Restrict notifications when current mode is:", multiple: true, required: false, submitOnChange: true)
             input "switchYes", "bool", title: "Restrict notifications using a switch?", required: true, defaultValue: false, submitOnChange: true
@@ -206,7 +208,7 @@ def SettingsPage() {
     dynamicPage(name: "SettingsPage") {
         section(UIsupport("logo","")) {
             paragraph UIsupport("header", " Settings")
-       			label title: "Custom Application Name (for multiple instances of NOAA):", required: false            
+            paragraph "Enable logging, run a test alert, if errors reset the applications state settings and test your weather alert configurations."
  				input "logEnable", "bool", title: "Enable Debug Logging?", required: false, defaultValue: false, submitOnChange: true
                 if(logEnable) input "logMinutes", "text", title: "Log for the following number of minutes (0=logs always on):", required: false, defaultValue:15, submitOnChange: true 
 				input "runTest", "bool", title: "Run a test Alert?", required: false, defaultValue: false, submitOnChange: true
@@ -804,7 +806,7 @@ def UIsupport(type, txt) {
             return "<div style='color:#ffffff;font-weight: bold;background-color:#1A7BC7;border: 1px solid;box-shadow: 2px 3px #A9A9A9'>${txt}</div>"
             break
         case "footer":
-            return "<div style='color:#1A77C9;text-align:center'>Developed by: Aaron Ward<br/>App/Driver v${version()}<br><br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg' border='0' alt='PayPal Logo'></a><br><br>Donations always appreciated!</div>"
+            return "<div style='color:#1A77C9;text-align:center'>App/Driver v${version()}<br>Developed by: Aaron Ward<br><a href='https://paypal.me/aaronmward?locale.x=en_US' target='_blank'><img src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/support/images/paypal.jpg' border='0' alt='PayPal Logo'></a></div>"
             break
         case "configured":
             return "<img border=0 style='max-width:15px' src='https://raw.githubusercontent.com/PrayerfulDrop/Hubitat/master/support/images/Checked.svg'>"
