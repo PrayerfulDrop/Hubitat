@@ -3,9 +3,9 @@
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
    "dateReleased": "2019-02-01",
-   "version": "3.0.015",
+   "version": "3.0.016",
    "licenseFile": "",
-   "releaseNotes": "UI changes, section information for setup",
+   "releaseNotes": "Added debug alerts to show even expired alerts to test configuration options.  Also fixed missing State (indiana)",
    "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
    "communityLink": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
    "apps" : [
