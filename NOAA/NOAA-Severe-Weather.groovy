@@ -22,7 +22,7 @@
  * Last Update: 6/8/2020 : 6:08AM
  */
 
-String version() { return "3.0.013" }
+String version() { return "3.0.014" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -272,7 +272,7 @@ def main() {
 	getAlertMsg()	
     if(atomicState.ListofAlerts) {
 	    if(atomicState.alertAnnounced) { 
-		    if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+		    if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minute(s) before next poll..."
         } else {
             if(pushovertts || musicmode || speechmode || echoSpeaks2) {
                  atomicState.alertAnnounced = true
@@ -283,7 +283,7 @@ def main() {
                 } else state.repeatmsg = null
             }   
 	    }
-    } else if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
+    } else if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minute(s) before next poll..."
 }
 
 def alertNow(alertmsg, repeatCheck){
@@ -337,64 +337,27 @@ def getAlertMsg() {
         def date = new Date()
         String timestamp = date.format("yyyy-MM-dd'T'HH:mm:ssXXX")
 
-        for(i=0; i<result.data.features.size();i++) {       
-            alertsent = result.data.features[i].properties.sent
-            alerteffective = result.data.features[i].properties.effective
-
+        for(i=0; i<result.data.features.size();i++) { 
+            debug=true
+            alertmsg=[]
+            
+            //alert expiration
             if(result.data.features[i].properties.ends) alertexpires = result.data.features[i].properties.ends
             else alertexpires = result.data.features[i].properties.expires
-            
+
             //if alert has expired ignore alert
             if(alertexpires.compareTo(timestamp)>=0) {
-                if(atomicState.ListofAlerts) {
+            //if specific weatheralerts is chosen
+                if(myWeatherAlert==null || myWeatherAlert=="") msg = buildAlertMsg(result.data.features[i])   
+                else if(myWeatherAlert.contains(result.data.features[i].properties.event)) msg = buildAlertMsg(result.data.features[i])
+                
+                if(msg!=null && atomicState.ListofAlerts) {
                     if(!(atomicState.ListofAlerts.alertid.contains(result.data.features[i].properties.id))) { IsnewList = true
                     if(logEnable) log.debug "${result.data.features[i].properties.id} is new in ListofAlerts: ${IsnewList}" }
-                }
-                //build new entry for map
-                alertarea = (result.data.features[i].properties.areaDesc)
-                alertarea = alertRemoveStates(alertarea)
-                alertarea = alertFormatArea(alertarea)
-                alertheadline = result.data.features[i].properties.headline
-                alertheadline = alertFormatStates(alertheadline)
-                alertheadline = alertRemoveTimeZone(alertheadline)
-                alertheadline = alertFormatText(alertheadline)
-                alertdescription = result.data.features[i].properties.description
-                alertdescription = alertFormatStates(alertdescription)
-                alertdescription = alertRemoveTimeZone(alertdescription)
-                alertdescription = alertFormatText(alertdescription)
-                if(result.data.features[i].properties.instruction==null) alertinstruction = alertdescription
-                else { 
-                    alertinstruction = result.data.features[i].properties.instruction
-                    alertinstruction = alertFormatStates(alertinstruction)
-                    alertinstruction = alertRemoveTimeZone(alertinstruction)
-                    alertinstruction = alertFormatText(alertinstruction)
-                 }
-                alertmsg = alertCustomMsg
-	            try {alertmsg = alertmsg.replace("{alertarea}","${alertarea}") }
-	            catch (any) {}
-	            try {alertmsg = alertmsg.replace("{alertseverity}","${result.data.features[i].properties.severity}") }
-	            catch (any) {}
-	            try {alertmsg = alertmsg.replace("{alertcertainty}","${result.data.features[i].properties.certainty}") }
-	            catch (any) {}
-	            try {alertmsg = alertmsg.replace("{alerturgency}","${result.data.features[i].properties.urgency}") }
-	            catch (any) {}
-	            try {alertmsg = alertmsg.replace("{alertheadline}","${alertheadline}") }
-	            catch (any) {}
-	            try {alertmsg = alertmsg.replace("{alertdescription}","${alertdescription}") }
-	            catch (any) {}
-	            try {alertmsg = alertmsg.replace("{alertinstruction}","${alertinstruction}") }
-	            catch (any) {}
-	            try {alertmsg = alertmsg.replace("{alertevent}","${result.data.features[i].properties.event}") }
-	            catch (any) {}					
-	            try {alertmsg = alertmsg.replaceAll("\n"," ") }
-	            catch (any) {}
-                try {alertmsg = alertmsg.trim().replaceAll("[ ]{2,}", ", ") }
-                catch (any) {}
-                alertmsg = alertmsg.replaceAll("\\s+", " ")
-                
-                ListofAlerts << [alertid:result.data.features[i].properties.id, alertseverity:result.data.features[i].properties.severity, alertarea:alertarea, alertsent:alertsent, alerteffective:alerteffective, alertexpires:alertexpires, alertstatus:result.data.features[i].properties.status, alertmessagetype:result.data.features[i].properties.messageType, alertcategory:result.data.features[i].properties.category, alertcertainty:result.data.features[i].properties.certainty, alerturgency:result.data.features[i].properties.urgency, alertsendername:result.data.features[i].properties.senderName, alertheadline:alertheadline, alertdescription:alertdescription, alertinstruction:alertinstruction, alertevent:result.data.features[i].properties.event, alertmsg:alertmsg]
-            }
-        }
+                } //end of listofalerts
+                if(msg!=null) ListofAlerts << msg
+            } // end alertexpires
+        } //end of for statement
 
         if(ListofAlerts==null || IsnewList) atomicState.alertAnnounced = false
         if(ListofAlerts==null && alertSwitch) alertSwitch.off()
@@ -402,7 +365,55 @@ def getAlertMsg() {
     }
     
 
-}                    
+} 
+
+def buildAlertMsg(result) {
+    //build new entry for map
+    if(result.properties.ends) alertexpires = result.properties.ends
+    else alertexpires = result.properties.expires
+    alertarea = (result.properties.areaDesc)
+    alertarea = alertRemoveStates(alertarea)
+    alertarea = alertFormatArea(alertarea)
+    alertheadline = result.properties.headline
+    alertheadline = alertFormatStates(alertheadline)
+    alertheadline = alertRemoveTimeZone(alertheadline)
+    alertheadline = alertFormatText(alertheadline)
+    alertdescription = result.properties.description
+    alertdescription = alertFormatStates(alertdescription)
+    alertdescription = alertRemoveTimeZone(alertdescription)
+    alertdescription = alertFormatText(alertdescription)
+    if(result.properties.instruction==null) alertinstruction = alertdescription
+    else { 
+         alertinstruction = result.properties.instruction
+         alertinstruction = alertFormatStates(alertinstruction)
+         alertinstruction = alertRemoveTimeZone(alertinstruction)
+         alertinstruction = alertFormatText(alertinstruction)
+    }
+    alertmsg = alertCustomMsg
+    try {alertmsg = alertmsg.replace("{alertarea}","${alertarea}") }
+      catch (any) {}
+    try {alertmsg = alertmsg.replace("{alertseverity}","${result.properties.severity}") }
+      catch (any) {}
+    try {alertmsg = alertmsg.replace("{alertcertainty}","${result.properties.certainty}") }
+      catch (any) {}
+    try {alertmsg = alertmsg.replace("{alerturgency}","${result.properties.urgency}") }
+      catch (any) {}
+    try {alertmsg = alertmsg.replace("{alertheadline}","${alertheadline}") }
+      catch (any) {}
+    try {alertmsg = alertmsg.replace("{alertdescription}","${alertdescription}") }
+      catch (any) {}
+    try {alertmsg = alertmsg.replace("{alertinstruction}","${alertinstruction}") }
+      catch (any) {}
+    try {alertmsg = alertmsg.replace("{alertevent}","${result.properties.event}") }
+      catch (any) {}					
+    try {alertmsg = alertmsg.replaceAll("\n"," ") }
+      catch (any) {}
+    try {alertmsg = alertmsg.trim().replaceAll("[ ]{2,}", ", ") }
+      catch (any) {}
+    alertmsg = alertmsg.replaceAll("\\s+", " ")
+
+    return [alertid:result.properties.id, alertseverity:result.properties.severity, alertarea:alertarea, alertsent:result.properties.sent, alerteffective:result.properties.effective, alertexpires:alertexpires, alertstatus:result.properties.status, alertmessagetype:result.properties.messageType, alertcategory:result.properties.category, alertcertainty:result.properties.certainty, alerturgency:result.properties.urgency, alertsendername:result.properties.senderName, alertheadline:alertheadline, alertdescription:alertdescription, alertinstruction:alertinstruction, alertevent:result.properties.event, alertmsg:alertmsg]
+}
 
 def alertFormatStates(msg) {
     msg = msg.replaceAll("/AL/","Alabama")
@@ -669,8 +680,6 @@ def getResponseURL() {
 	else wxURI = wxURI + "&severity=severe"
     
 	if(whatAlertCertainty !=null) wxURI = wxURI + "&certainty=${whatAlertCertainty.join(",")}"
-    
-	if(myWeatherAlert != null) wxURI = wxURI + "&event=${myWeatherAlert.join(",")}"
     
 	state.wxURI = wxURI
     if(logEnable) log.debug "URI: <a href='${wxURI}' target=_blank>${wxURI}</a>"
