@@ -257,7 +257,7 @@ def SettingsPage() {
                             testalertmsg = ""
                             restrictionSeverity = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[y].alertseverity)) ? true : false
                             restrictionWeatherType = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[y].alertevent)) ? true : false
-                            if(restrictionSwitch == false || restrictionMode == false) {
+                            if((restrictionSwitch == false || restrictionMode == false) && (modeSeverityYes == false || modeWeatherType == false)) {
                                 if(pushovertts) testalertmsg = "alert would be announced on TTS and PushOver device(s)."
                                 else testalertmsg = "alert would be announced only on TTS device(s)."
                             } else {
