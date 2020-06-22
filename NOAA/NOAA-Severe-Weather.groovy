@@ -19,10 +19,10 @@
  *              Donations are always appreciated: https://www.paypal.me/aaronmward
  * ------------------------------------------------------------------------------------------------------------------------------
  *
- * Last Update: 6/11/2020 : 6:30PM
+ * Last Update: 6/22/2020 : 1:41PM
  */
 
-String version() { return "3.0.017" }
+String version() { return "3.0.018" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -298,8 +298,10 @@ def main() {
 		    if(logEnable) log.info "No new alerts.  Waiting ${whatPoll.toInteger()} minute(s) before next poll..."
         } else {
             if(pushovertts || musicmode || speechmode || echoSpeaks2) {
-                 atomicState.alertAnnounced = true
-                 alertNow(atomicState.ListofAlerts[0].alertmsg, false)
+                def noaaTile = getChildDevice("NOAA")
+                noaaTile.refreshTile()
+                atomicState.alertAnnounced = true
+                alertNow(atomicState.ListofAlerts[0].alertmsg, false)
                 if(repeatYes && atomicState.ListofAlerts[0].alertrepeat == false) {
                     state.repeatmsg = atomicState.ListofAlerts[0].alertmsg
                     repeatNow()
@@ -647,6 +649,7 @@ def getTile() {
         } else {
             if(atomicState.ListofAlerts) {
                 for(x=0;x<atomicState.ListofAlerts.size();x++) {
+                    if(logEnable) log.info "Creating data information for tile display."
                     msg << [alertmsg:atomicState.ListofAlerts[x].alertmsg]
                 }   
             }
