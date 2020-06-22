@@ -246,7 +246,7 @@ def SettingsPage() {
                         def testConfig = ""
                         if(useAlertIntro) customMsg = "${AlertIntro}, ${alertCustomMsg}"
                         else customMsg = alertCustomMsg
-                        temp = "Current poll of Weather API: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${customMsg}<br><br>"
+                        temp = "<hr><br>Current poll of Weather API: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${customMsg}<br><br>"
                         temp += "<table border=0><tr colspan=2><td>Current Restriction Settings:</td></tr>"
                         temp += "<tr><td>Switch:</td><td>${restrictionSwitch}</td></tr>"
                         temp += "<tr><td>Mode:</td><td>${restrictionMode}</td></tr>"
