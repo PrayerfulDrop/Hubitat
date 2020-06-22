@@ -3,9 +3,9 @@
    "minimumHEVersion": "2.1.9",
    "author": "Aaron Ward",
    "dateReleased": "2019-02-01",
-   "version": "3.0.017",
+   "version": "3.0.018",
    "licenseFile": "",
-   "releaseNotes": "Found bug in restrictions and alerts.  Added in test alert description if displayed alert would be announced.",
+   "releaseNotes": "Fixed NOAA Tile issues for displaying alerts.",
    "documentationLink": "https://github.com/PrayerfulDrop/Hubitat/blob/master/NOAA/README.md",
    "communityLink": "https://community.hubitat.com/t/release-noaa-weather-alerts/11141",
    "apps" : [
