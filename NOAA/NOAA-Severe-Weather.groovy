@@ -242,9 +242,9 @@ def SettingsPage() {
                         def alertSwitchReset = (alertSwitchWeatherType && alertSwitchWeatherTypeWatch != null && alertSwitchWeatherTypeWatch.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
                         def testresult = (!(result || result2) || result3 || result4) ? true : false
 					    def date = new Date()
-					    sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
+					    sdf = new SimpleDateFormat("MM/dd/yyyy h:mm a")
                         def testConfig = ""
-                        temp = "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${alertCustomMsg}<br><br>"
+                        temp = "Current poll of Weather API: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${alertCustomMsg}<br><br>"
                         temp += "<table border=0><tr colspan=2><td>Current Restriction Settings:</td></tr>"
                         temp += "<tr><td>Switch:</td><td>${restrictionSwitch}</td></tr>"
                         temp += "<tr><td>Mode:</td><td>${restrictionMode}</td></tr>"
