@@ -22,7 +22,7 @@
  * Last Update: 6/11/2020 : 6:30PM
  */
 
-String version() { return "3.0.016" }
+String version() { return "3.0.017" }
 
 definition(
     name:"NOAA Weather Alerts",
@@ -199,7 +199,7 @@ def RestrictionsPage() {
             if(modeWeatherType) { input name: "WeatherType", type: "enum", title: "Select weather type to ignore restrictions: ", required: true, multiple:true, submitOnChange: true, options: atomicState.eventTypes
                                 }
             paragraph "<hr>"
-            if(pushovertts) input "pushoverttsalways ", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
+            if(pushovertts) input "pushoverttsalways", "bool", title: "Enable Pushover notifications even when restricted?", required: false, defaultValue: false, submitOnChange: true
                 }
     }
 }
@@ -235,18 +235,35 @@ def SettingsPage() {
                     app?.updateSetting("debug",[value:"false",type:"bool"])
 					
 					if(atomicState.ListofAlerts) {                    
-                        def result = (!modesYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
-                        def result2 =    ( modesYes && modes !=null && modes.contains(location.mode)) ? true : false
-                        def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity)) ? true : false
-                        def result4 = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
+                        def restrictionSwitch = (switchYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
+                        def restrictionMode = (modesYes && modes !=null && modes.contains(location.mode)) ? true : false
+                        def restrictionSeverity = (modeSeverityYes && modeSeverity !=null) ? true : false
+                        def restrictionWeatherType = (modeWeatherType && WeatherType !=null) ? true : false
+                        def alertSwitchReset = (alertSwitchWeatherType && alertSwitchWeatherTypeWatch != null && alertSwitchWeatherTypeWatch.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
                         def testresult = (!(result || result2) || result3 || result4) ? true : false
 					    def date = new Date()
 					    sdf = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a")
                         def testConfig = ""
-                        paragraph "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${alertCustomMsg}<br><br>Restrictions enabled?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}, Weather Type Override: ${result4}"
+                        temp = "Current poll of weather API at: ${sdf.format(date)}<br/><br/>URI: <a href='${state.wxURI}' target=_blank>${state.wxURI}</a><br><br>AlertMSG Built based on configuration:<br><br>${alertCustomMsg}<br><br>"
+                        temp += "<table border=0><tr colspan=2><td>Current Restriction Settings:</td></tr>"
+                        temp += "<tr><td>Switch:</td><td>${restrictionSwitch}</td></tr>"
+                        temp += "<tr><td>Mode:</td><td>${restrictionMode}</td></tr>"
+                        temp += "<tr><td>Severity:</td><td>${restrictionSeverity}</td></tr>"
+                        temp += "<tr><td>Weather Type:</td><td>${restrictionWeatherType}</td></tr></table></br>"
+                        paragraph temp
                         for(y=0;y<atomicState.ListofAlerts.size();y++) {
-                            testConfig +="<table border=1px><tr><td colspan='2'>Alert ${y+1}/${atomicState.ListofAlerts.size()}</td></tr>"
-                            testConfig += "<tr><td>Field Name</th><th>Value</th></tr><tr><td>Severity</td><td>${atomicState.ListofAlerts[y].alertseverity}</td></tr>"
+                            testalertmsg = ""
+                            restrictionSeverity = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[y].alertseverity)) ? true : false
+                            restrictionWeatherType = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[y].alertevent)) ? true : false
+                            if((restrictionSwitch == false || restrictionMode == false) && (restrictionSeverity == true || restrictionWeatherType == true)) {
+                                if(pushovertts) testalertmsg = "alert would be announced on TTS and PushOver device(s)."
+                                else testalertmsg = "alert would be announced only on TTS device(s)."
+                            } else {
+                                if(pushovertts && pushoverttsalways) testalertmsg = "alert would be announced only on PushOver device(s).  Alert does not meet other restriction requirements for TTS."
+                                else testalertmsg = "alert would not be announced.  Alert does not meet restiction requirements."
+                            }
+                            testConfig +="<table border=1px><tr><td colspan='2'>Alert ${y+1}/${atomicState.ListofAlerts.size()} - ${testalertmsg}</td></tr>"
+                            testConfig += "<tr><td>Field Name</td><td>Value</td></tr><tr><td>Severity</td><td>${atomicState.ListofAlerts[y].alertseverity}</td></tr>"
                             testConfig += "<tr><td>Area</td><td>${atomicState.ListofAlerts[y].alertarea}</td></tr>"
                             testConfig += "<tr><td>Sent</td><td>${atomicState.ListofAlerts[y].alertsent}</td></tr>"
                             testConfig += "<tr><td>Effective</td><td>${atomicState.ListofAlerts[y].alerteffective}</td></tr>"
@@ -292,25 +309,25 @@ def main() {
 
 def alertNow(alertmsg, repeatCheck){
 	// check restrictions based on Modes and Switches
-    def result = (switchYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
-    def result2 = (modesYes && modes !=null && modes.contains(location.mode)) ? true : false
-    def result3 = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity)) ? true : false
-    def result4 = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
-    def result5 = (alertSwitchWeatherType && alertSwitchWeatherTypeWatch != null && alertSwitchWeatherTypeWatch.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
+    def restrictionSwitch = (switchYes && restrictbySwitch !=null && restrictbySwitch.currentState("switch").value == "on") ? true : false
+    def restrictionMode = (modesYes && modes !=null && modes.contains(location.mode)) ? true : false
+    def restrictionSeverity = (modeSeverityYes && modeSeverity !=null && modeSeverity.contains(atomicState.ListofAlerts[0].alertseverity)) ? true : false
+    def restrictionWeatherType = (modeWeatherType && WeatherType !=null && WeatherType.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
+    def alertSwitchReset = (alertSwitchWeatherType && alertSwitchWeatherTypeWatch != null && alertSwitchWeatherTypeWatch.contains(atomicState.ListofAlerts[0].alertevent)) ? true : false
     if(logEnable) log.debug "Restrictions on?  Modes: ${result2}, Switch: ${result}, Severity Override: ${result3}, Weather Type Override: ${result4}"
    
     // no restrictions
-    if(!(result || result2) || result3 || result4) {  
-            log.info "Sending alert: ${alertmsg}"
-            pushNow(alertmsg, repeatCheck)
-		    if(alertSwitch) alertSwitch.on()
-		    talkNow(alertmsg, repeatCheck)  
+    if((restrictionSwitch == false || restrictionMode == false) && (restrictionSeverity == true || restrictionWeatherType == true)) {
+        log.info "Sending alert: ${alertmsg}"
+        pushNow(alertmsg, repeatCheck)
+	    if(alertSwitch == true) alertSwitch.on()
+	    talkNow(alertmsg, repeatCheck)  
      } else {
-            if(pushoverttsalways) {	
+            if(pushoverttsalways == true) {	
                 log.info "Restrictions are enabled but PushoverTTS enabled.  Waiting ${whatPoll.toInteger()} minutes before next poll..."
                 pushNow(alertmsg, repeatCheck) 
             }
-            if(!result5 && alertSwitch && alertSwitchWeatherType) alertSwitch.off()
+            if(alertSwitchReset == true) alertSwitch.off()
             else log.info "Restrictions are enabled!  Waiting ${whatPoll.toInteger()} minutes before next poll..."
     }
 }
