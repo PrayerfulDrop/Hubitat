@@ -36,6 +36,8 @@ support for all WiFi enabled Roomba devices.</p>
     <b>Setting up Rest980 to run as a service:</b>
     <ul><li>sudo nano /etc/systemd/system/roomba.service</li>
       <li>Enter the following changing your WorkingDirectory to where yours is:<br><p>
+<pre>
+
 [Unit]
 Description=Roomba Service
 After=network.target
@@ -48,6 +50,7 @@ User=pi
 
 [Install]
 WantedBy=multi-user.target
+</pre> 
 </p></li>
 <li>sudo systemctl enable roomba.service</li>
 <li>sudo systemctl start roomba.service</li>
